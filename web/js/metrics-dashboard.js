@@ -1,5 +1,6 @@
 // Real-time Metrics Dashboard
 import { BackendConfig } from './utils/BackendConfig.js';
+import { WebSocketClient } from './utils/WebSocketClient.js';
 
 class MetricsDashboard {
     constructor() {
