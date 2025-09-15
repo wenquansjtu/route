@@ -1,4 +1,6 @@
 // Real-time Metrics Dashboard
+import { BackendConfig } from './utils/BackendConfig.js';
+
 class MetricsDashboard {
     constructor() {
         this.websocket = null;

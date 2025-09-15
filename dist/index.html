@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Agent Network - Real AI Multi-Agent System</title>
+    
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+  <script type="module" crossorigin src="/assets/index-a65fa839.js"></script>
+  <link rel="stylesheet" href="/assets/index-6562194d.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 头部导航 -->
+        <header class="header">
+            <div class="container">
+                <h1 class="logo">🤖 Real AI Cosmic Network</h1>
+                <nav class="nav">
+                    <button class="nav-btn active" data-view="ai-overview">🧠 AI Overview</button>
+                    <button class="nav-btn" data-view="collaboration">🤝 Collaboration Lab</button>
+                    <button class="nav-btn" data-view="network">🌐 Network Topology</button>
+                    <button class="nav-btn" data-view="monitoring">📊 Monitoring</button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="main">
+            <!-- Real AI Overview视图 -->
+            <section id="ai-overview" class="view active">
+                <div class="container">
+                    <div class="metrics-dashboard">
+                        <!-- 系统状态总览 -->
+                        <div class="dashboard-section">
+                            <h2>🧠 AI System Status</h2>
+                            <div class="status-grid">
+                                <div class="status-card">
+                                    <div class="status-icon">🤖</div>
+                                    <div class="status-info">
+                                        <h3 id="total-agents">0</h3>
+                                        <p>Active AI Agents</p>
+                                    </div>
+                                    <div class="status-indicator" id="agents-status">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">🤝</div>
+                                    <div class="status-info">
+                                        <h3 id="active-collaborations">0</h3>
+                                        <p>Active Collaborations</p>
+                                    </div>
+                                    <div class="status-indicator" id="collab-status">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">📊</div>
+                                    <div class="status-info">
+                                        <h3 id="total-tasks">0</h3>
+                                        <p>Completed Tasks</p>
+                                    </div>
+                                    <div class="status-indicator success">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">⚡</div>
+                                    <div class="status-info">
+                                        <h3 id="api-status">●</h3>
+                                        <p>OpenAI API</p>
+                                    </div>
+                                    <div class="status-indicator" id="api-indicator">●</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 实时AI Agent指标 -->
+                        <div class="dashboard-section">
+                            <h2>🔥 Live AI Agent Metrics</h2>
+                            <div id="agent-metrics-container" class="agent-metrics-grid">
+                                <!-- AI Agent cards will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- 协作性能指标 -->
+                        <div class="dashboard-section">
+                            <h2>📈 Collaboration Performance</h2>
+                            <div class="performance-grid">
+                                <div class="metric-card">
+                                    <h4>Convergence Rate</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="convergence-rate">0%</div>
+                                        <div class="metric-chart" id="convergence-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Average Response Time</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="avg-response-time">0ms</div>
+                                        <div class="metric-chart" id="response-time-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Token Usage</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="token-usage">0</div>
+                                        <div class="metric-chart" id="token-usage-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Success Rate</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="success-rate">100%</div>
+                                        <div class="metric-chart" id="success-rate-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 系统资源监控 -->
+                        <div class="dashboard-section">
+                            <h2>💻 System Resources</h2>
+                            <div class="resource-grid">
+                                <div class="resource-meter">
+                                    <h4>Memory Usage</h4>
+                                    <div class="meter">
+                                        <div class="meter-bar" id="memory-bar"></div>
+                                        <span class="meter-value" id="memory-value">0 MB</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="resource-meter">
+                                    <h4>WebSocket Connections</h4>
+                                    <div class="meter">
+                                        <div class="meter-bar" id="connections-bar"></div>
+                                        <span class="meter-value" id="connections-value">0</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="resource-meter">
+                                    <h4>Uptime</h4>
+                                    <div class="meter">
+                                        <span class="meter-value uptime" id="uptime-value">0s</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 实时活动日志 -->
+                        <div class="dashboard-section">
+                            <h2>📝 Real-time Activity Feed</h2>
+                            <div class="activity-feed" id="activity-feed">
+                                <!-- Activity items will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Network Topology视图 -->
+            <section id="network" class="view">
+                <div class="container">
+                    <div class="metrics-dashboard">
+                        <!-- Network Health Status -->
+                        <div class="dashboard-section">
+                            <h2>🌐 Network Health</h2>
+                            <div class="status-grid">
+                                <div class="status-card">
+                                    <div class="status-icon">🔗</div>
+                                    <div class="status-info">
+                                        <h3 id="network-connections">0</h3>
+                                        <p>Total Connections</p>
+                                    </div>
+                                    <div class="status-indicator online">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">⚙️</div>
+                                    <div class="status-info">
+                                        <h3 id="network-stability">100%</h3>
+                                        <p>Network Stability</p>
+                                    </div>
+                                    <div class="status-indicator success">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">📈</div>
+                                    <div class="status-info">
+                                        <h3 id="throughput">0 req/s</h3>
+                                        <p>Message Throughput</p>
+                                    </div>
+                                    <div class="status-indicator warning">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">🎯</div>
+                                    <div class="status-info">
+                                        <h3 id="clustering-coefficient">0.0</h3>
+                                        <p>Clustering Coeff</p>
+                                    </div>
+                                    <div class="status-indicator online">●</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Network Topology Visualization -->
+                        <div class="dashboard-section">
+                            <h2>🗺️ Network Topology</h2>
+                            <div class="controls" style="margin-bottom: 20px;">
+                                <button id="layout-force" class="btn">Force Layout</button>
+                                <button id="layout-circular" class="btn">Circular</button>
+                                <button id="layout-hierarchical" class="btn">Hierarchical</button>
+                                <label style="margin-left: 20px; color: #0ea5e9;">Node Size:</label>
+                                <input type="range" id="node-size" min="5" max="20" value="10" style="margin: 0 10px;">
+                                <label style="color: #0ea5e9;">Link Strength:</label>
+                                <input type="range" id="link-strength" min="0.1" max="2" step="0.1" value="1" style="margin: 0 10px;">
+                            </div>
+                            <div id="network-graph" style="width: 100%; height: 400px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3);"></div>
+                        </div>
+
+                        <!-- Network Metrics -->
+                        <div class="dashboard-section">
+                            <h2>📉 Network Analytics</h2>
+                            <div class="performance-grid">
+                                <div class="metric-card">
+                                    <h4>Average Path Length</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="avg-path-length">0.0</div>
+                                        <div class="metric-chart" id="path-length-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Network Density</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="network-density">0%</div>
+                                        <div class="metric-chart" id="density-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Centrality Index</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="centrality-index">0.0</div>
+                                        <div class="metric-chart" id="centrality-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Information Flow</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="info-flow">0 msg/s</div>
+                                        <div class="metric-chart" id="flow-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Agent Positions -->
+                        <div class="dashboard-section">
+                            <h2>📍 Agent Positions</h2>
+                            <div id="agent-positions-list" class="agent-metrics-grid">
+                                <!-- Agent position cards will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Collaboration Lab视图 -->
+            <section id="collaboration" class="view">
+                <div class="container">
+                    <div class="metrics-dashboard">
+                        <!-- Real-time Collaboration Status -->
+                        <div class="dashboard-section">
+                            <h2>🤝 Active Collaborations</h2>
+                            <div class="status-grid">
+                                <div class="status-card">
+                                    <div class="status-icon">💬</div>
+                                    <div class="status-info">
+                                        <h3 id="discussion-rounds">0</h3>
+                                        <p>Discussion Rounds</p>
+                                    </div>
+                                    <div class="status-indicator online">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">🎯</div>
+                                    <div class="status-info">
+                                        <h3 id="consensus-level">0%</h3>
+                                        <p>Consensus Level</p>
+                                    </div>
+                                    <div class="status-indicator warning">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">⚡</div>
+                                    <div class="status-info">
+                                        <h3 id="synthesis-speed">0ms</h3>
+                                        <p>Synthesis Speed</p>
+                                    </div>
+                                    <div class="status-indicator success">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">🔗</div>
+                                    <div class="status-info">
+                                        <h3 id="collaboration-strength">0.0</h3>
+                                        <p>Collab Strength</p>
+                                    </div>
+                                    <div class="status-indicator online">●</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Collaboration Sessions -->
+                        <div class="dashboard-section">
+                            <h2>🔄 Live Sessions</h2>
+                            <div id="live-collaboration-sessions" class="agent-metrics-grid">
+                                <!-- Live sessions will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Convergence Analysis -->
+                        <div class="dashboard-section">
+                            <h2>📊 Convergence Analytics</h2>
+                            <div class="performance-grid">
+                                <div class="metric-card">
+                                    <h4>Iteration Progress</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="iteration-count">0/5</div>
+                                        <div class="metric-chart" id="iteration-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Confidence Alignment</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="confidence-alignment">0%</div>
+                                        <div class="metric-chart" id="confidence-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Idea Diversity</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="idea-diversity">0.0</div>
+                                        <div class="metric-chart" id="diversity-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Synthesis Quality</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="synthesis-quality">0%</div>
+                                        <div class="metric-chart" id="quality-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Collaboration Flow -->
+                        <div class="dashboard-section">
+                            <h2>🌊 Collaboration Flow</h2>
+                            <div class="activity-feed" id="collaboration-flow">
+                                <!-- Collaboration flow items will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 任务管理视图 -->
+            <section id="tasks" class="view">
+                <div class="container">
+                    <div class="view-header">
+                        <h2>任务管理</h2>
+                        <button id="create-task" class="primary-btn">创建任务</button>
+                    </div>
+                    <div class="tasks-grid">
+                        <div class="tasks-panel">
+                            <h3>任务队列</h3>
+                            <div id="task-queue"></div>
+                        </div>
+                        <div class="tasks-panel">
+                            <h3>执行中任务</h3>
+                            <div id="executing-tasks"></div>
+                        </div>
+                        <div class="tasks-panel">
+                            <h3>已完成任务</h3>
+                            <div id="completed-tasks"></div>
+                        </div>
+                        <div class="tasks-panel">
+                            <h3>任务链</h3>
+                            <div id="task-chains"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Task Chain Visualization Section -->
+                    <div class="dashboard-section" id="task-chain-visualization-section" style="display: none; margin-top: 30px;">
+                        <h2>🔗 Task Chain Execution Path</h2>
+                        <div class="controls" style="margin-bottom: 20px;">
+                            <button id="refresh-task-chain" class="btn">Refresh Visualization</button>
+                            <button id="clear-task-chain" class="btn" style="margin-left: 10px;">Clear</button>
+                        </div>
+                        <div id="task-chain-graph" style="width: 100%; height: 500px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3);"></div>
+                        <div id="task-chain-details" style="margin-top: 20px; padding: 15px; background: rgba(14, 165, 233, 0.1); border-radius: 8px;">
+                            <h4>Execution Path Details</h4>
+                            <div id="task-chain-info"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Real-time Monitoring视图 -->
+            <section id="monitoring" class="view">
+                <div class="container">
+                    <div class="metrics-dashboard">
+                        <!-- System Performance Monitoring -->
+                        <div class="dashboard-section">
+                            <h2>📈 System Performance</h2>
+                            <div class="status-grid">
+                                <div class="status-card">
+                                    <div class="status-icon">🖥️</div>
+                                    <div class="status-info">
+                                        <h3 id="cpu-usage">0%</h3>
+                                        <p>CPU Usage</p>
+                                    </div>
+                                    <div class="status-indicator success">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">💾</div>
+                                    <div class="status-info">
+                                        <h3 id="memory-usage-percent">0%</h3>
+                                        <p>Memory Usage</p>
+                                    </div>
+                                    <div class="status-indicator warning">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">🌐</div>
+                                    <div class="status-info">
+                                        <h3 id="network-latency">0ms</h3>
+                                        <p>Network Latency</p>
+                                    </div>
+                                    <div class="status-indicator online">●</div>
+                                </div>
+                                
+                                <div class="status-card">
+                                    <div class="status-icon">⚡</div>
+                                    <div class="status-info">
+                                        <h3 id="processing-speed">0 ops/s</h3>
+                                        <p>Processing Speed</p>
+                                    </div>
+                                    <div class="status-indicator success">●</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real-time Charts -->
+                        <div class="dashboard-section">
+                            <h2>📉 Live Performance Charts</h2>
+                            <div class="performance-grid">
+                                <div class="metric-card">
+                                    <h4>AI Response Times</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="live-response-time">0ms</div>
+                                        <div class="metric-chart" id="response-time-live-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Token Consumption</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="live-token-rate">0/min</div>
+                                        <div class="metric-chart" id="token-consumption-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Collaboration Events</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="collab-events">0</div>
+                                        <div class="metric-chart" id="events-chart"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-card">
+                                    <h4>Agent Activity</h4>
+                                    <div class="metric-display">
+                                        <div class="metric-value" id="agent-activity">0%</div>
+                                        <div class="metric-chart" id="activity-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resource Utilization -->
+                        <div class="dashboard-section">
+                            <h2>📋 Resource Utilization</h2>
+                            <div class="resource-grid">
+                                <div class="resource-meter">
+                                    <h4>OpenAI API Quota</h4>
+                                    <div class="meter">
+                                        <div class="meter-bar" id="api-quota-bar"></div>
+                                        <span class="meter-value" id="api-quota-value">0%</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="resource-meter">
+                                    <h4>Active Threads</h4>
+                                    <div class="meter">
+                                        <div class="meter-bar" id="threads-bar"></div>
+                                        <span class="meter-value" id="threads-value">0</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="resource-meter">
+                                    <h4>Message Queue</h4>
+                                    <div class="meter">
+                                        <div class="meter-bar" id="queue-bar"></div>
+                                        <span class="meter-value" id="queue-value">0</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="resource-meter">
+                                    <h4>Error Rate</h4>
+                                    <div class="meter">
+                                        <span class="meter-value uptime" id="error-rate">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Anomaly Detection -->
+                        <div class="dashboard-section">
+                            <h2>⚠️ Anomaly Detection</h2>
+                            <div class="activity-feed" id="anomaly-feed">
+                                <!-- Anomaly detection items will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Health Alerts -->
+                        <div class="dashboard-section">
+                            <h2>🚨 System Alerts</h2>
+                            <div class="activity-feed" id="system-alerts">
+                                <!-- System alerts will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 任务创建模态框 -->
+        <div id="task-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>创建新任务</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="task-form">
+                        <div class="form-group">
+                            <label>任务名称:</label>
+                            <input type="text" id="task-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>任务类型:</label>
+                            <select id="task-type">
+                                <option value="analysis">数据分析</option>
+                                <option value="processing">数据处理</option>
+                                <option value="reasoning">推理任务</option>
+                                <option value="collaboration">协作任务</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>协作类型:</label>
+                            <select id="collaboration-type">
+                                <option value="sequential">顺序协作</option>
+                                <option value="parallel">并行协作</option>
+                                <option value="hierarchical">分层协作</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>优先级:</label>
+                            <input type="range" id="task-priority" min="0" max="10" value="5">
+                            <span id="priority-value">5</span>
+                        </div>
+                        <div class="form-group">
+                            <label>任务描述:</label>
+                            <textarea id="task-description" rows="4"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>所需能力:</label>
+                            <div class="capabilities">
+                                <label><input type="checkbox" value="analysis"> 数据分析</label>
+                                <label><input type="checkbox" value="reasoning"> 逻辑推理</label>
+                                <label><input type="checkbox" value="processing"> 数据处理</label>
+                                <label><input type="checkbox" value="visualization"> 可视化</label>
+                                <label><input type="checkbox" value="communication"> 通信协调</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="secondary-btn" id="cancel-task">取消</button>
+                    <button type="submit" form="task-form" class="primary-btn">创建任务</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 脚本文件 -->
+    
+    
+    
+</body>
+</html>

@@ -1,4 +1,7 @@
 // Real AI Interface Controller
+import { WebSocketClient } from './utils/WebSocketClient.js';
+import { BackendConfig } from './utils/BackendConfig.js';
+
 class RealAIInterface {
     constructor() {
         this.websocket = null;
