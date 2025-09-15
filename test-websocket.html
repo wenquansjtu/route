@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Connection Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <button id="connectBtn">Connect to Server</button>
+    <button id="sendBtn" disabled>Send Test Message</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+    
+    <div id="status">Not connected</div>
+    <div id="messages"></div>
+
+    <script>
+        let socket;
+        
+        document.getElementById('connectBtn').onclick = () => {
+            socket = io('http://localhost:8080', {
+                transports: ['websocket', 'polling'],
+                timeout: 10000
+            });
+            
+            socket.on('connect', () => {
+                document.getElementById('status').textContent = 'Connected! Socket ID: ' + socket.id;
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = false;
+                addMessage('Connected to server');
+            });
+            
+            socket.on('disconnect', () => {
+                document.getElementById('status').textContent = 'Disconnected';
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('sendBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = true;
+                addMessage('Disconnected from server');
+            });
+            
+            socket.on('connect_error', (error) => {
+                addMessage('Connection error: ' + error.message);
+            });
+            
+            socket.on('test-response', (data) => {
+                addMessage('Server response: ' + JSON.stringify(data));
+            });
+        };
+        
+        document.getElementById('sendBtn').onclick = () => {
+            if (socket) {
+                socket.emit('test-message', { 
+                    message: 'Hello from client!', 
+                    timestamp: Date.now() 
+                });
+                addMessage('Sent test message to server');
+            }
+        };
+        
+        document.getElementById('disconnectBtn').onclick = () => {
+            if (socket) {
+                socket.disconnect();
+            }
+        };
+        
+        function addMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageElement = document.createElement('div');
+            messageElement.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>

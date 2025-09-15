@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Visualization Test</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        #test-graph {
+            width: 800px;
+            height: 600px;
+            background: #222;
+            border: 1px solid #444;
+            margin: 20px;
+        }
+        
+        .node circle {
+            stroke: #fff;
+            stroke-width: 1.5px;
+        }
+        
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+        
+        .node text {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            fill: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Network Visualization Test</h1>
+    <div id="test-graph"></div>
+    
+    <script type="module">
+        import { NetworkVisualizer } from './js/components/NetworkVisualizer.js';
+        
+        console.log('Starting network visualization test...');
+        
+        // Test if D3 is loaded
+        if (typeof d3 === 'undefined') {
+            console.error('D3.js is not loaded!');
+            document.body.innerHTML += '<p style="color: red;">D3.js is not loaded!</p>';
+        } else {
+            console.log('D3.js is loaded:', d3.version);
+            document.body.innerHTML += '<p style="color: green;">D3.js version: ' + d3.version + '</p>';
+        }
+        
+        // Test NetworkVisualizer
+        const networkViz = new NetworkVisualizer('#test-graph');
+        console.log('NetworkVisualizer created:', networkViz);
+        
+        try {
+            networkViz.init();
+            console.log('NetworkVisualizer initialized successfully');
+            document.body.innerHTML += '<p style="color: green;">NetworkVisualizer initialized successfully!</p>';
+        } catch (error) {
+            console.error('NetworkVisualizer initialization failed:', error);
+            document.body.innerHTML += '<p style="color: red;">NetworkVisualizer failed: ' + error.message + '</p>';
+        }
+    </script>
+</body>
+</html>

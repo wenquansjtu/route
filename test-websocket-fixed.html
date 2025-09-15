@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Connection Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="log"></div>
+
+    <script type="module">
+        // Import the WebSocketClient
+        import { WebSocketClient } from './web/js/utils/WebSocketClient.js';
+        
+        const statusElement = document.getElementById('status');
+        const logElement = document.getElementById('log');
+        
+        function log(message) {
+            const time = new Date().toLocaleTimeString();
+            logElement.innerHTML += `<p>[${time}] ${message}</p>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        const client = new WebSocketClient();
+        
+        // Set up event handlers
+        client.on('connected', () => {
+            statusElement.textContent = '✅ Connected';
+            log('Client connected successfully');
+        });
+        
+        client.on('disconnected', (reason) => {
+            statusElement.textContent = '❌ Disconnected';
+            log(`Client disconnected: ${reason}`);
+        });
+        
+        client.on('error', (error) => {
+            statusElement.textContent = '❌ Error';
+            log(`Client error: ${error}`);
+        });
+        
+        // Try to connect
+        client.connect('http://localhost:8080')
+            .then(() => {
+                log('Connection established');
+            })
+            .catch((error) => {
+                log(`Connection failed: ${error}`);
+            });
+            
+        // Keep testing for 30 seconds
+        setTimeout(() => {
+            log('Test completed');
+        }, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1b3c 50%, #2d1b69 100%);
+            color: white;
+            padding: 20px;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            margin: 5px;
+            display: inline-block;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .nav-btn.active {
+            background: linear-gradient(45deg, #2196f3, #21cbf3);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+        
+        .test-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .test-modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: rgba(26, 27, 60, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 UI Optimization Test</h1>
+    
+    <div class="test-section">
+        <h2>Tab Navigation Test</h2>
+        <p>Click the tabs below to test navigation effects:</p>
+        <button class="nav-btn active" data-view="test1">Tab 1</button>
+        <button class="nav-btn" data-view="test2">Tab 2</button>
+        <button class="nav-btn" data-view="test3">Tab 3</button>
+        <div id="feedback" style="margin-top: 10px; color: #0ea5e9;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Modal Test</h2>
+        <p>Click to test modal overlay:</p>
+        <button id="show-modal" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Show Modal</button>
+    </div>
+    
+    <div id="test-modal" class="test-modal">
+        <div class="modal-content">
+            <h3>Test Modal</h3>
+            <p>This modal should appear above all other content.</p>
+            <button id="close-modal" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Close</button>
+        </div>
+    </div>
+    
+    <script>
+        // Tab navigation test
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Remove active from all
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                
+                // Add active to clicked
+                btn.classList.add('active');
+                
+                // Show feedback
+                document.getElementById('feedback').textContent = `✅ Switched to ${btn.textContent}`;
+                
+                setTimeout(() => {
+                    document.getElementById('feedback').textContent = '';
+                }, 2000);
+            });
+        });
+        
+        // Modal test
+        document.getElementById('show-modal').addEventListener('click', () => {
+            document.getElementById('test-modal').classList.add('show');
+        });
+        
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('test-modal').classList.remove('show');
+        });
+        
+        console.log('🧪 UI Test page loaded successfully');
+    </script>
+</body>
+</html>
