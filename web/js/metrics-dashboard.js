@@ -112,7 +112,7 @@ class MetricsDashboard {
         } else {
             console.log('🔗 Creating new WebSocket connection for metrics dashboard');
             // Use Socket.IO instead of native WebSocket for compatibility with the backend
-            this.websocket = io('http://localhost:8080');
+            this.websocket = io(BackendConfig.getBackendUrl());
             
             this.websocket.on('connect', () => {
                 console.log('📡 Connected to Real AI WebSocket');

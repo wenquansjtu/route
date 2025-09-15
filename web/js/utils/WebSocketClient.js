@@ -1,4 +1,6 @@
 // Socket.IO客户端
+import { BackendConfig } from './BackendConfig.js';
+
 export class WebSocketClient {
     constructor() {
         this.socket = null;
@@ -14,7 +16,7 @@ export class WebSocketClient {
         this.heartbeatInterval = null; // Heartbeat interval
     }
     
-    async connect(url = 'http://localhost:8080') {
+    async connect(url = BackendConfig.getBackendUrl()) {
         // If already connected, return early
         if (this.isConnected && this.socket && this.socket.connected) {
             console.log(`[WebSocketClient-${this.connectionId}] Already connected`);

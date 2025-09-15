@@ -1,4 +1,5 @@
 import { WebSocketClient } from './web/js/utils/WebSocketClient.js';
+import { BackendConfig } from './web/js/utils/BackendConfig.js';
 
 async function testConnection() {
   const client = new WebSocketClient();
@@ -18,7 +19,7 @@ async function testConnection() {
   
   try {
     // Try to connect
-    await client.connect('http://localhost:8080');
+    await client.connect(BackendConfig.getBackendUrl());
     console.log('🎉 Connection test completed');
     
     // Keep the process running for a bit to test stability

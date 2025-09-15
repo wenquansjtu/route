@@ -16,8 +16,20 @@
     <script>
         let socket;
         
+        // Determine the backend URL based on the current domain
+        function getBackendUrl() {
+            // In development, use localhost:8080
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://localhost:8080';
+            }
+            
+            // In production, use the same domain as the frontend
+            return window.location.origin;
+        }
+        
         document.getElementById('connectBtn').onclick = () => {
-            socket = io('http://localhost:8080', {
+            const backendUrl = getBackendUrl();
+            socket = io(backendUrl, {
                 transports: ['websocket', 'polling'],
                 timeout: 10000
             });
@@ -27,7 +39,7 @@
                 document.getElementById('connectBtn').disabled = true;
                 document.getElementById('sendBtn').disabled = false;
                 document.getElementById('disconnectBtn').disabled = false;
-                addMessage('Connected to server');
+                addMessage('Connected to server at ' + backendUrl);
             });
             
             socket.on('disconnect', () => {

@@ -4,6 +4,7 @@ import { TCFVisualizer } from './components/TCFVisualizer.js';
 import { TaskChainVisualizer } from './components/TaskChainVisualizer.js';
 import { CollaborationMonitor, TaskManager, SystemMonitor } from './components/MonitoringComponents.js';
 import { WebSocketClient } from './utils/WebSocketClient.js';
+import { BackendConfig } from './utils/BackendConfig.js';
 
 class CosmicAgentApp {
     constructor() {
@@ -61,7 +62,7 @@ class CosmicAgentApp {
     async connectToServer() {
         try {
             console.log('🔄 Attempting to connect to Real AI Server...');
-            await this.ws.connect('http://localhost:8080');
+            await this.ws.connect(BackendConfig.getBackendUrl());
             
             // Set up reconnection logic
             this.ws.on('disconnected', (reason) => {
@@ -790,55 +791,38 @@ class CosmicAgentApp {
     }
     
     async fetchRealAIAgents() {
-        // Limit how often we fetch real AI agents to prevent excessive API calls
-        const now = Date.now();
-        if (this.lastAgentFetch && (now - this.lastAgentFetch) < 30000) { // 30 seconds
-            console.log('Skipping agent fetch - too soon since last fetch');
-            return;
-        }
-        this.lastAgentFetch = now;
-        
         try {
-            // Try to fetch real agent data from the AI server
-            const response = await fetch('http://localhost:8080/api/ai-status');
-            if (response.ok) {
-                const statusData = await response.json();
-                console.log('📊 Fetched real AI status:', statusData);
-                
-                if (statusData && statusData.aiAgents && statusData.aiAgents.length > 0) {
-                    // Convert real agent data to system state format
-                    const realAgents = new Map();
-                    statusData.aiAgents.forEach((agent, index) => {
-                        realAgents.set(agent.id, {
-                            id: agent.id,
-                            name: agent.name,
-                            type: agent.type,
-                            status: agent.status || 'online',
-                            position: { 
-                                x: 0.2 + (index % 3) * 0.3, 
-                                y: 0.2 + Math.floor(index / 3) * 0.3 
-                            },
-                            capabilities: agent.capabilities || []
-                        });
-                    });
-                    
-                    // Update system state with real agents
-                    this.systemState.agents = realAgents;
-                    
-                    // Generate connections based on collaboration patterns
-                    this.generateRealTopologyConnections(realAgents);
-                    
-                    // Update current view
-                    this.updateCurrentView();
-                    
-                    console.log('✅ Updated topology with', realAgents.size, 'real AI agents');
-                }
-            } else {
-                console.log('⚠️ AI server API not available, using sample data');
+            // Use BackendConfig to determine the correct URL
+            const backendUrl = BackendConfig.getBackendUrl();
+            const response = await fetch(`${backendUrl}/api/ai-status`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const data = await response.json();
+            console.log('📊 Fetched Real AI agent data:', data);
+            
+            // Update system state
+            this.systemState.agents = data.aiAgents || [];
+            this.systemState.collaborations = data.activeCollaborations || 0;
+            this.systemState.totalTasks = data.totalCollaborations || 0;
+            
+            // Update UI
+            this.updateAgentList();
+            this.updateSystemMetrics();
+            
+            return data;
         } catch (error) {
-            console.log('⚠️ Could not fetch real AI agents:', error.message);
-            console.log('📊 Using sample data for topology visualization');
+            console.error('❌ Failed to fetch Real AI agents:', error);
+            
+            // Try to connect to WebSocket if we haven't already
+            if (!this.ws || !this.ws.connected) {
+                this.connectToServer();
+            }
+            
+            // Return demo data if real data fetch fails
+            return this.getDemoData();
         }
     }
     

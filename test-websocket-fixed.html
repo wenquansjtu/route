@@ -10,8 +10,9 @@
     <div id="log"></div>
 
     <script type="module">
-        // Import the WebSocketClient
+        // Import the WebSocketClient and BackendConfig
         import { WebSocketClient } from './web/js/utils/WebSocketClient.js';
+        import { BackendConfig } from './web/js/utils/BackendConfig.js';
         
         const statusElement = document.getElementById('status');
         const logElement = document.getElementById('log');
@@ -41,7 +42,7 @@
         });
         
         // Try to connect
-        client.connect('http://localhost:8080')
+        client.connect(BackendConfig.getBackendUrl())
             .then(() => {
                 log('Connection established');
             })

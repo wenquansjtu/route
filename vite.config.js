@@ -12,7 +12,8 @@ export default defineConfig({
       },
       '/socket.io': {
         target: 'http://localhost:8080',
-        ws: true
+        ws: true,
+        changeOrigin: true
       }
     }
   },

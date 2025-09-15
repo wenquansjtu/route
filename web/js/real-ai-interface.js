@@ -300,7 +300,7 @@ class RealAIInterface {
             console.log('🔗 Creating new WebSocket connection');
             // Create new WebSocket connection
             this.websocket = new WebSocketClient();
-            this.websocket.connect('http://localhost:8080').catch((error) => {
+            this.websocket.connect(BackendConfig.getBackendUrl()).catch((error) => {
                 console.error('❌ Failed to connect to WebSocket:', error);
                 this.updateAIStatus('offline', 'Connection Failed');
             });
