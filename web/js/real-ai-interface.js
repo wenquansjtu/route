@@ -302,7 +302,13 @@ class RealAIInterface {
             this.websocket = new WebSocketClient();
             this.websocket.connect(BackendConfig.getBackendUrl()).catch((error) => {
                 console.error('❌ Failed to connect to WebSocket:', error);
-                this.updateAIStatus('offline', 'Connection Failed');
+                // Check if we should use demo mode
+                if (BackendConfig.shouldUseDemoMode()) {
+                    console.log('📱 Vercel deployment detected, using demo mode');
+                    this.setupDemoMode();
+                } else {
+                    this.updateAIStatus('offline', 'Connection Failed');
+                }
             });
             
             // Setup event handlers
@@ -315,6 +321,11 @@ class RealAIInterface {
                 const isConnected = (this.websocket.socket && this.websocket.socket.connected) || 
                                  (this.websocket.connected) || false;
                 console.log(`[RealAIInterface] Connection status check: ${isConnected}`);
+                
+                // If we're in demo mode, update status accordingly
+                if (this.websocket.isDemoMode) {
+                    this.updateAIStatus('demo', 'Demo Mode Active');
+                }
             }
         }, 5000);
     }
@@ -330,15 +341,33 @@ class RealAIInterface {
                 this.updateAIStatus('online', 'Connected to Real AI Server');
             });
             
-            this.websocket.on('disconnect', () => {
-                console.log('❌ Disconnected from Real AI Server');
-                this.updateAIStatus('offline', 'Disconnected from Server');
+            this.websocket.on('disconnected', (reason) => {
+                console.log('❌ Disconnected from Real AI Server:', reason);
+                // Handle demo mode
+                if (reason === 'demo-mode') {
+                    this.setupDemoMode();
+                } else {
+                    this.updateAIStatus('offline', 'Disconnected from Server');
+                }
+            });
+            
+            this.websocket.on('error', (error) => {
+                console.error('❌ WebSocket error:', error);
+                // Check if we should use demo mode
+                if (BackendConfig.shouldUseDemoMode()) {
+                    this.setupDemoMode();
+                } else {
+                    this.updateAIStatus('offline', 'Connection Error');
+                }
             });
         } else {
             // If reusing connection, check if already connected
             if (this.websocket.socket && this.websocket.socket.connected) {
                 console.log('✅ Already connected to Real AI Server via main app');
                 this.updateAIStatus('online', 'Connected to Real AI Server');
+            } else if (this.websocket.isDemoMode) {
+                console.log('📱 Demo mode active via main app');
+                this.setupDemoMode();
             }
         }
         
@@ -395,95 +424,89 @@ class RealAIInterface {
         }, 1000);
     }
     
-    handleWebSocketMessage(data) {
-        console.log('💬 Received WebSocket message:', data.type, data);
+    setupDemoMode() {
+        console.log('📱 Setting up demo mode for Real AI Interface');
+        this.updateAIStatus('demo', 'Demo Mode Active');
         
-        switch (data.type) {
-            case 'ai-system-status':
-                this.updateSystemStatus(data.payload);
-                break;
-            case 'ai-agent-created':
-                this.handleAgentCreated(data.payload);
-                break;
-            case 'ai-task-completed':
-                console.log('✅ Task completed message received:', data.payload);
-                this.handleTaskCompleted(data.payload);
-                break;
-            case 'ai-collaboration-update':
-                this.updateCollaborationProgress(data.payload);
-                break;
-            case 'task-chain-execution-step':
-                this.handleTaskChainExecutionStep(data.payload);
-                break;
-            case 'task-chain-completed':
-                this.handleTaskChainCompleted(data.payload);
-                break;
-            case 'demo-collaboration-completed':
-                console.log('🎭 Demo collaboration completed:', data.payload);
-                // Treat demo results the same as regular task results
-                this.handleTaskCompleted({ 
-                    success: true, 
-                    result: data.payload 
-                });
-                break;
+        // Show demo mode notification
+        this.showNotification('📱 Demo Mode Active - Real AI agents not available in this deployment', 'info');
+        
+        // Set up periodic demo updates
+        if (this.demoInterval) {
+            clearInterval(this.demoInterval);
         }
+        
+        this.demoInterval = setInterval(() => {
+            this.updateWithDemoData();
+        }, 15000); // Update every 15 seconds with demo data
+        
+        // Trigger initial demo data
+        setTimeout(() => {
+            this.updateWithDemoData();
+        }, 1000);
     }
     
-    handleTaskChainExecutionStep(data) {
-        console.log('Task chain execution step received:', data);
+    updateWithDemoData() {
+        console.log('📱 Updating Real AI Interface with demo data');
         
-        // Update the global app state if available
-        if (window.app) {
-            window.app.handleTaskChainExecutionStep(data);
-        }
+        // Generate demo system status
+        const demoStatus = {
+            timestamp: Date.now(),
+            openaiApiKey: false, // No API key in demo mode
+            totalAIAgents: 5,
+            activeCollaborations: Math.floor(Math.random() * 3),
+            totalCollaborations: 12 + Math.floor(Math.random() * 5),
+            connectedClients: 1,
+            aiAgents: [
+                {
+                    id: 'demo-1',
+                    name: 'Prof. Smoot (Demo)',
+                    type: 'cosmic_structure_expert',
+                    status: 'active',
+                    energy: 95,
+                    maxEnergy: 100,
+                    ai: {
+                        focusLevel: 0.9,
+                        memoryLoad: { shortTerm: 5, longTerm: 42 },
+                        currentThought: 'Analyzing cosmic structure patterns...'
+                    }
+                },
+                {
+                    id: 'demo-2',
+                    name: 'Dr. Analyzer (Demo)',
+                    type: 'analyzer',
+                    status: 'processing',
+                    energy: 87,
+                    maxEnergy: 100,
+                    ai: {
+                        focusLevel: 0.7,
+                        memoryLoad: { shortTerm: 8, longTerm: 36 },
+                        currentThought: 'Processing data patterns...'
+                    }
+                },
+                {
+                    id: 'demo-3',
+                    name: 'Ms. Synthesizer (Demo)',
+                    type: 'synthesizer',
+                    status: 'active',
+                    energy: 92,
+                    maxEnergy: 100,
+                    ai: {
+                        focusLevel: 0.8,
+                        memoryLoad: { shortTerm: 3, longTerm: 28 },
+                        currentThought: 'Synthesizing knowledge domains...'
+                    }
+                }
+            ],
+            recentTasks: [],
+            system: {
+                memory: { heapUsed: Math.random() * 50 * 1024 * 1024 }, // Random memory usage
+                uptime: Math.floor(Math.random() * 3600) // Random uptime
+            }
+        };
         
-        // Update progress display
-        if (data.taskName) {
-            this.updateProgressPhase(`Executing: ${data.taskName}`, 50);
-        }
-        
-        // Add to task chain steps for visualization
-        if (data.taskChainId && data.taskId) {
-            if (!this.taskChainSteps) {
-                this.taskChainSteps = new Map();
-            }
-            
-            if (!this.taskChainSteps.has(data.taskChainId)) {
-                this.taskChainSteps.set(data.taskChainId, []);
-            }
-            
-            this.taskChainSteps.get(data.taskChainId).push(data);
-            
-            // Notify the app to update visualization
-            if (window.app && window.app.updateTaskChainVisualization) {
-                window.app.updateTaskChainVisualization(data.taskChainId);
-            }
-        }
-    }
-    
-    handleTaskChainCompleted(data) {
-        console.log('Task chain completed received:', data);
-        
-        // Update the global app state if available
-        if (window.app) {
-            window.app.handleTaskChainCompleted(data);
-        }
-    }
-    
-    requestAIStatus() {
-        if (this.websocket && this.websocket.socket && this.websocket.socket.connected) {
-            this.websocket.emit('get-ai-status');
-        } else if (this.websocket && !this.websocket.socket) {
-            // If reusing main app connection, it might not have a socket property
-            // but still be connected
-            try {
-                this.websocket.send('get-ai-status');
-            } catch (error) {
-                console.warn('Could not request AI status:', error);
-            }
-        } else {
-            console.warn('WebSocket not connected, cannot request AI status');
-        }
+        // Update with demo data
+        this.updateSystemStatus(demoStatus);
     }
     
     updateAIStatus(status, text) {
@@ -491,14 +514,17 @@ class RealAIInterface {
         const statusText = document.getElementById('ai-status-text');
         
         if (indicator) {
-            indicator.className = `status-dot ${status}`;
+            // Different styling for demo mode
+            if (status === 'demo') {
+                indicator.className = 'status-dot demo';
+            } else {
+                indicator.className = `status-dot ${status}`;
+            }
         }
+        
         if (statusText) {
             statusText.textContent = text;
         }
-        
-        // Log status updates for debugging
-        console.log(`[RealAIInterface] Status updated: ${status} - ${text}`);
     }
     
     updateSystemStatus(status) {

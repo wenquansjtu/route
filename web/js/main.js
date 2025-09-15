@@ -68,6 +68,14 @@ class CosmicAgentApp {
             this.ws.on('disconnected', (reason) => {
                 this.isConnected = false;
                 console.log('❌ Disconnected from server:', reason);
+                
+                // Handle demo mode
+                if (reason === 'demo-mode') {
+                    console.log('📱 Vercel deployment detected, switching to demo mode');
+                    this.setupDemoMode();
+                    return;
+                }
+                
                 // Only attempt reconnection for unexpected disconnections
                 if (reason !== 'io client disconnect') {
                     this.attemptReconnect();
@@ -81,6 +89,174 @@ class CosmicAgentApp {
         } catch (error) {
             console.error('❌ Failed to connect to server:', error);
             this.attemptReconnect();
+        }
+    }
+    
+    setupDemoMode() {
+        console.log('📱 Setting up demo mode for Vercel deployment');
+        this.isConnected = false; // Not actually connected
+        this.isDemoMode = true;
+        
+        // Show a notification about demo mode
+        this.showDemoModeNotification();
+        
+        // Set up periodic demo updates
+        if (this.demoInterval) {
+            clearInterval(this.demoInterval);
+        }
+        
+        this.demoInterval = setInterval(() => {
+            this.updateWithDemoData();
+        }, 10000); // Update every 10 seconds with demo data
+        
+        // Trigger initial demo data
+        setTimeout(() => {
+            this.updateWithDemoData();
+        }, 1000);
+    }
+    
+    showDemoModeNotification() {
+        // Remove any existing demo notifications
+        const existingDemoNotifications = document.querySelectorAll('.demo-mode-notification');
+        existingDemoNotifications.forEach(el => el.remove());
+        
+        // Create a demo mode notification
+        const demoDiv = document.createElement('div');
+        demoDiv.className = 'demo-mode-notification';
+        demoDiv.innerHTML = `
+            <div style="position: fixed; top: 20px; right: 20px; background: #3b82f6; color: white; padding: 15px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 300px;">
+                <strong>📱 Demo Mode</strong>
+                <p>This deployment is running in demo mode. Real AI agents and WebSocket connections are not available.</p>
+                <button onclick="this.parentElement.remove()" style="background: white; color: #3b82f6; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-top: 5px;">Dismiss</button>
+            </div>
+        `;
+        document.body.appendChild(demoDiv);
+    }
+    
+    updateWithDemoData() {
+        console.log('📱 Updating with demo data');
+        
+        // Generate demo agent data
+        const demoAgents = [
+            {
+                id: 'demo-1',
+                name: 'Prof. Smoot (Demo)',
+                type: 'cosmic_structure_expert',
+                status: 'active',
+                energy: 95,
+                maxEnergy: 100,
+                position: { x: 0, y: 0, z: 0 },
+                connections: ['demo-2', 'demo-3'],
+                ai: {
+                    focusLevel: 0.9,
+                    memoryLoad: { shortTerm: 5, longTerm: 42 },
+                    currentThought: 'Analyzing cosmic structure patterns...'
+                },
+                capabilities: ['cosmic_structure_analysis', 'gravitational_field_modeling'],
+                personality: { traits: ['analytical', 'methodical', 'precise'] }
+            },
+            {
+                id: 'demo-2',
+                name: 'Dr. Analyzer (Demo)',
+                type: 'analyzer',
+                status: 'processing',
+                energy: 87,
+                maxEnergy: 100,
+                position: { x: 100, y: 50, z: 20 },
+                connections: ['demo-1', 'demo-4'],
+                ai: {
+                    focusLevel: 0.7,
+                    memoryLoad: { shortTerm: 8, longTerm: 36 },
+                    currentThought: 'Processing data patterns...'
+                },
+                capabilities: ['deep_analysis', 'pattern_recognition'],
+                personality: { traits: ['analytical', 'detail-oriented', 'systematic'] }
+            },
+            {
+                id: 'demo-3',
+                name: 'Ms. Synthesizer (Demo)',
+                type: 'synthesizer',
+                status: 'active',
+                energy: 92,
+                maxEnergy: 100,
+                position: { x: -100, y: 75, z: -30 },
+                connections: ['demo-1', 'demo-5'],
+                ai: {
+                    focusLevel: 0.8,
+                    memoryLoad: { shortTerm: 3, longTerm: 28 },
+                    currentThought: 'Synthesizing knowledge domains...'
+                },
+                capabilities: ['information_synthesis', 'knowledge_integration'],
+                personality: { traits: ['creative', 'integrative', 'holistic'] }
+            },
+            {
+                id: 'demo-4',
+                name: 'Prof. Reasoner (Demo)',
+                type: 'reasoner',
+                status: 'idle',
+                energy: 78,
+                maxEnergy: 100,
+                position: { x: 200, y: -50, z: 40 },
+                connections: ['demo-2'],
+                ai: {
+                    focusLevel: 0.6,
+                    memoryLoad: { shortTerm: 6, longTerm: 31 },
+                    currentThought: 'Awaiting new reasoning tasks...'
+                },
+                capabilities: ['logical_reasoning', 'inference'],
+                personality: { traits: ['logical', 'methodical', 'rational'] }
+            },
+            {
+                id: 'demo-5',
+                name: 'Dr. Validator (Demo)',
+                type: 'validator',
+                status: 'active',
+                energy: 89,
+                maxEnergy: 100,
+                position: { x: -200, y: -25, z: -60 },
+                connections: ['demo-3'],
+                ai: {
+                    focusLevel: 0.85,
+                    memoryLoad: { shortTerm: 4, longTerm: 39 },
+                    currentThought: 'Validating analysis results...'
+                },
+                capabilities: ['result_validation', 'quality_assessment'],
+                personality: { traits: ['critical', 'thorough', 'careful'] }
+            }
+        ];
+        
+        // Update system state with demo data
+        this.systemState.agents = demoAgents;
+        this.systemState.collaborations = Math.floor(Math.random() * 3);
+        this.systemState.totalTasks = 12 + Math.floor(Math.random() * 5);
+        
+        // Update UI with demo data
+        this.updateAgentList();
+        this.updateSystemMetrics();
+        
+        // Simulate task chain updates
+        this.simulateTaskChainUpdates();
+    }
+    
+    simulateTaskChainUpdates() {
+        // Randomly generate task chain execution steps
+        if (Math.random() > 0.7) { // 30% chance to generate a task update
+            const taskChainId = `demo-chain-${Math.floor(Math.random() * 1000)}`;
+            const agentIds = this.systemState.agents.map(agent => agent.id);
+            const randomAgentId = agentIds[Math.floor(Math.random() * agentIds.length)];
+            
+            const taskData = {
+                taskChainId: taskChainId,
+                taskId: `task-${Math.floor(Math.random() * 10000)}`,
+                agentId: randomAgentId,
+                taskName: `Demo Task ${Math.floor(Math.random() * 100)}`,
+                status: 'completed',
+                result: 'Demo task completed successfully with synthesized insights.',
+                timestamp: Date.now()
+            };
+            
+            // Handle the task chain execution step
+            this.handleTaskChainExecutionStep(taskData);
         }
     }
     

@@ -14,9 +14,19 @@ export class WebSocketClient {
         this.isConnecting = false; // Track connection state to prevent duplicate connections
         this.manualDisconnect = false; // Track if disconnect was intentional
         this.heartbeatInterval = null; // Heartbeat interval
+        this.demoMode = false; // Track if we're in demo mode
     }
     
     async connect(url = BackendConfig.getBackendUrl()) {
+        // If we're on Vercel, use demo mode instead of trying to connect to WebSocket
+        if (BackendConfig.shouldUseDemoMode()) {
+            console.log(`[WebSocketClient-${this.connectionId}] Vercel deployment detected, using demo mode`);
+            this.demoMode = true;
+            this.isConnected = false;
+            this.emit('disconnected', 'demo-mode');
+            return Promise.resolve();
+        }
+        
         // If already connected, return early
         if (this.isConnected && this.socket && this.socket.connected) {
             console.log(`[WebSocketClient-${this.connectionId}] Already connected`);
@@ -31,6 +41,7 @@ export class WebSocketClient {
         
         this.isConnecting = true;
         this.manualDisconnect = false;
+        this.demoMode = false;
         
         try {
             console.log(`[WebSocketClient-${this.connectionId}] Attempting to connect to ${url}`);
@@ -187,6 +198,11 @@ export class WebSocketClient {
     }
     
     attemptReconnect() {
+        // Don't attempt to reconnect in demo mode
+        if (this.demoMode) {
+            return;
+        }
+        
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
             console.log(`🔄 [WebSocketClient-${this.connectionId}] 尝试重连 (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
@@ -204,6 +220,12 @@ export class WebSocketClient {
     }
     
     send(type, payload = {}) {
+        // In demo mode, don't send messages
+        if (this.demoMode) {
+            console.log(`[WebSocketClient-${this.connectionId}] Demo mode: Not sending message ${type}`);
+            return false;
+        }
+        
         if (this.socket && this.socket.connected) {
             this.socket.emit(type, payload);
             console.log(`📤 [WebSocketClient-${this.connectionId}] Sent event: ${type}`, payload);
@@ -252,6 +274,13 @@ export class WebSocketClient {
     }
     
     disconnect() {
+        // In demo mode, just set flags
+        if (this.demoMode) {
+            this.isConnected = false;
+            this.isConnecting = false;
+            return;
+        }
+        
         this.manualDisconnect = true;
         this.clearHeartbeat();
         
@@ -266,6 +295,15 @@ export class WebSocketClient {
     
     // Add a getter for connection status
     get connected() {
+        // In demo mode, we're never actually connected
+        if (this.demoMode) {
+            return false;
+        }
         return this.socket && this.socket.connected;
+    }
+    
+    // Add a getter for demo mode
+    get isDemoMode() {
+        return this.demoMode;
     }
 }
