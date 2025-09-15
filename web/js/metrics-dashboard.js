@@ -113,90 +113,186 @@ class MetricsDashboard {
             this.setupWebSocketHandlers();
         } else {
             console.log('🔗 Creating new WebSocket connection for metrics dashboard');
-            // Use Socket.IO instead of native WebSocket for compatibility with the backend
-            this.websocket = io(BackendConfig.getBackendUrl());
+            // Create new WebSocket connection using our WebSocketClient wrapper
+            this.websocket = new WebSocketClient();
+            this.websocket.connect(BackendConfig.getBackendUrl()).catch((error) => {
+                console.error('❌ Failed to connect to WebSocket:', error);
+                // Check if we should use demo mode
+                if (BackendConfig.shouldUseDemoMode()) {
+                    console.log('📱 Vercel deployment detected, using demo mode in metrics dashboard');
+                    this.setupDemoMode();
+                } else {
+                    this.addActivity('Connection Failed', 'error');
+                }
+            });
             
+            // Setup event handlers
+            this.setupWebSocketHandlers();
+        }
+    }
+    
+    setupWebSocketHandlers() {
+        // Check if we're reusing the main app's connection
+        const isReusingConnection = this.websocket === window.app?.ws;
+        
+        // Only setup connection event handlers if we're not reusing
+        if (!isReusingConnection) {
             this.websocket.on('connect', () => {
                 console.log('📡 Connected to Real AI WebSocket');
                 this.addActivity('Connected to AI system', 'success');
                 this.requestSystemStatus();
             });
             
-            this.websocket.on('ai-system-status', (data) => {
-                this.updateSystemMetrics(data);
+            this.websocket.on('disconnected', (reason) => {
+                console.log('❌ Disconnected from AI WebSocket:', reason);
+                // Handle demo mode
+                if (reason === 'demo-mode') {
+                    this.setupDemoMode();
+                } else {
+                    this.addActivity('Disconnected from AI system', 'error');
+                }
             });
             
-            this.websocket.on('ai-collaboration-update', (data) => {
-                this.updateCollaborationMetrics(data);
-            });
-            
-            this.websocket.on('ai-agent-update', (data) => {
-                this.updateAgentMetrics(data);
-            });
-            
-            this.websocket.on('demo-collaboration-completed', (data) => {
-                this.handleCollaborationComplete(data);
-            });
-            
-            this.websocket.on('network-topology-update', (data) => {
-                this.updateNetworkTopology(data);
-            });
-            
-            this.websocket.on('performance-metrics', (data) => {
-                this.updatePerformanceMetrics(data);
-            });
-            
-            this.websocket.on('collaboration-view-update', (data) => {
-                this.updateCollaborationViewMetrics(data);
-            });
-            
-            this.websocket.on('disconnect', () => {
-                console.log('❌ Disconnected from AI WebSocket');
-                this.addActivity('Disconnected from AI system', 'error');
-            });
-            
-            this.websocket.on('connect_error', (error) => {
+            this.websocket.on('error', (error) => {
                 console.error('WebSocket connection error:', error);
-                this.addActivity('WebSocket connection error', 'error');
+                // Check if we should use demo mode
+                if (BackendConfig.shouldUseDemoMode()) {
+                    this.setupDemoMode();
+                } else {
+                    this.addActivity('WebSocket connection error', 'error');
+                }
             });
+        } else {
+            // If reusing connection, check if already connected
+            if (this.websocket.socket && this.websocket.socket.connected) {
+                console.log('✅ Already connected to Real AI Server via main app');
+                this.addActivity('Connected to AI system', 'success');
+                // Request initial system status
+                this.websocket.send('get-ai-status');
+            } else if (this.websocket.isDemoMode) {
+                console.log('📱 Demo mode active via main app in metrics dashboard');
+                this.setupDemoMode();
+            }
+        }
+        
+        // Setup message handlers for all cases
+        this.websocket.on('ai-system-status', (data) => {
+            this.updateSystemMetrics(data);
+        });
+        
+        this.websocket.on('ai-collaboration-update', (data) => {
+            this.updateCollaborationMetrics(data);
+        });
+        
+        this.websocket.on('ai-agent-update', (data) => {
+            this.updateAgentMetrics(data);
+        });
+        
+        this.websocket.on('demo-collaboration-completed', (data) => {
+            this.handleCollaborationComplete(data);
+        });
+        
+        this.websocket.on('network-topology-update', (data) => {
+            this.updateNetworkTopology(data);
+        });
+        
+        this.websocket.on('performance-metrics', (data) => {
+            this.updatePerformanceMetrics(data);
+        });
+        
+        this.websocket.on('collaboration-view-update', (data) => {
+            this.updateCollaborationViewMetrics(data);
+        });
+        
+        // Request initial system status if we're not reusing connection
+        if (!isReusingConnection) {
+            setTimeout(() => {
+                this.requestSystemStatus();
+            }, 1000);
         }
     }
     
-    setupWebSocketHandlers() {
-        // Only setup handlers if we're using the main app's connection
-        if (window.app && window.app.ws) {
-            // Listen for events through the main WebSocketClient wrapper
-            window.app.ws.on('ai-system-status', (data) => {
-                this.updateSystemMetrics(data);
-            });
-            
-            window.app.ws.on('ai-collaboration-update', (data) => {
-                this.updateCollaborationMetrics(data);
-            });
-            
-            window.app.ws.on('ai-agent-update', (data) => {
-                this.updateAgentMetrics(data);
-            });
-            
-            window.app.ws.on('demo-collaboration-completed', (data) => {
-                this.handleCollaborationComplete(data);
-            });
-            
-            window.app.ws.on('network-topology-update', (data) => {
-                this.updateNetworkTopology(data);
-            });
-            
-            window.app.ws.on('performance-metrics', (data) => {
-                this.updatePerformanceMetrics(data);
-            });
-            
-            window.app.ws.on('collaboration-view-update', (data) => {
-                this.updateCollaborationViewMetrics(data);
-            });
-            
-            // Request initial system status
-            window.app.ws.send('get-ai-status');
+    setupDemoMode() {
+        console.log('📱 Setting up demo mode for Metrics Dashboard');
+        
+        // Show demo mode notification
+        this.addActivity('Demo Mode Active - Real AI agents not available', 'info');
+        
+        // Set up periodic demo updates
+        if (this.demoInterval) {
+            clearInterval(this.demoInterval);
         }
+        
+        this.demoInterval = setInterval(() => {
+            this.updateWithDemoData();
+        }, 15000); // Update every 15 seconds with demo data
+        
+        // Trigger initial demo data
+        setTimeout(() => {
+            this.updateWithDemoData();
+        }, 1000);
+    }
+    
+    updateWithDemoData() {
+        console.log('📱 Updating Metrics Dashboard with demo data');
+        
+        // Generate demo system status
+        const demoStatus = {
+            timestamp: Date.now(),
+            openaiApiKey: false, // No API key in demo mode
+            totalAIAgents: 5,
+            activeCollaborations: Math.floor(Math.random() * 3),
+            totalCollaborations: 12 + Math.floor(Math.random() * 5),
+            connectedClients: 1,
+            aiAgents: [
+                {
+                    id: 'demo-1',
+                    name: 'Prof. Smoot (Demo)',
+                    type: 'cosmic_structure_expert',
+                    status: 'active',
+                    energy: 95,
+                    maxEnergy: 100,
+                    ai: {
+                        focusLevel: 0.9,
+                        memoryLoad: { shortTerm: 5, longTerm: 42 },
+                        currentThought: 'Analyzing cosmic structure patterns...'
+                    }
+                },
+                {
+                    id: 'demo-2',
+                    name: 'Dr. Analyzer (Demo)',
+                    type: 'analyzer',
+                    status: 'processing',
+                    energy: 87,
+                    maxEnergy: 100,
+                    ai: {
+                        focusLevel: 0.7,
+                        memoryLoad: { shortTerm: 8, longTerm: 36 },
+                        currentThought: 'Processing data patterns...'
+                    }
+                },
+                {
+                    id: 'demo-3',
+                    name: 'Ms. Synthesizer (Demo)',
+                    type: 'synthesizer',
+                    status: 'active',
+                    energy: 92,
+                    maxEnergy: 100,
+                    ai: {
+                        focusLevel: 0.8,
+                        memoryLoad: { shortTerm: 3, longTerm: 28 },
+                        currentThought: 'Synthesizing knowledge domains...'
+                    }
+                }
+            ],
+            system: {
+                memory: { heapUsed: Math.random() * 50 * 1024 * 1024 }, // Random memory usage
+                uptime: Math.floor(Math.random() * 3600) // Random uptime
+            }
+        };
+        
+        // Update with demo data
+        this.updateSystemMetrics(demoStatus);
     }
     
     requestSystemStatus() {

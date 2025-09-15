@@ -512,6 +512,28 @@ class RealAIInterface {
         this.updateSystemStatus(demoStatus);
     }
     
+    requestAIStatus() {
+        // In demo mode, don't try to request status from server
+        if (this.websocket && this.websocket.isDemoMode) {
+            console.log('📱 Demo mode: Skipping AI status request');
+            return;
+        }
+        
+        if (this.websocket && this.websocket.socket && this.websocket.socket.connected) {
+            this.websocket.send('get-ai-status');
+        } else if (this.websocket && !this.websocket.socket) {
+            // If reusing main app connection, it might not have a socket property
+            // but still be connected
+            try {
+                this.websocket.send('get-ai-status');
+            } catch (error) {
+                console.warn('Could not request AI status:', error);
+            }
+        } else {
+            console.warn('WebSocket not connected, cannot request AI status');
+        }
+    }
+
     updateAIStatus(status, text) {
         const indicator = document.getElementById('ai-status-indicator');
         const statusText = document.getElementById('ai-status-text');
