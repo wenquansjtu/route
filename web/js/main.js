@@ -69,12 +69,13 @@ class CosmicAgentApp {
                 this.isConnected = false;
                 console.log('❌ Disconnected from server:', reason);
                 
+                // Removed Vercel deployment check
                 // Handle demo mode
-                if (reason === 'demo-mode') {
-                    console.log('📱 Vercel deployment detected, switching to demo mode');
-                    this.setupDemoMode();
-                    return;
-                }
+                // if (reason === 'demo-mode') {
+                //     console.log('📱 Vercel deployment detected, switching to demo mode');
+                //     this.setupDemoMode();
+                //     return;
+                // }
                 
                 // Only attempt reconnection for unexpected disconnections
                 if (reason !== 'io client disconnect') {
@@ -956,7 +957,8 @@ class CosmicAgentApp {
                 { source: 'agent2', target: 'agent3', strength: 0.6, type: 'data_flow' },
                 { source: 'agent1', target: 'agent3', strength: 0.4, type: 'coordination' },
                 { source: 'agent3', target: 'agent5', strength: 0.7, type: 'collaboration' },
-                { source: 'agent4', target: 'agent1', strength: 0.3, type: 'coordination' }
+                { source: 'agent4', target: 'agent1', strength: 0.3, type: 'coordination'
+                }
             ]
         };
         

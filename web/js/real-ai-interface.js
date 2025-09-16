@@ -305,13 +305,14 @@ class RealAIInterface {
             this.websocket = new WebSocketClient();
             this.websocket.connect(BackendConfig.getBackendUrl()).catch((error) => {
                 console.error('❌ Failed to connect to WebSocket:', error);
+                // Removed Vercel deployment check
                 // Check if we should use demo mode
-                if (BackendConfig.shouldUseDemoMode()) {
-                    console.log('📱 Vercel deployment detected, using demo mode');
-                    this.setupDemoMode();
-                } else {
-                    this.updateAIStatus('offline', 'Connection Failed');
-                }
+                // if (BackendConfig.shouldUseDemoMode()) {
+                //     console.log('📱 Vercel deployment detected, using demo mode');
+                //     this.setupDemoMode();
+                // } else {
+                this.updateAIStatus('offline', 'Connection Failed');
+                // }
             });
             
             // Setup event handlers
@@ -346,22 +347,24 @@ class RealAIInterface {
             
             this.websocket.on('disconnected', (reason) => {
                 console.log('❌ Disconnected from Real AI Server:', reason);
+                // Removed Vercel deployment check
                 // Handle demo mode
-                if (reason === 'demo-mode') {
-                    this.setupDemoMode();
-                } else {
-                    this.updateAIStatus('offline', 'Disconnected from Server');
-                }
+                // if (reason === 'demo-mode') {
+                //     this.setupDemoMode();
+                // } else {
+                this.updateAIStatus('offline', 'Disconnected from Server');
+                // }
             });
             
             this.websocket.on('error', (error) => {
                 console.error('❌ WebSocket error:', error);
+                // Removed Vercel deployment check
                 // Check if we should use demo mode
-                if (BackendConfig.shouldUseDemoMode()) {
-                    this.setupDemoMode();
-                } else {
-                    this.updateAIStatus('offline', 'Connection Error');
-                }
+                // if (BackendConfig.shouldUseDemoMode()) {
+                //     this.setupDemoMode();
+                // } else {
+                this.updateAIStatus('offline', 'Connection Error');
+                // }
             });
         } else {
             // If reusing connection, check if already connected
@@ -1198,14 +1201,16 @@ class RealAIInterface {
         
         console.log('Extracted values:', { name, type, expertise, personality });
         
-        if (!name || !name.trim()) {
-            console.log('❌ Empty name detected:', { 
-                name, 
-                trimmed: name ? name.trim() : 'null',
-                length: name ? name.length : 0 
-            });
-            alert('Please provide an agent name');
-            nameInput.focus();
+        // Validate inputs
+        if (!name || name.trim().length === 0) {
+            console.error('❌ Agent name is required!');
+            alert('Please enter a name for the AI agent.');
+            return;
+        }
+        
+        if (name.trim().length < 3) {
+            console.error('❌ Agent name is too short!');
+            alert('Agent name must be at least 3 characters long.');
             return;
         }
         
@@ -1213,287 +1218,177 @@ class RealAIInterface {
             name: name.trim(),
             type: type,
             expertise: expertise.trim(),
-            personality: personality,
-            id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            createdAt: Date.now(),
-            status: 'active'
+            personality: personality
         };
         
-        console.log('🤖 Creating custom agent:', agentData);
+        console.log('Creating agent with data:', agentData);
         
-        // Add to local agents list
-        this.addCustomAgent(agentData);
-        
-        // Close modal
-        document.body.removeChild(modal);
-        
-        // Show success notification
-        this.showNotification(`🎉 Custom agent "${name}" created successfully!`, 'success');
-        
-        // Try to send to backend if connected
+        // Try to send to backend
         if (this.websocket && this.websocket.connected) {
-            this.websocket.emit('create-ai-agent', agentData);
-        }
-    }
-    
-    addCustomAgent(agentData) {
-        // Add to local collection
-        this.customAgents = this.customAgents || new Map();
-        this.customAgents.set(agentData.id, agentData);
-        
-        // Update agents display
-        this.updateCustomAgentsDisplay();
-    }
-    
-    updateCustomAgentsDisplay() {
-        const agentsList = document.getElementById('ai-agents-list');
-        if (!agentsList) return;
-        
-        const customAgents = this.customAgents || new Map();
-        const customAgentCards = Array.from(customAgents.values()).map(agent => `
-            <div class="agent-card custom-agent" style="border-left: 3px solid #10b981;">
-                <div class="agent-header">
-                    <h5>${agent.name}</h5>
-                    <span class="agent-type custom">${agent.type}</span>
-                    <span class="agent-status active">${agent.status}</span>
-                </div>
-                <div class="agent-details">
-                    <div class="agent-capabilities">
-                        <strong>Expertise:</strong> ${agent.expertise || 'General capabilities'}
-                    </div>
-                    <div class="agent-capabilities">
-                        <strong>Personality:</strong> ${agent.personality.join(', ') || 'Adaptive'}
-                    </div>
-                    <div class="agent-metrics">
-                        <span>Type: Custom Agent</span>
-                        <span>Created: ${new Date(agent.createdAt).toLocaleDateString()}</span>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-        
-        // Keep existing content and add custom agents
-        if (customAgents.size > 0) {
-            const existingContent = agentsList.innerHTML;
-            agentsList.innerHTML = customAgentCards + existingContent;
-        }
-    }
-    
-    enableDemoMode() {
-        console.log('🎭 Enabling demo mode...');
-        this.demoMode = true;
-        
-        // Create some demo agents
-        this.createDemoAgents();
-    }
-    
-    createDemoAgents() {
-        const demoAgents = [
-            {
-                id: 'demo_analyst',
-                name: 'Demo Data Analyst',
-                type: 'analyst',
-                status: 'active',
-                expertise: 'Statistical analysis and data interpretation',
-                personality: ['analytical', 'detail_oriented'],
-                createdAt: Date.now() - 86400000 // 1 day ago
-            },
-            {
-                id: 'demo_creative',
-                name: 'Demo Creative Thinker',
-                type: 'creative',
-                status: 'active',
-                expertise: 'Innovative solutions and creative problem-solving',
-                personality: ['creative', 'innovative'],
-                createdAt: Date.now() - 172800000 // 2 days ago
+            try {
+                this.websocket.send('create-custom-agent', agentData);
+                console.log('✅ Agent creation request sent to backend');
+                
+                // Close modal
+                document.body.removeChild(modal);
+                
+                // Show success notification
+                this.showNotification(`🚀 Creating custom AI agent: ${agentData.name}`, 'info');
+            } catch (error) {
+                console.error('❌ Error sending agent creation request:', error);
+                alert('Failed to create agent: ' + error.message);
             }
-        ];
-        
-        this.customAgents = this.customAgents || new Map();
-        demoAgents.forEach(agent => {
-            this.customAgents.set(agent.id, agent);
-        });
-        
-        this.updateCustomAgentsDisplay();
+        } else {
+            console.warn('⚠️ WebSocket not connected, cannot create agent');
+            alert('Cannot create agent: Not connected to AI server. Please check your connection.');
+        }
     }
     
     runDemoCollaboration(taskData) {
-        // Prevent multiple demo collaborations
-        if (this.isRunningDemo) {
-            console.log('⚠️ Demo collaboration already in progress, ignoring duplicate request');
-            return;
-        }
+        console.log('🎭 Running demo collaboration for task:', taskData);
         
-        console.log('🎭 Running demo collaboration for:', taskData.description);
-        this.isRunningDemo = true;
-        
-        // Clear form after successful submission
-        const descriptionElement = document.getElementById('ai-task-description');
-        if (descriptionElement) {
-            descriptionElement.value = '';
-        }
-        
-        // Uncheck all capabilities
-        document.querySelectorAll('.capabilities-checkboxes input:checked')
-            .forEach(input => input.checked = false);
+        // Show demo mode notification
+        this.showNotification('📱 Running demo collaboration - real AI agents not available', 'info');
         
         // Simulate collaboration progress
-        setTimeout(() => this.updateProgressPhase('Demo: Analyzing task requirements...', 20), 500);
-        setTimeout(() => this.updateProgressPhase('Demo: Custom agents collaborating...', 45), 2000);
-        setTimeout(() => this.updateProgressPhase('Demo: Synthesizing insights...', 70), 4000);
-        setTimeout(() => this.updateProgressPhase('Demo: Generating final analysis...', 90), 6000);
+        this.updateProgressPhase('Initializing demo collaboration...', 10);
         
-        // Generate demo result
         setTimeout(() => {
-            const demoResult = this.generateDemoResult(taskData);
+            this.updateProgressPhase('Analyzing task requirements...', 25);
+        }, 1000);
+        
+        setTimeout(() => {
+            this.updateProgressPhase('Simulating agent collaboration...', 50);
+        }, 3000);
+        
+        setTimeout(() => {
+            this.updateProgressPhase('Generating synthetic results...', 75);
+        }, 6000);
+        
+        setTimeout(() => {
+            this.updateProgressPhase('Finalizing demo output...', 90);
+        }, 9000);
+        
+        // Generate demo result after delay
+        setTimeout(() => {
+            const demoResult = {
+                task: taskData,
+                finalResult: `This is a demo result for the task: "${taskData.description}". In a real deployment, this would be the synthesized output from multiple AI agents collaborating on your task. The result would include detailed analysis, insights, and recommendations based on the collective intelligence of the AI agent network.`,
+                synthesizedBy: 'Demo AI Collaboration System',
+                timestamp: Date.now(),
+                metadata: {
+                    totalAgents: 3,
+                    tokensUsed: 0,
+                    collaborationType: 'demo'
+                },
+                convergenceMetrics: {
+                    convergenceAchieved: true,
+                    finalConsensus: 0.85,
+                    collaborationEfficiency: 0.75
+                },
+                insights: [
+                    'This is a simulated insight from the demo collaboration.',
+                    'In a real deployment, this would contain actual insights from AI agents.',
+                    'The system would analyze multiple perspectives and synthesize them into coherent results.'
+                ]
+            };
+            
+            this.displayDemoResult(demoResult);
             this.hideTaskProgress();
-            this.displayTaskResult(demoResult);
-            this.addToTaskHistory(demoResult);
-            // Reset demo flag
-            this.isRunningDemo = false;
-        }, 8000);
+        }, 12000);
     }
     
-    generateDemoResult(taskData) {
-        console.log('🎭 Generating demo result for task:', taskData.description);
+    addLog(level, message) {
+        const logContainer = document.getElementById('system-logs');
+        if (!logContainer) return;
         
-        // Generate task-specific analysis based on task description
-        const taskAnalysis = this.generateTaskSpecificAnalysis(taskData.description);
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry ${level}`;
+        logEntry.textContent = `[${timestamp}] ${message}`;
         
-        const insights = [
-            'Identified key patterns and correlations in the problem space',
-            'Proposed innovative approaches based on cross-domain analysis', 
-            'Validated solutions through multiple analytical frameworks',
-            'Considered ethical implications and potential risks',
-            'Applied advanced modeling techniques for forecasting',
-            'Integrated multiple data sources for comprehensive analysis'
-        ];
-        
-        return {
-            task: taskData,
-            finalResult: taskAnalysis,
-            synthesizedBy: 'AI协作分析引擎',
-            timestamp: Date.now(),
-            metadata: {
-                totalAgents: (this.customAgents?.size || 0) + 4,
-                tokensUsed: Math.floor(Math.random() * 200) + 345,
-                collaborationType: 'deep_collaborative_analysis'
-            },
-            convergenceMetrics: {
-                convergenceAchieved: true,
-                finalConsensus: 0.88 + Math.random() * 0.1,
-                collaborationEfficiency: 0.82 + Math.random() * 0.15
-            },
-            insights: [
-                '运用多智能体协作框架进行综合分析',
-                '整合宏观经济模型和微观数据指标', 
-                '考虑政策影响和国际环境变化因素',
-                '结合历史趋势和未来发展预期',
-                '应用先进的计量经济学方法进行预测'
-            ]
-        };
-    }
-    
-    generateTaskSpecificAnalysis(taskDescription) {
-        console.log('📊 Generating task-specific analysis for:', taskDescription);
-        
-        const description = taskDescription.toLowerCase();
-        
-        // GDP and economic analysis
-        if (description.includes('gdp') || description.includes('经济') || description.includes('增长')) {
-            return `基于中国未来10年GDP深度分析，我们的AI协作团队提供以下综合评估：
-
-**🔍 经济增长预测 (2025-2035)：**
-• 2025-2027年：GDP年均增长率 5.8-6.2%（政策支持期）
-• 2028-2030年：增长率稳定在 5.2-5.8%（转型深化期）
-• 2031-2035年：增长率调整至 4.5-5.2%（高质量发展期）
-• 预计2035年GDP总量达到约200万亿元人民币
-
-**🚀 核心驱动因素：**
-1. **科技创新引擎**：人工智能、5G/6G、新能源技术将贡献30-35%增长动能
-2. **消费市场升级**：14亿人口的消费潜力和中产阶级扩大
-3. **绿色转型投资**：碳中和目标下的清洁能源和环保产业
-4. **城镇化进程**：新型城镇化带来的基础设施和服务业需求
-5. **"双循环"战略**：内循环为主体、国内国际双循环相互促进
-
-**⚠️ 主要挑战与风险：**
-• 人口老龄化：2030年后劳动年龄人口减少，需提高生产率
-• 地缘政治：中美贸易关系和全球供应链重构影响
-• 环境约束：碳中和承诺与经济增长的平衡挑战
-• 结构转型：从投资拉动向消费和创新驱动转变的阵痛
-
-**📊 分阶段发展特征：**
-**第一阶段 (2025-2027)**：政策红利释放，新基建投资高峰
-**第二阶段 (2028-2030)**：产业升级加速，服务业占比超过60%
-**第三阶段 (2031-2035)**：创新驱动成熟，高质量发展模式确立
-
-**🎯 综合结论：**
-中国未来10年GDP将保持中高速稳健增长，总体呈现"前高后稳"的发展轨迹。经济增长模式将从规模扩张转向质量提升，科技创新和绿色发展成为关键动力。预计到2035年，中国将基本实现社会主义现代化，经济总量和人均收入水平显著提升。`;
+        // Create logs container if it doesn't exist
+        let logsContainer = document.getElementById('logs-container');
+        if (!logsContainer) {
+            logsContainer = document.createElement('div');
+            logsContainer.id = 'logs-container';
+            logsContainer.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 400px;
+                max-height: 300px;
+                background: rgba(0, 0, 0, 0.8);
+                border: 1px solid rgba(14, 165, 233, 0.5);
+                border-radius: 8px;
+                padding: 15px;
+                z-index: 9999;
+                overflow-y: auto;
+                font-family: monospace;
+                font-size: 12px;
+                color: #ffffff;
+            `;
+            
+            const logsHeader = document.createElement('div');
+            logsHeader.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                padding-bottom: 5px;
+                border-bottom: 1px solid rgba(14, 165, 233, 0.3);
+            `;
+            
+            const logsTitle = document.createElement('h4');
+            logsTitle.textContent = 'System Logs';
+            logsTitle.style.margin = '0';
+            logsTitle.style.color = '#0ea5e9';
+            
+            const closeLogsBtn = document.createElement('button');
+            closeLogsBtn.textContent = '×';
+            closeLogsBtn.style.cssText = `
+                background: none;
+                border: none;
+                color: #94a3b8;
+                font-size: 20px;
+                cursor: pointer;
+                padding: 0;
+                width: 20px;
+                height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            
+            closeLogsBtn.addEventListener('click', () => {
+                document.body.removeChild(logsContainer);
+            });
+            
+            logsHeader.appendChild(logsTitle);
+            logsHeader.appendChild(closeLogsBtn);
+            logsContainer.appendChild(logsHeader);
+            
+            const logsContent = document.createElement('div');
+            logsContent.id = 'system-logs';
+            logsContent.style.cssText = `
+                max-height: 250px;
+                overflow-y: auto;
+            `;
+            
+            logsContainer.appendChild(logsContent);
+            document.body.appendChild(logsContainer);
         }
         
-        // AI and technology analysis
-        if (description.includes('ai') || description.includes('人工智能') || description.includes('技术')) {
-            return `AI技术对未来社会影响的综合分析：
-
-**技术发展趋势：**
-- 机器学习和深度学习将成为主流
-- 自然语言处理和计算机视觉快速发展
-- 边缘计算和AIoT应用普及
-
-**经济影响：**
-- 生产力显著提升，预计增加20-40%
-- 新兴产业和就业机会创造
-- 传统行业转型升级加速
-
-**社会变革：**
-- 教育和培训模式改变
-- 医疗健康服务个性化
-- 智慧城市和数字治理
-
-**伦理考量：**
-- 数据隐私和安全保护
-- 算法公平性和透明度
-- 人工智能治理框架`;
+        const logsContent = document.getElementById('system-logs');
+        if (logsContent) {
+            logsContent.appendChild(logEntry);
+            logsContent.scrollTop = logsContent.scrollHeight;
+            
+            // Limit log entries
+            while (logsContent.children.length > 50) {
+                logsContent.removeChild(logsContent.firstChild);
+            }
         }
-        
-        // Market analysis
-        if (description.includes('市场') || description.includes('market') || description.includes('行业')) {
-            return `市场分析报告：
-
-**市场现状：**
-- 当前市场规模和竞争格局分析
-- 主要参与者和市场份额
-- 消费者行为和需求趋势
-
-**机会与挑战：**
-- 新兴技术带来的机遇
-- 政策法规影响
-- 全球化和本土化平衡
-
-**发展建议：**
-- 数字化转型策略
-- 品牌建设和客户体验优化
-- 持续创新和研发投入`;
-        }
-        
-        // Default analysis for other topics
-        return `针对您的问题“${taskDescription}”的深度分析：
-
-**问题分解与分析：**
-我们的AI协作系统对该问题进行了多维度分析，综合考虑了相关的各种因素和变量。
-
-**核心发现：**
-1. 问题的复杂性需要系统性方法解决
-2. 多个关键因素相互作用影响结果
-3. 需要综合考虑短期和长期影响
-
-**解决方案建议：**
-- 采用分阶段实施策略
-- 建立监测和评估机制
-- 加强利益相关者沟通协调
-
-**结论与建议：**
-综合各方面分析，我们建议采取综合性方案，统筹考虑各种因素和影响，并根据实际情况进行调整和优化。`;
     }
     
     setupAIControlPanelToggle() {

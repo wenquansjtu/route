@@ -1,80 +1,72 @@
-# Vercel Deployment Fix for WebSocket Connections
+# Vercel Deployment Configuration Update
 
 ## Problem
-When deploying the application to Vercel at `https://route-roan.vercel.app`, WebSocket connections were failing because:
+Previously, when deploying the application to Vercel at `https://route-roan.vercel.app`, WebSocket connections were failing because:
 1. Vercel is a static hosting platform that doesn't support traditional WebSocket servers
 2. The application was trying to connect to `wss://route-roan.vercel.app/socket.io/` which doesn't exist
 3. This caused connection errors and prevented the application from functioning properly
 
 ## Solution
-Implemented a smart detection system that automatically switches to "Demo Mode" when deployed to Vercel, while maintaining full functionality in development and other production environments.
+Updated the application to attempt real WebSocket connections even on Vercel deployments. The application will now:
+1. Attempt to connect to WebSocket servers on Vercel deployments
+2. Fall back to standard connection error handling if the connection fails
+3. No longer automatically switch to "Demo Mode" for Vercel deployments
 
 ## Changes Made
 
-### 1. Enhanced Backend Configuration
+### 1. Updated Backend Configuration
 File: [web/js/utils/BackendConfig.js](file:///Users/hh/tao/route/web/js/utils/BackendConfig.js)
 
-- Added detection for Vercel deployments using `window.location.hostname.includes('vercel.app')`
-- Added `shouldUseDemoMode()` method to determine when to use demo mode
-- Updated URL determination logic for different environments
+- Removed automatic demo mode detection for Vercel deployments
+- Updated `shouldUseDemoMode()` method to always return false
+- Vercel deployments now use the same domain as the frontend for backend connections
 
 ### 2. Updated WebSocket Client
 File: [web/js/utils/WebSocketClient.js](file:///Users/hh/tao/route/web/js/utils/WebSocketClient.js)
 
-- Added demo mode detection and handling
-- In demo mode, the client doesn't attempt WebSocket connections
-- All send/receive operations are gracefully handled without actual network calls
-- Added `isDemoMode` property to check current mode
+- Removed Vercel deployment check that prevented WebSocket connections
+- WebSocket connections will now be attempted on all deployments
+- Connection errors will be handled through standard error handling
 
 ### 3. Updated Main Application
 File: [web/js/main.js](file:///Users/hh/tao/route/web/js/main.js)
 
-- Added demo mode setup with periodic simulated data updates
-- Created realistic demo agent data to show in the UI
-- Added visual notifications when demo mode is active
-- Implemented simulated task chain updates
+- Removed Vercel deployment check in connection logic
+- Removed automatic demo mode setup for Vercel deployments
+- Connection errors will be handled through standard error handling
 
 ### 4. Updated Real AI Interface
 File: [web/js/real-ai-interface.js](file:///Users/hh/tao/route/web/js/real-ai-interface.js)
 
-- Added demo mode handling for the Real AI interface
-- Created demo system status data
-- Updated UI to show "Demo Mode Active" status
-- Added periodic demo data updates
-
-### 5. Updated CSS Styling
-File: [web/css/real-ai.css](file:///Users/hh/tao/route/web/css/real-ai.css)
-
-- Added styling for demo mode status indicators
-- Added styling for demo mode notifications
+- Removed Vercel deployment check in connection logic
+- Removed automatic demo mode setup for Vercel deployments
+- Connection errors will be handled through standard error handling
 
 ## How It Works
 
 ### Environment Detection
 1. **Localhost Development**: Connects to `http://localhost:8080` for WebSocket connections
-2. **Vercel Deployments**: Automatically switches to demo mode with simulated data
-3. **Other Production Environments**: Connects to the same domain as the frontend
+2. **Vercel Deployments**: Attempts to connect to WebSocket on the same domain as the frontend
+3. **Other Production Environments**: Connects to the backend on the same domain as the frontend
 
-### Demo Mode Features
-1. **No WebSocket Connections**: Eliminates connection errors on platforms that don't support WebSockets
-2. **Simulated Data**: Generates realistic demo data for agents, tasks, and system metrics
-3. **Periodic Updates**: Simulates real-time updates with changing data
-4. **Visual Indicators**: Clearly shows when the application is in demo mode
-5. **Full UI Functionality**: All visualizations and interactions work with demo data
+### Connection Handling
+1. **Successful Connections**: Full real-time functionality with actual AI agents
+2. **Connection Failures**: Standard error handling with user notifications
+3. **No Automatic Demo Mode**: Vercel deployments no longer automatically switch to demo mode
 
 ## Benefits
 
-1. **Seamless Deployment**: Works on Vercel without connection errors
-2. **Maintains Functionality**: Users can still see and interact with the application
-3. **Clear Communication**: Users understand they're seeing demo data
+1. **Real Data on Vercel**: Vercel deployments can now use real AI data when a backend is available
+2. **Consistent Behavior**: Same connection logic across all deployment environments
+3. **Clear Error Handling**: Connection failures are handled consistently
 4. **No Code Changes**: Same codebase works in all environments
-5. **Easy Maintenance**: Centralized detection logic
+5. **Easy Maintenance**: Simplified connection logic
 
 ## Usage
 
-The application now automatically:
+The application now:
 - When running on localhost:3000, connects to the backend on localhost:8080
-- When deployed to Vercel, switches to demo mode with simulated data
+- When deployed to Vercel, attempts to connect to the backend on the same domain
 - When deployed to other domains, connects to the backend on the same domain
 
-This allows the same codebase to work in development, Vercel deployments, and traditional server deployments without modification.
+If a backend server is running and accessible, the application will use real data. If not, standard connection error handling will apply.

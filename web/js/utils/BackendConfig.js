@@ -11,11 +11,9 @@ export class BackendConfig {
     }
     
     static getBackendUrl() {
-        // For Vercel deployments, we need to handle this differently
+        // For Vercel deployments, use the same domain as the frontend
         if (this.isVercelDeployment()) {
-            // For Vercel, we'll use the same domain but with a different approach
-            // You'll need to set up your backend separately or use a different solution
-            console.warn('Vercel deployment detected. WebSocket connections may not work without a separate backend.');
+            // Use the same domain as the frontend for backend requests
             return window.location.origin;
         }
         
@@ -39,7 +37,8 @@ export class BackendConfig {
     }
     
     static shouldUseDemoMode() {
-        // Use demo mode for Vercel deployments where WebSocket server is not available
-        return this.isVercelDeployment();
+        // No longer use demo mode for Vercel deployments
+        // Only use demo mode when we're on localhost but the backend server is not running
+        return false;
     }
 }

@@ -18,14 +18,15 @@ export class WebSocketClient {
     }
     
     async connect(url = BackendConfig.getWebSocketUrl()) {
+        // Removed Vercel deployment check - always attempt to connect to WebSocket
         // If we're on Vercel, use demo mode instead of trying to connect to WebSocket
-        if (BackendConfig.shouldUseDemoMode()) {
-            console.log(`[WebSocketClient-${this.connectionId}] Vercel deployment detected, using demo mode`);
-            this.demoMode = true;
-            this.isConnected = false;
-            this.emit('disconnected', 'demo-mode');
-            return Promise.resolve();
-        }
+        // if (BackendConfig.shouldUseDemoMode()) {
+        //     console.log(`[WebSocketClient-${this.connectionId}] Vercel deployment detected, using demo mode`);
+        //     this.demoMode = true;
+        //     this.isConnected = false;
+        //     this.emit('disconnected', 'demo-mode');
+        //     return Promise.resolve();
+        // }
         
         // If already connected, return early
         if (this.isConnected && this.socket && this.socket.connected) {
