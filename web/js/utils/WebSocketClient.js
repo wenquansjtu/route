@@ -55,7 +55,14 @@ export class WebSocketClient {
                 const timeout = setTimeout(() => {
                     this.isConnecting = false;
                     if (this.eventSource.readyState !== EventSource.OPEN) {
-                        reject(new Error('Connection timeout'));
+                        // If connection fails, switch to demo mode for Vercel deployments
+                        if (BackendConfig.isVercelDeployment()) {
+                            console.log(`[SSEClient-${this.connectionId}] Vercel deployment detected, switching to demo mode`);
+                            this.switchToDemoMode();
+                            resolve();
+                        } else {
+                            reject(new Error('Connection timeout'));
+                        }
                     }
                 }, 15000);
                 
@@ -78,7 +85,15 @@ export class WebSocketClient {
                     this.connectionFailed = true;
                     this.emit('error', error);
                     
-                    // Attempt to reconnect
+                    // If this is a Vercel deployment, switch to demo mode instead of reconnecting
+                    if (BackendConfig.isVercelDeployment()) {
+                        console.log(`[SSEClient-${this.connectionId}] Vercel deployment detected, switching to demo mode`);
+                        this.switchToDemoMode();
+                        resolve();
+                        return;
+                    }
+                    
+                    // Attempt to reconnect for non-Vercel deployments
                     this.attemptReconnect();
                     reject(error);
                 };
@@ -89,7 +104,14 @@ export class WebSocketClient {
             this.isConnecting = false;
             this.connectionFailed = true;
             
-            // Attempt to reconnect
+            // If this is a Vercel deployment, switch to demo mode instead of reconnecting
+            if (BackendConfig.isVercelDeployment()) {
+                console.log(`[SSEClient-${this.connectionId}] Vercel deployment detected, switching to demo mode`);
+                this.switchToDemoMode();
+                return Promise.resolve();
+            }
+            
+            // Attempt to reconnect for non-Vercel deployments
             this.attemptReconnect();
             throw error;
         }
@@ -100,6 +122,129 @@ export class WebSocketClient {
         // ws:// -> http:// and wss:// -> https://
         // Add /sse endpoint
         return webSocketUrl.replace('ws://', 'http://').replace('wss://', 'https://') + '/sse';
+    }
+    
+    switchToDemoMode() {
+        console.log(`[SSEClient-${this.connectionId}] Switching to demo mode`);
+        this.demoMode = true;
+        this.isConnected = false;
+        this.isConnecting = false;
+        this.connectionFailed = false;
+        
+        // Close any existing connection
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+        }
+        
+        // Emit demo mode event
+        this.emit('demo-mode-activated');
+        
+        // Start demo mode simulation
+        this.startDemoSimulation();
+    }
+    
+    startDemoSimulation() {
+        console.log(`[SSEClient-${this.connectionId}] Starting demo simulation`);
+        
+        // Simulate initial AI system status
+        setTimeout(() => {
+            this.emit('ai-system-status', {
+                timestamp: Date.now(),
+                openaiApiKey: false,
+                totalAIAgents: 6,
+                activeCollaborations: 0,
+                totalCollaborations: 3,
+                connectedClients: 0,
+                sseClients: 0,
+                aiAgents: [
+                    {
+                        id: 'demo-agent-1',
+                        name: 'Prof. Smoot (Demo)',
+                        type: 'specialized',
+                        status: 'active',
+                        capabilities: ['task_allocation', 'cosmic_structure_modeling'],
+                        personality: { traits: ['nobel_prize_winner', 'analytical', 'precise'] },
+                        expertise: ['cosmic_structure_theory', 'tensor_field_analysis'],
+                        position: { x: 0, y: 0, z: 0 },
+                        mass: 3.0
+                    },
+                    {
+                        id: 'demo-agent-2',
+                        name: 'Dr. Analyzer (Demo)',
+                        type: 'analyzer',
+                        status: 'active',
+                        capabilities: ['deep_analysis', 'pattern_recognition'],
+                        personality: { traits: ['analytical', 'detail-oriented', 'systematic'] },
+                        expertise: ['data_science', 'research_methodology'],
+                        position: { x: 100, y: 50, z: 50 },
+                        mass: 2.0
+                    },
+                    {
+                        id: 'demo-agent-3',
+                        name: 'Prof. Reasoner (Demo)',
+                        type: 'reasoner',
+                        status: 'active',
+                        capabilities: ['logical_reasoning', 'inference'],
+                        personality: { traits: ['logical', 'methodical', 'rational'] },
+                        expertise: ['formal_logic', 'philosophy'],
+                        position: { x: -100, y: 100, z: -50 },
+                        mass: 1.8
+                    }
+                ],
+                system: {
+                    memory: { rss: 85426176, heapTotal: 60135568, heapUsed: 38754336, external: 1878528 },
+                    uptime: 120
+                }
+            });
+        }, 1000);
+        
+        // Simulate periodic updates
+        let taskCounter = 1;
+        const demoInterval = setInterval(() => {
+            if (!this.demoMode) {
+                clearInterval(demoInterval);
+                return;
+            }
+            
+            // Simulate agent updates
+            this.emit('ai-agent-update', {
+                id: 'demo-agent-' + (1 + Math.floor(Math.random() * 3)),
+                name: 'Demo Agent',
+                type: 'demo',
+                status: 'active',
+                capabilities: ['demo_capability'],
+                personality: { traits: ['demo'] },
+                expertise: ['demo_expertise'],
+                position: { 
+                    x: Math.random() * 200 - 100, 
+                    y: Math.random() * 200 - 100, 
+                    z: Math.random() * 200 - 100 
+                },
+                mass: 1.0 + Math.random() * 2.0
+            });
+            
+            // Simulate task chain execution steps
+            if (Math.random() > 0.7) {
+                this.emit('task-chain-execution-step', {
+                    taskChainId: 'demo-chain-' + Math.floor(Math.random() * 100),
+                    step: Math.floor(Math.random() * 5) + 1,
+                    agentId: 'demo-agent-' + (1 + Math.floor(Math.random() * 3)),
+                    action: 'analyzing',
+                    content: 'Processing demo task data...'
+                });
+            }
+            
+            // Simulate task completions
+            if (Math.random() > 0.9) {
+                this.emit('task-chain-completed', {
+                    chainId: 'demo-chain-' + taskCounter++,
+                    result: 'Demo task completed successfully',
+                    executionTime: Math.floor(Math.random() * 1000) + 500
+                });
+            }
+            
+        }, 3000);
     }
     
     setupEventHandlers() {
@@ -304,10 +449,11 @@ export class WebSocketClient {
     }
     
     send(type, payload = {}) {
-        // In demo mode, don't send messages
+        // In demo mode, simulate responses
         if (this.demoMode) {
-            console.log(`[SSEClient-${this.connectionId}] Demo mode: Not sending message ${type}`);
-            return false;
+            console.log(`[SSEClient-${this.connectionId}] Demo mode: Simulating message ${type}`);
+            this.simulateDemoResponse(type, payload);
+            return true;
         }
         
         // SSE is unidirectional, so we need to send messages via HTTP POST
@@ -344,6 +490,59 @@ export class WebSocketClient {
                 this.connect();
             }
             return false;
+        }
+    }
+    
+    simulateDemoResponse(type, payload) {
+        // Simulate responses for demo mode
+        switch (type) {
+            case 'get-ai-status':
+                // This is handled by the periodic simulation
+                break;
+            case 'submit-ai-task':
+                // Simulate task submission
+                setTimeout(() => {
+                    this.emit('ai-task-acknowledged', { 
+                        taskId: payload.id || 'demo-task-' + Date.now(),
+                        message: 'Task received and processing started (Demo Mode)'
+                    });
+                    
+                    // Simulate task completion
+                    setTimeout(() => {
+                        this.emit('ai-task-completed', {
+                            success: true,
+                            result: {
+                                taskId: payload.id || 'demo-task-' + Date.now(),
+                                finalResult: 'This is a simulated result from the demo mode. In a real deployment, this would be generated by actual AI agents working together.',
+                                executionSteps: [
+                                    { agent: 'Prof. Smoot (Demo)', action: 'Task allocation', duration: 150 },
+                                    { agent: 'Dr. Analyzer (Demo)', action: 'Data analysis', duration: 320 },
+                                    { agent: 'Prof. Reasoner (Demo)', action: 'Logical reasoning', duration: 280 }
+                                ]
+                            }
+                        });
+                    }, 2000);
+                }, 500);
+                break;
+            case 'create-ai-agent':
+                // Simulate agent creation
+                setTimeout(() => {
+                    this.emit('ai-agent-created', { 
+                        success: true, 
+                        agent: {
+                            id: 'demo-agent-' + Date.now(),
+                            name: payload.name || 'Demo Agent',
+                            type: payload.type || 'demo',
+                            status: 'active',
+                            capabilities: payload.capabilities || ['demo_capability'],
+                            personality: payload.personality || { traits: ['demo'] },
+                            expertise: payload.expertise || ['demo_expertise'],
+                            position: payload.position || { x: 0, y: 0, z: 0 },
+                            mass: payload.mass || 1.0
+                        }
+                    });
+                }, 500);
+                break;
         }
     }
     
@@ -385,6 +584,7 @@ export class WebSocketClient {
         if (this.demoMode) {
             this.isConnected = false;
             this.isConnecting = false;
+            this.demoMode = false;
             return;
         }
         
