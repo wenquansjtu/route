@@ -41,8 +41,8 @@
             log(`Client error: ${error}`);
         });
         
-        // Try to connect
-        client.connect(BackendConfig.getBackendUrl())
+        // Try to connect using the WebSocket URL
+        client.connect(BackendConfig.getWebSocketUrl())
             .then(() => {
                 log('Connection established');
             })

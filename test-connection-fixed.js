@@ -18,8 +18,8 @@ async function testConnection() {
   });
   
   try {
-    // Try to connect
-    await client.connect(BackendConfig.getBackendUrl());
+    // Try to connect using the WebSocket URL
+    await client.connect(BackendConfig.getWebSocketUrl());
     console.log('🎉 Connection test completed');
     
     // Keep the process running for a bit to test stability

@@ -17,7 +17,7 @@ export class WebSocketClient {
         this.demoMode = false; // Track if we're in demo mode
     }
     
-    async connect(url = BackendConfig.getBackendUrl()) {
+    async connect(url = BackendConfig.getWebSocketUrl()) {
         // If we're on Vercel, use demo mode instead of trying to connect to WebSocket
         if (BackendConfig.shouldUseDemoMode()) {
             console.log(`[WebSocketClient-${this.connectionId}] Vercel deployment detected, using demo mode`);
