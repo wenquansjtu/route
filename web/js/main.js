@@ -53,9 +53,6 @@ class CosmicAgentApp {
         // Generate sample data for demonstration initially
         this.generateSampleSystemState();
         
-        // Comment out automatic fetching of real AI agents
-        // this.fetchRealAIAgents();
-        
         console.log('🌌 Cosmic Agent Network initialized and connected to Real AI backend');
     }
     
@@ -69,14 +66,6 @@ class CosmicAgentApp {
                 this.isConnected = false;
                 console.log('❌ Disconnected from server:', reason);
                 
-                // Removed Vercel deployment check
-                // Handle demo mode
-                // if (reason === 'demo-mode') {
-                //     console.log('📱 Vercel deployment detected, switching to demo mode');
-                //     this.setupDemoMode();
-                //     return;
-                // }
-                
                 // Only attempt reconnection for unexpected disconnections
                 if (reason !== 'io client disconnect') {
                     this.attemptReconnect();
@@ -84,180 +73,12 @@ class CosmicAgentApp {
             });
             
             this.ws.on('error', (error) => {
-                console.error('❌ WebSocket error:', error);
+                console.error('❌ Connection error:', error);
                 this.attemptReconnect();
             });
         } catch (error) {
             console.error('❌ Failed to connect to server:', error);
             this.attemptReconnect();
-        }
-    }
-    
-    setupDemoMode() {
-        console.log('📱 Setting up demo mode for Vercel deployment');
-        this.isConnected = false; // Not actually connected
-        this.isDemoMode = true;
-        
-        // Show a notification about demo mode
-        this.showDemoModeNotification();
-        
-        // Set up periodic demo updates
-        if (this.demoInterval) {
-            clearInterval(this.demoInterval);
-        }
-        
-        this.demoInterval = setInterval(() => {
-            this.updateWithDemoData();
-        }, 10000); // Update every 10 seconds with demo data
-        
-        // Trigger initial demo data
-        setTimeout(() => {
-            this.updateWithDemoData();
-        }, 1000);
-    }
-    
-    showDemoModeNotification() {
-        // Remove any existing demo notifications
-        const existingDemoNotifications = document.querySelectorAll('.demo-mode-notification');
-        existingDemoNotifications.forEach(el => el.remove());
-        
-        // Create a demo mode notification
-        const demoDiv = document.createElement('div');
-        demoDiv.className = 'demo-mode-notification';
-        demoDiv.innerHTML = `
-            <div style="position: fixed; top: 20px; right: 20px; background: #3b82f6; color: white; padding: 15px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 300px;">
-                <strong>📱 Demo Mode</strong>
-                <p>This deployment is running in demo mode. Real AI agents and WebSocket connections are not available.</p>
-                <button onclick="this.parentElement.remove()" style="background: white; color: #3b82f6; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-top: 5px;">Dismiss</button>
-            </div>
-        `;
-        document.body.appendChild(demoDiv);
-    }
-    
-    updateWithDemoData() {
-        console.log('📱 Updating with demo data');
-        
-        // Generate demo agent data
-        const demoAgents = [
-            {
-                id: 'demo-1',
-                name: 'Prof. Smoot (Demo)',
-                type: 'cosmic_structure_expert',
-                status: 'active',
-                energy: 95,
-                maxEnergy: 100,
-                position: { x: 0, y: 0, z: 0 },
-                connections: ['demo-2', 'demo-3'],
-                ai: {
-                    focusLevel: 0.9,
-                    memoryLoad: { shortTerm: 5, longTerm: 42 },
-                    currentThought: 'Analyzing cosmic structure patterns...'
-                },
-                capabilities: ['cosmic_structure_analysis', 'gravitational_field_modeling'],
-                personality: { traits: ['analytical', 'methodical', 'precise'] }
-            },
-            {
-                id: 'demo-2',
-                name: 'Dr. Analyzer (Demo)',
-                type: 'analyzer',
-                status: 'processing',
-                energy: 87,
-                maxEnergy: 100,
-                position: { x: 100, y: 50, z: 20 },
-                connections: ['demo-1', 'demo-4'],
-                ai: {
-                    focusLevel: 0.7,
-                    memoryLoad: { shortTerm: 8, longTerm: 36 },
-                    currentThought: 'Processing data patterns...'
-                },
-                capabilities: ['deep_analysis', 'pattern_recognition'],
-                personality: { traits: ['analytical', 'detail-oriented', 'systematic'] }
-            },
-            {
-                id: 'demo-3',
-                name: 'Ms. Synthesizer (Demo)',
-                type: 'synthesizer',
-                status: 'active',
-                energy: 92,
-                maxEnergy: 100,
-                position: { x: -100, y: 75, z: -30 },
-                connections: ['demo-1', 'demo-5'],
-                ai: {
-                    focusLevel: 0.8,
-                    memoryLoad: { shortTerm: 3, longTerm: 28 },
-                    currentThought: 'Synthesizing knowledge domains...'
-                },
-                capabilities: ['information_synthesis', 'knowledge_integration'],
-                personality: { traits: ['creative', 'integrative', 'holistic'] }
-            },
-            {
-                id: 'demo-4',
-                name: 'Prof. Reasoner (Demo)',
-                type: 'reasoner',
-                status: 'idle',
-                energy: 78,
-                maxEnergy: 100,
-                position: { x: 200, y: -50, z: 40 },
-                connections: ['demo-2'],
-                ai: {
-                    focusLevel: 0.6,
-                    memoryLoad: { shortTerm: 6, longTerm: 31 },
-                    currentThought: 'Awaiting new reasoning tasks...'
-                },
-                capabilities: ['logical_reasoning', 'inference'],
-                personality: { traits: ['logical', 'methodical', 'rational'] }
-            },
-            {
-                id: 'demo-5',
-                name: 'Dr. Validator (Demo)',
-                type: 'validator',
-                status: 'active',
-                energy: 89,
-                maxEnergy: 100,
-                position: { x: -200, y: -25, z: -60 },
-                connections: ['demo-3'],
-                ai: {
-                    focusLevel: 0.85,
-                    memoryLoad: { shortTerm: 4, longTerm: 39 },
-                    currentThought: 'Validating analysis results...'
-                },
-                capabilities: ['result_validation', 'quality_assessment'],
-                personality: { traits: ['critical', 'thorough', 'careful'] }
-            }
-        ];
-        
-        // Update system state with demo data
-        this.systemState.agents = demoAgents;
-        this.systemState.collaborations = Math.floor(Math.random() * 3);
-        this.systemState.totalTasks = 12 + Math.floor(Math.random() * 5);
-        
-        // Update UI with demo data
-        this.updateAgentList();
-        this.updateSystemMetrics();
-        
-        // Simulate task chain updates
-        this.simulateTaskChainUpdates();
-    }
-    
-    simulateTaskChainUpdates() {
-        // Randomly generate task chain execution steps
-        if (Math.random() > 0.7) { // 30% chance to generate a task update
-            const taskChainId = `demo-chain-${Math.floor(Math.random() * 1000)}`;
-            const agentIds = this.systemState.agents.map(agent => agent.id);
-            const randomAgentId = agentIds[Math.floor(Math.random() * agentIds.length)];
-            
-            const taskData = {
-                taskChainId: taskChainId,
-                taskId: `task-${Math.floor(Math.random() * 10000)}`,
-                agentId: randomAgentId,
-                taskName: `Demo Task ${Math.floor(Math.random() * 100)}`,
-                status: 'completed',
-                result: 'Demo task completed successfully with synthesized insights.',
-                timestamp: Date.now()
-            };
-            
-            // Handle the task chain execution step
-            this.handleTaskChainExecutionStep(taskData);
         }
     }
     
@@ -354,48 +175,29 @@ class CosmicAgentApp {
         document.getElementById('clear-task-chain')?.addEventListener('click', () => {
             this.clearTaskChainVisualization();
         });
-        
-        // 任务管理
-        document.getElementById('create-task')?.addEventListener('click', () => {
-            this.showTaskModal();
-        });
-        
-        // 模态框
-        document.getElementById('cancel-task')?.addEventListener('click', () => {
-            this.hideTaskModal();
-        });
-        
-        document.querySelector('.modal-close')?.addEventListener('click', () => {
-            this.hideTaskModal();
-        });
-        
-        // 任务表单
-        document.getElementById('task-form')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.createTask();
-        });
-        
-        // 优先级滑块
-        document.getElementById('task-priority')?.addEventListener('input', (e) => {
-            const priorityValue = document.getElementById('priority-value');
-            if (priorityValue) {
-                priorityValue.textContent = e.target.value;
-            }
-        });
-
     }
     
     setupWebSocketHandlers() {
         this.ws.on('connected', () => {
-            console.log('✅ WebSocket connected to server');
+            console.log('✅ Connected to Real AI Server');
             this.isConnected = true;
-            this.reconnectAttempts = 0; // Reset reconnect attempts on successful connection
-            // Request initial data when connected
-            this.ws.send('get-ai-status');
+            this.reconnectAttempts = 0;
+            this.updateConnectionStatus('online');
+        });
+        
+        this.ws.on('disconnected', (reason) => {
+            console.log('❌ Disconnected from server:', reason);
+            this.isConnected = false;
+            this.updateConnectionStatus('offline');
+        });
+        
+        this.ws.on('error', (error) => {
+            console.error('❌ Connection error:', error);
+            this.isConnected = false;
+            this.updateConnectionStatus('error');
         });
         
         this.ws.on('ai-system-status', (data) => {
-            console.log('Received AI system status:', data);
             this.updateSystemStatus(data);
         });
         
@@ -426,6 +228,30 @@ class CosmicAgentApp {
         this.ws.on('task-chain-completed', (data) => {
             this.handleTaskChainCompleted(data);
         });
+        
+        this.ws.on('prof-smoot-allocation', (data) => {
+            this.handleProfSmootAllocation(data);
+        });
+        
+        this.ws.on('fallback-allocation', (data) => {
+            this.handleFallbackAllocation(data);
+        });
+    }
+    
+    handleProfSmootAllocation(data) {
+        console.log('🎯 Prof. Smoot Allocation:', data);
+        // Update UI to show Prof. Smoot's task allocation
+        if (this.taskManager) {
+            this.taskManager.updateTaskAllocation(data, 'prof-smoot');
+        }
+    }
+    
+    handleFallbackAllocation(data) {
+        console.log('🔄 Fallback Allocation:', data);
+        // Update UI to show fallback task allocation
+        if (this.taskManager) {
+            this.taskManager.updateTaskAllocation(data, 'fallback');
+        }
     }
     
     handleTaskChainExecutionStep(data) {
@@ -603,447 +429,304 @@ class CosmicAgentApp {
             vizSection.style.display = 'none';
         }
         
-        // Clear the visualizer
+        // Clear the task chain visualizer
         if (this.taskChainViz) {
             this.taskChainViz.clear();
         }
         
-        // Clear details
+        // Clear task chain details
         const detailsContainer = document.getElementById('task-chain-info');
         if (detailsContainer) {
             detailsContainer.innerHTML = '';
         }
     }
     
-    initializeComponents() {
-        console.log('Initializing components...');
-        
-        // 初始化可视化组件
-        console.log('Initializing NetworkVisualizer...');
-        this.networkViz.init();
-        
-        console.log('Initializing TCFVisualizer...');
-        this.tcfViz.init();
-        
-        console.log('Initializing MonitoringComponents...');
-        this.collaborationMonitor.init();
-        this.taskManager.init();
-        this.systemMonitor.init();
-        
-        // 初始化拓扑可视化
-        this.initTopologyVisualization();
-        
-        console.log('All components initialized');
-    }
-
-    initTopologyVisualization() {
-        const container = document.getElementById('topology-visualization');
-        if (!container) return;
-        
-        // 创建简单的拓扑图
-        const svg = d3.select(container)
-            .append('svg')
-            .attr('width', '100%')
-            .attr('height', '100%');
-        
-        // 添加背景
-        svg.append('rect')
-            .attr('width', '100%')
-            .attr('height', '100%')
-            .attr('fill', 'rgba(0,0,0,0.2)');
-        
-        // 添加标题
-        svg.append('text')
-            .attr('x', '50%')
-            .attr('y', '50%')
-            .attr('text-anchor', 'middle')
-            .attr('fill', 'rgba(255,255,255,0.5)')
-            .text('拓扑结构视图');
+    updateConnectionStatus(status) {
+        const statusElement = document.getElementById('connection-status');
+        if (statusElement) {
+            statusElement.className = `status-${status}`;
+            statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        }
     }
     
-    switchView(viewName) {
-        console.log('Switching to view:', viewName);
+    updateSystemStatus(data) {
+        console.log('System status update:', data);
+        // Update system metrics
+        this.systemState.metrics = data;
         
-        // 隐藏所有视图
-        document.querySelectorAll('.view').forEach(view => {
-            view.classList.remove('active');
+        // Update UI components
+        if (this.systemMonitor) {
+            this.systemMonitor.updateMetrics(data);
+        }
+    }
+    
+    updateAgent(agentData) {
+        console.log('Agent update:', agentData);
+        // Update agent in system state
+        this.systemState.agents.set(agentData.id, agentData);
+        
+        // Update UI components
+        this.updateAgentList();
+        if (this.networkViz) {
+            this.networkViz.updateAgent(agentData);
+        }
+    }
+    
+    updateTask(taskData) {
+        console.log('Task update:', taskData);
+        // Update task in system state
+        this.systemState.tasks.set(taskData.id, taskData);
+        
+        // Update UI components
+        if (this.taskManager) {
+            this.taskManager.updateTask(taskData);
+        }
+    }
+    
+    updateCollaboration(collaborationData) {
+        console.log('Collaboration update:', collaborationData);
+        // Update collaboration in system state
+        this.systemState.collaborationSessions.set(collaborationData.id, collaborationData);
+        
+        // Update UI components
+        if (this.collaborationMonitor) {
+            this.collaborationMonitor.updateSession(collaborationData);
+        }
+    }
+    
+    updateTopology(topologyData) {
+        console.log('Topology update:', topologyData);
+        // Update network visualization
+        if (this.networkViz) {
+            this.networkViz.updateTopology(topologyData);
+        }
+    }
+    
+    updateTCF(tcfData) {
+        console.log('TCF update:', tcfData);
+        // Update TCF visualization
+        if (this.tcfViz) {
+            this.tcfViz.update(tcfData);
+        }
+    }
+    
+    updateAgentList() {
+        // Update the agent list in the UI
+        const agentListContainer = document.getElementById('agent-list');
+        if (!agentListContainer) return;
+        
+        const agents = Array.from(this.systemState.agents.values());
+        agentListContainer.innerHTML = agents.map(agent => `
+            <div class="agent-card" data-agent-id="${agent.id}">
+                <div class="agent-header">
+                    <h4>${agent.name}</h4>
+                    <span class="agent-type">${agent.type}</span>
+                </div>
+                <div class="agent-status">
+                    <span class="status-indicator ${agent.status}"></span>
+                    <span>${agent.status}</span>
+                </div>
+                <div class="agent-energy">
+                    <div class="energy-bar">
+                        <div class="energy-fill" style="width: ${agent.energy}%"></div>
+                    </div>
+                    <span>${agent.energy}/${agent.maxEnergy}</span>
+                </div>
+                <div class="agent-capabilities">
+                    ${agent.capabilities.slice(0, 3).map(cap => `<span class="capability-tag">${cap}</span>`).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    updateSystemMetrics() {
+        // Update system metrics display
+        const metricsContainer = document.getElementById('system-metrics');
+        if (!metricsContainer) return;
+        
+        const metrics = this.systemState.metrics;
+        if (!metrics) return;
+        
+        metricsContainer.innerHTML = `
+            <div class="metric-card">
+                <h4>Active Agents</h4>
+                <span class="metric-value">${metrics.totalAIAgents || 0}</span>
+            </div>
+            <div class="metric-card">
+                <h4>Active Collaborations</h4>
+                <span class="metric-value">${metrics.activeCollaborations || 0}</span>
+            </div>
+            <div class="metric-card">
+                <h4>Total Tasks</h4>
+                <span class="metric-value">${metrics.totalTasks || 0}</span>
+            </div>
+            <div class="metric-card">
+                <h4>Connected Clients</h4>
+                <span class="metric-value">${metrics.connectedClients || 0}</span>
+            </div>
+        `;
+    }
+    
+    generateSampleSystemState() {
+        // Generate sample data for initial display
+        console.log('Generating sample system state');
+        
+        // Sample agents
+        const sampleAgents = [
+            {
+                id: 'agent-1',
+                name: 'Prof. Smoot',
+                type: 'cosmic_structure_expert',
+                status: 'active',
+                energy: 95,
+                maxEnergy: 100,
+                position: { x: 0, y: 0, z: 0 },
+                connections: ['agent-2', 'agent-3'],
+                ai: {
+                    focusLevel: 0.9,
+                    memoryLoad: { shortTerm: 5, longTerm: 42 },
+                    currentThought: 'Analyzing cosmic structure patterns...'
+                },
+                capabilities: ['cosmic_structure_analysis', 'gravitational_field_modeling'],
+                personality: { traits: ['analytical', 'methodical', 'precise'] }
+            },
+            {
+                id: 'agent-2',
+                name: 'Dr. Analyzer',
+                type: 'analyzer',
+                status: 'processing',
+                energy: 87,
+                maxEnergy: 100,
+                position: { x: 100, y: 50, z: 20 },
+                connections: ['agent-1', 'agent-4'],
+                ai: {
+                    focusLevel: 0.7,
+                    memoryLoad: { shortTerm: 8, longTerm: 36 },
+                    currentThought: 'Processing data patterns...'
+                },
+                capabilities: ['deep_analysis', 'pattern_recognition'],
+                personality: { traits: ['analytical', 'detail-oriented', 'systematic'] }
+            },
+            {
+                id: 'agent-3',
+                name: 'Ms. Synthesizer',
+                type: 'synthesizer',
+                status: 'active',
+                energy: 92,
+                maxEnergy: 100,
+                position: { x: -100, y: 75, z: -30 },
+                connections: ['agent-1', 'agent-5'],
+                ai: {
+                    focusLevel: 0.8,
+                    memoryLoad: { shortTerm: 3, longTerm: 28 },
+                    currentThought: 'Synthesizing knowledge domains...'
+                },
+                capabilities: ['information_synthesis', 'knowledge_integration'],
+                personality: { traits: ['creative', 'integrative', 'holistic'] }
+            }
+        ];
+        
+        // Add sample agents to system state
+        sampleAgents.forEach(agent => {
+            this.systemState.agents.set(agent.id, agent);
         });
         
-        // 移除所有导航按钮的活跃状态
+        // Update UI
+        this.updateAgentList();
+        this.updateSystemMetrics();
+        
+        // Update network visualization
+        if (this.networkViz) {
+            this.networkViz.updateWithAgents(sampleAgents);
+        }
+    }
+    
+    initializeComponents() {
+        // Initialize all visualization components
+        if (this.networkViz) {
+            this.networkViz.init();
+        }
+        
+        if (this.tcfViz) {
+            this.tcfViz.init();
+        }
+        
+        if (this.taskChainViz) {
+            this.taskChainViz.init();
+        }
+        
+        if (this.collaborationMonitor) {
+            this.collaborationMonitor.init();
+        }
+        
+        if (this.taskManager) {
+            this.taskManager.init();
+        }
+        
+        if (this.systemMonitor) {
+            this.systemMonitor.init();
+        }
+    }
+    
+    switchView(view) {
+        this.currentView = view;
+        
+        // Update active nav button
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.classList.remove('active');
+            if (btn.dataset.view === view) {
+                btn.classList.add('active');
+            }
         });
         
-        // 显示目标视图
-        const targetView = document.getElementById(viewName);
-        if (targetView) {
-            targetView.classList.add('active');
-            console.log('View activated:', viewName);
-        } else {
-            console.error('Target view not found:', viewName);
+        // Show/hide sections
+        document.querySelectorAll('.view-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        const targetSection = document.getElementById(view);
+        if (targetSection) {
+            targetSection.style.display = 'block';
         }
         
-        // 激活对应的导航按钮
-        const targetBtn = document.querySelector(`[data-view="${viewName}"]`);
-        if (targetBtn) {
-            targetBtn.classList.add('active');
-            console.log('Button activated:', viewName);
-        } else {
-            console.error('Target button not found:', viewName);
-        }
-        
-        this.currentView = viewName;
-        
-        // 根据视图类型更新组件
-        setTimeout(() => {
-            this.updateCurrentView();
-        }, 100); // Small delay to ensure DOM is updated
+        // Update visualization for the current view
+        this.updateCurrentView();
     }
-
+    
     updateCurrentView() {
-        console.log('Updating current view:', this.currentView);
-        
         switch (this.currentView) {
-            case 'ai-overview':
-            case 'overview':
-                this.updateOverview();
-                break;
             case 'network':
-                console.log('Updating network view...');
-                // Only reinitialize if we don't have a saved topology displayed
-                if (this.networkViz && this.networkViz.container) {
-                    console.log('Network container found, updating...');
-                    // Check if we have a saved topology displayed
-                    if (!this.networkViz.hasSavedTopologyDisplayed()) {
-                        this.networkViz.update(this.systemState);
-                    } else {
-                        console.log('Skipping network update - saved topology is displayed');
-                    }
-                } else {
-                    console.log('Re-initializing NetworkVisualizer...');
-                    this.networkViz = new NetworkVisualizer('#network-graph');
-                    this.networkViz.init();
+                if (this.networkViz) {
+                    this.networkViz.resize();
                 }
                 break;
-            case 'collaboration':
-                this.collaborationMonitor.update(this.systemState);
+            case 'tcf':
+                if (this.tcfViz) {
+                    this.tcfViz.resize();
+                }
                 break;
             case 'tasks':
-                this.taskManager.update(this.systemState);
-                // Show latest task chain visualization if available
-                const taskChainIds = Array.from(this.systemState.taskChains.keys());
-                if (taskChainIds.length > 0) {
-                    const latestChainId = taskChainIds[taskChainIds.length - 1];
-                    this.updateTaskChainVisualization(latestChainId);
+                if (this.taskChainViz) {
+                    this.taskChainViz.resize();
                 }
                 break;
-            case 'monitoring':
-                this.systemMonitor.update(this.systemState);
-                break;
-        }
-    }
-    
-    updateOverview() {
-        // 更新系统指标
-        const agentCount = this.systemState.agents.size;
-        const activeTasks = Array.from(this.systemState.tasks.values())
-            .filter(task => task.status === 'executing').length;
-        
-        // Add null checks for all DOM elements
-        const agentCountElement = document.getElementById('agent-count');
-        if (agentCountElement) {
-            agentCountElement.textContent = agentCount;
-        }
-        
-        const activeTasksElement = document.getElementById('active-tasks');
-        if (activeTasksElement) {
-            activeTasksElement.textContent = activeTasks;
-        }
-        
-        const networkStability = (this.systemState.metrics.networkStability || 0) * 100;
-        const collaborationEfficiency = (this.systemState.metrics.collaborationEfficiency || 0) * 100;
-        
-        const networkStabilityElement = document.getElementById('network-stability');
-        if (networkStabilityElement) {
-            networkStabilityElement.textContent = `${networkStability.toFixed(1)}%`;
-        }
-        
-        const collaborationEfficiencyElement = document.getElementById('collaboration-efficiency');
-        if (collaborationEfficiencyElement) {
-            collaborationEfficiencyElement.textContent = `${collaborationEfficiency.toFixed(1)}%`;
-        }
-        
-        // 更新小型可视化
-        this.tcfViz.update(this.systemState);
-        
-        // 更新日志
-        this.addLog('info', `系统状态更新: ${agentCount}个Agent在线, ${activeTasks}个活跃任务`);
-    }
-    
-    showTaskModal() {
-        const modal = document.getElementById('task-modal');
-        if (modal) {
-            modal.classList.add('show');
-        }
-    }
-    
-    hideTaskModal() {
-        const modal = document.getElementById('task-modal');
-        if (modal) {
-            modal.classList.remove('show');
-        }
-        
-        // 清空表单 - add null checks
-        const taskForm = document.getElementById('task-form');
-        if (taskForm) {
-            taskForm.reset();
-        }
-        
-        const priorityValue = document.getElementById('priority-value');
-        if (priorityValue) {
-            priorityValue.textContent = '5';
-        }
-    }
-
-    createTask() {
-        const taskForm = document.getElementById('task-form');
-        if (!taskForm) return;
-        
-        // 获取选中的能力
-        const capabilities = Array.from(document.querySelectorAll('.capabilities input:checked'))
-            .map(input => input.value);
-        
-        const taskData = {
-            name: document.getElementById('task-name')?.value || '',
-            type: document.getElementById('task-type')?.value || 'analysis',
-            collaborationType: document.getElementById('collaboration-type')?.value || 'sequential',
-            priority: parseInt(document.getElementById('task-priority')?.value || '5'),
-            description: document.getElementById('task-description')?.value || '',
-            requiredCapabilities: capabilities
-        };
-        
-        // 发送到后端
-        this.ws.send('create-task', taskData);
-        
-        this.addLog('info', `创建新任务: ${taskData.name}`);
-        this.hideTaskModal();
-    }
-    
-    addLog(level, message) {
-        const logContainer = document.getElementById('system-logs');
-        if (!logContainer) return;
-        
-        const timestamp = new Date().toLocaleTimeString();
-        const logEntry = document.createElement('div');
-        logEntry.className = `log-entry ${level}`;
-        logEntry.textContent = `[${timestamp}] ${message}`;
-        
-        logContainer.appendChild(logEntry);
-        logContainer.scrollTop = logContainer.scrollHeight;
-        
-        // 限制日志条数
-        while (logContainer.children.length > 100) {
-            logContainer.removeChild(logContainer.firstChild);
         }
     }
     
     startDataPolling() {
-        // 定期请求系统状态 - reduced frequency to prevent excessive updates
+        // Start periodic data updates
         setInterval(() => {
-            if (this.ws.connected) {
-                this.ws.send('get-system-status');
+            if (this.isConnected) {
+                // Request updated system status
+                this.ws.send('get-ai-status');
             }
-        }, 10000); // Changed from 2000ms to 10000ms
-        
-        // 定期更新当前视图，但避免频繁更新网络视图
-        setInterval(() => {
-            // Only update network view if we're actually on the network view
-            if (this.currentView === 'network') {
-                // For network view, only update if we don't have a saved topology displayed
-                if (this.networkViz && !this.networkViz.hasSavedTopologyDisplayed()) {
-                    this.updateCurrentView();
-                }
-            } else {
-                // For other views, update normally but less frequently
-                if (this.currentView !== 'network') {
-                    this.updateCurrentView();
-                }
-            }
-        }, 5000); // Changed from 1000ms to 5000ms
+        }, 30000); // Every 30 seconds
     }
     
-    updateSystemStatus(data) {
-        this.systemState.metrics = data.metrics || {};
-        
-        if (this.currentView === 'ai-overview' || this.currentView === 'overview') {
-            this.updateOverview();
+    fetchRealAIAgents() {
+        // Fetch real AI agents from the server
+        if (this.isConnected) {
+            this.ws.send('get-ai-agents');
         }
-    }
-    
-    updateAgent(data) {
-        this.systemState.agents.set(data.agentId, data);
-    }
-    
-    updateTask(data) {
-        this.systemState.tasks.set(data.taskId, data);
-    }
-    
-    updateCollaboration(data) {
-        this.systemState.collaborationSessions.set(data.sessionId, data);
-    }
-    
-    updateTopology(data) {
-        if (this.currentView === 'network') {
-            this.networkViz.updateTopology(data);
-        }
-    }
-    
-    updateTCF(data) {
-        this.tcfViz.updateField(data);
-    }
-    
-    generateSampleSystemState() {
-        // Generate sample agents for network topology
-        const sampleAgents = new Map([
-            ['agent1', { 
-                id: 'agent1', 
-                name: 'Dr. Analyzer', 
-                type: 'analyzer', 
-                status: 'online',
-                position: { x: 0.3, y: 0.3 },
-                capabilities: ['deep_analysis', 'pattern_recognition']
-            }],
-            ['agent2', { 
-                id: 'agent2', 
-                name: 'Prof. Reasoner', 
-                type: 'reasoner', 
-                status: 'busy',
-                position: { x: 0.7, y: 0.3 },
-                capabilities: ['logical_reasoning', 'inference']
-            }],
-            ['agent3', { 
-                id: 'agent3', 
-                name: 'Ms. Synthesizer', 
-                type: 'synthesizer', 
-                status: 'online',
-                position: { x: 0.5, y: 0.7 },
-                capabilities: ['information_synthesis', 'knowledge_integration']
-            }],
-            ['agent4', { 
-                id: 'agent4', 
-                name: 'Dr. Validator', 
-                type: 'validator', 
-                status: 'offline',
-                position: { x: 0.2, y: 0.6 },
-                capabilities: ['result_validation', 'quality_assessment']
-            }],
-            ['agent5', { 
-                id: 'agent5', 
-                name: 'Mx. Innovator', 
-                type: 'innovator', 
-                status: 'online',
-                position: { x: 0.8, y: 0.6 },
-                capabilities: ['creative_thinking', 'solution_generation']
-            }]
-        ]);
-        
-        // Update system state
-        this.systemState.agents = sampleAgents;
-        
-        // Generate sample topology connections
-        this.systemState.topology = {
-            connections: [
-                { source: 'agent1', target: 'agent2', strength: 0.8, type: 'collaboration' },
-                { source: 'agent2', target: 'agent3', strength: 0.6, type: 'data_flow' },
-                { source: 'agent1', target: 'agent3', strength: 0.4, type: 'coordination' },
-                { source: 'agent3', target: 'agent5', strength: 0.7, type: 'collaboration' },
-                { source: 'agent4', target: 'agent1', strength: 0.3, type: 'coordination'
-                }
-            ]
-        };
-        
-        console.log('📊 Generated sample system state with', sampleAgents.size, 'agents');
-        
-        // Update visualizations with sample data
-        this.updateCurrentView();
-    }
-    
-    async fetchRealAIAgents() {
-        try {
-            // Use BackendConfig to determine the correct URL
-            const backendUrl = BackendConfig.getBackendUrl();
-            const response = await fetch(`${backendUrl}/api/ai-status`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log('📊 Fetched Real AI agent data:', data);
-            
-            // Update system state
-            this.systemState.agents = data.aiAgents || [];
-            this.systemState.collaborations = data.activeCollaborations || 0;
-            this.systemState.totalTasks = data.totalCollaborations || 0;
-            
-            // Update UI
-            this.updateAgentList();
-            this.updateSystemMetrics();
-            
-            return data;
-        } catch (error) {
-            console.error('❌ Failed to fetch Real AI agents:', error);
-            
-            // Try to connect to WebSocket if we haven't already
-            if (!this.ws || !this.ws.connected) {
-                this.connectToServer();
-            }
-            
-            // Return demo data if real data fetch fails
-            return this.getDemoData();
-        }
-    }
-    
-    generateRealTopologyConnections(agentsMap) {
-        const agents = Array.from(agentsMap.values());
-        const connections = [];
-        
-        // Create connections based on agent types and capabilities
-        for (let i = 0; i < agents.length; i++) {
-            for (let j = i + 1; j < agents.length; j++) {
-                const agent1 = agents[i];
-                const agent2 = agents[j];
-                
-                // Create connections based on complementary capabilities
-                let strength = 0.3;
-                let type = 'coordination';
-                
-                if (agent1.type === 'analyzer' && agent2.type === 'synthesizer') {
-                    strength = 0.8;
-                    type = 'collaboration';
-                } else if (agent1.type === 'reasoner' && agent2.type === 'validator') {
-                    strength = 0.7;
-                    type = 'data_flow';
-                } else if (agent1.type === 'innovator') {
-                    strength = 0.6;
-                    type = 'collaboration';
-                }
-                
-                connections.push({
-                    source: agent1.id,
-                    target: agent2.id,
-                    strength: strength,
-                    type: type
-                });
-            }
-        }
-        
-        this.systemState.topology = { connections };
-        console.log('🔗 Generated', connections.length, 'real topology connections');
     }
 }
-
-// 启动应用
-document.addEventListener('DOMContentLoaded', () => {
-    window.app = new CosmicAgentApp();
-});

@@ -49,6 +49,9 @@ class RealAICosmicServer {
       path: "/socket.io"  // Explicit path
     });
     
+    // SSE clients
+    this.sseClients = new Set();
+    
     // Connection management
     this.maxConnections = 100;
     this.currentConnections = 0;
@@ -68,6 +71,7 @@ class RealAICosmicServer {
     this.aiCollaboration.on('task-chain-execution-step', (data) => {
       console.log('📡 Broadcasting task chain execution step:', data);
       this.broadcastUpdate('task-chain-execution-step', data);
+      this.broadcastSSEUpdate('task-chain-execution-step', data);
       
       // Store execution steps for completed task chains
       if (!this.taskChainSteps) {
@@ -90,6 +94,7 @@ class RealAICosmicServer {
       }
       
       this.broadcastUpdate('task-chain-completed', data);
+      this.broadcastSSEUpdate('task-chain-completed', data);
       
       // Clean up stored steps for this task chain
       if (this.taskChainSteps) {
@@ -100,6 +105,7 @@ class RealAICosmicServer {
     this.aiCollaboration.on('task-chain-failed', (data) => {
       console.log('📡 Broadcasting task chain failed:', data);
       this.broadcastUpdate('task-chain-failed', data);
+      this.broadcastSSEUpdate('task-chain-failed', data);
       
       // Clean up stored steps for this task chain
       if (this.taskChainSteps) {
@@ -111,17 +117,20 @@ class RealAICosmicServer {
     this.aiCollaboration.on('collaboration-completed', (data) => {
       console.log('📡 Broadcasting collaboration completed:', data);
       this.broadcastUpdate('collaboration-completed', data);
+      this.broadcastSSEUpdate('collaboration-completed', data);
     });
     
     // Listen for Prof. Smoot's task allocation events
     this.aiCollaboration.on('task-allocation-by-prof-smoot', (data) => {
       console.log('🎯 Prof. Smoot Task Allocation:', data);
       this.broadcastUpdate('prof-smoot-allocation', data);
+      this.broadcastSSEUpdate('prof-smoot-allocation', data);
     });
     
     this.aiCollaboration.on('task-allocation-by-fallback', (data) => {
       console.log('🔄 Fallback Task Allocation:', data);
       this.broadcastUpdate('fallback-allocation', data);
+      this.broadcastSSEUpdate('fallback-allocation', data);
     });
     
     // Data storage
@@ -133,6 +142,7 @@ class RealAICosmicServer {
     this.setupMiddleware();
     this.setupRoutes();
     this.setupSocketHandlers();
+    this.setupSSERoutes();
     this.initializeAIAgents();
   }
   
@@ -240,12 +250,77 @@ class RealAICosmicServer {
       }
     });
     
+    this.app.post('/api/message', (req, res) => {
+      // Handle messages sent from SSE clients via HTTP POST
+      const { type, payload } = req.body;
+      
+      // Process the message based on type
+      switch (type) {
+        case 'get-ai-status':
+          // Send AI status to all SSE clients
+          this.broadcastSSEUpdate('ai-system-status', this.getAISystemStatus());
+          break;
+        case 'submit-ai-task':
+          // Handle task submission
+          this.handleTaskSubmission(payload);
+          break;
+        case 'create-ai-agent':
+          // Handle agent creation
+          this.handleAgentCreation(payload);
+          break;
+        default:
+          console.log(`📥 Received message via HTTP POST: ${type}`);
+      }
+      
+      res.status(200).json({ success: true });
+    });
+    
     this.app.get('/api/collaborations', (req, res) => {
       res.json(this.aiCollaboration.getCollaborationStatus().recentSessions);
     });
     
     this.app.get('/api/task-history', (req, res) => {
       res.json(this.taskHistory.slice(-10)); // Last 10 tasks
+    });
+  }
+  
+  setupSSERoutes() {
+    // SSE endpoint
+    this.app.get('/sse', (req, res) => {
+      // Set SSE headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*'
+      });
+      
+      // Send initial connection message
+      res.write(`data: ${JSON.stringify({ event: 'connected', data: { message: 'SSE connection established' } })}\n\n`);
+      
+      // Add client to the set
+      this.sseClients.add(res);
+      
+      // Send initial AI status
+      const aiStatus = this.getAISystemStatus();
+      res.write(`event: ai-system-status\ndata: ${JSON.stringify(aiStatus)}\n\n`);
+      
+      // Handle client disconnect
+      req.on('close', () => {
+        this.sseClients.delete(res);
+        console.log('🧹 SSE client disconnected');
+      });
+      
+      // Handle errors
+      req.on('error', (err) => {
+        // Only log as warning if it's a connection reset (normal when clients disconnect)
+        if (err.code === 'ECONNRESET' || err.code === 'EPIPE') {
+          console.log('ℹ️  SSE client disconnected (normal connection close)');
+        } else {
+          console.error('❌ SSE connection error:', err);
+        }
+        this.sseClients.delete(res);
+      });
     });
   }
   
@@ -300,6 +375,7 @@ class RealAICosmicServer {
             agent: aiAgent.getAIStatusSummary()
           });
           this.broadcastUpdate('ai-agent-update', aiAgent.getAIStatusSummary());
+          this.broadcastSSEUpdate('ai-agent-update', aiAgent.getAIStatusSummary());
         } catch (error) {
           socket.emit('ai-agent-created', { 
             success: false, 
@@ -359,6 +435,7 @@ class RealAICosmicServer {
               
               // Broadcast update to all clients
               this.broadcastUpdate('ai-collaboration-update', result);
+              this.broadcastSSEUpdate('ai-collaboration-update', result);
               
               // Remove task from processing set
               if (this.processingTasks) {
@@ -552,6 +629,122 @@ class RealAICosmicServer {
     }
   }
   
+  async handleTaskSubmission(taskData) {
+    try {
+      // Generate a unique ID for the task if not provided
+      if (!taskData.id) {
+        taskData.id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+      
+      // Check if we're already processing this task
+      if (this.processingTasks && this.processingTasks.has(taskData.id)) {
+        console.log(`⚠️ Task ${taskData.id} is already being processed, ignoring duplicate request`);
+        this.broadcastSSEUpdate('ai-task-completed', { 
+          success: false, 
+          error: 'Task is already being processed' 
+        });
+        return;
+      }
+      
+      // Mark task as being processed
+      if (!this.processingTasks) {
+        this.processingTasks = new Set();
+      }
+      this.processingTasks.add(taskData.id);
+      
+      console.log(`\n🎯 SSE AI task received: ${taskData.description}`);
+      
+      // Acknowledge task receipt immediately
+      this.broadcastSSEUpdate('ai-task-acknowledged', { 
+        taskId: taskData.id,
+        message: 'Task received and processing started'
+      });
+      
+      // Process the task asynchronously
+      this.aiCollaboration.submitCollaborativeTask(taskData)
+        .then(result => {
+          // Ensure we're sending a proper response
+          const response = {
+            success: true, 
+            result: result,
+            taskId: taskData.id
+          };
+          
+          // Broadcast completion notification to all SSE clients
+          this.broadcastSSEUpdate('ai-task-completed', response);
+          console.log(`✅ Task ${taskData.id} completed and result sent to SSE clients`);
+          
+          // Broadcast update to all clients
+          this.broadcastSSEUpdate('ai-collaboration-update', result);
+          
+          // Remove task from processing set
+          if (this.processingTasks) {
+            this.processingTasks.delete(taskData.id);
+          }
+          
+          // Add to task history
+          this.taskHistory.push({
+            task: taskData,
+            result: result,
+            timestamp: Date.now()
+          });
+        })
+        .catch(error => {
+          console.error('❌ SSE AI task failed:', error);
+          
+          // Ensure we're sending a proper error response
+          const errorResponse = {
+            success: false, 
+            error: error.message || 'Unknown error occurred',
+            taskId: taskData.id
+          };
+          
+          // Broadcast error notification to all SSE clients
+          this.broadcastSSEUpdate('ai-task-completed', errorResponse);
+          console.log(`❌ Task ${taskData.id} failed and error sent to SSE clients`);
+          
+          // Remove task from processing set even on error
+          if (this.processingTasks) {
+            this.processingTasks.delete(taskData.id);
+          }
+        });
+      
+    } catch (error) {
+      console.error('❌ SSE AI task failed:', error);
+      
+      // Remove task from processing set even on error
+      if (this.processingTasks && taskData.id) {
+        this.processingTasks.delete(taskData.id);
+      }
+      
+      // Send error notification to all SSE clients
+      const errorResponse = {
+        success: false, 
+        error: error.message || 'Unknown error occurred',
+        taskId: taskData.id
+      };
+      
+      this.broadcastSSEUpdate('ai-task-completed', errorResponse);
+      console.log(`❌ Task ${taskData.id} failed and error sent to SSE clients`);
+    }
+  }
+  
+  async handleAgentCreation(agentConfig) {
+    try {
+      const aiAgent = await this.aiCollaboration.createAIAgent(agentConfig);
+      this.broadcastSSEUpdate('ai-agent-created', { 
+        success: true, 
+        agent: aiAgent.getAIStatusSummary()
+      });
+      this.broadcastSSEUpdate('ai-agent-update', aiAgent.getAIStatusSummary());
+    } catch (error) {
+      this.broadcastSSEUpdate('ai-agent-created', { 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+  
   async runDemonstrationCollaboration() {
     console.log('\\n🎭 Running AI Collaboration Demonstration...');
     
@@ -571,6 +764,7 @@ class RealAICosmicServer {
       
       // Broadcast to clients
       this.broadcastUpdate('demo-collaboration-completed', result);
+      this.broadcastSSEUpdate('demo-collaboration-completed', result);
       
     } catch (error) {
       console.error('❌ Demonstration collaboration failed:', error.message);
@@ -587,6 +781,7 @@ class RealAICosmicServer {
       activeCollaborations: collaborationStatus.activeCollaborations,
       totalCollaborations: collaborationStatus.totalCollaborations,
       connectedClients: this.connectedClients.size,
+      sseClients: this.sseClients.size,
       aiAgents: collaborationStatus.aiAgents,
       recentTasks: this.taskHistory.slice(-5),
       system: {
@@ -600,12 +795,39 @@ class RealAICosmicServer {
     this.io.emit(event, data);
   }
   
+  broadcastSSEUpdate(event, data) {
+    // Broadcast to all SSE clients
+    this.sseClients.forEach(client => {
+      try {
+        // Check if the client response object is still writable
+        if (client.writable) {
+          if (event === 'message') {
+            // For generic messages, wrap in the expected format
+            client.write(`data: ${JSON.stringify({ event: 'message', data: data })}\n\n`);
+          } else {
+            // For specific events, use the event type
+            client.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+          }
+        } else {
+          // Client is no longer writable, remove it
+          this.sseClients.delete(client);
+        }
+      } catch (error) {
+        // Log the error but don't crash the server
+        console.error('❌ Error sending SSE update to client:', error.message);
+        // Remove client if there's an error
+        this.sseClients.delete(client);
+      }
+    });
+  }
+  
   async start(port = 8080) {
         return new Promise((resolve) => {
             this.server.listen(port, '0.0.0.0', () => {  // Changed from default to explicit 0.0.0.0
                 console.log(`\n🌌 Real AI Cosmic Agent Network Server started on port ${port}`);
                 console.log(`📱 Web Interface: http://localhost:${port}`);
                 console.log(`🔗 WebSocket: ws://localhost:${port}`);
+                console.log(`📡 SSE Endpoint: http://localhost:${port}/sse`);
                 console.log(`🧠 AI Engine: ${process.env.OPENAI_API_KEY ? 'Active' : 'Inactive (no API key)'}`);
                 resolve();
             });
