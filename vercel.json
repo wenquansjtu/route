@@ -32,6 +32,10 @@
       "dest": "/api/index.js"
     },
     {
+      "src": "/api/init-agents",
+      "dest": "/api/index.js"
+    },
+    {
       "src": "/api/collaborations",
       "dest": "/api/index.js"
     },

@@ -66,9 +66,11 @@ class RealAICosmicServer {
     }
     
     // Real AI Collaboration Engine
+    console.log('[SERVER] Creating RealAICollaborationEngine');
     this.aiCollaboration = new RealAICollaborationEngine({
       openaiApiKey: process.env.OPENAI_API_KEY
     });
+    console.log('[SERVER] RealAICollaborationEngine created');
     
     // Listen for task chain events and forward them to clients
     this.aiCollaboration.on('task-chain-execution-step', (data) => {
@@ -151,9 +153,29 @@ class RealAICosmicServer {
       this.setupSocketHandlers();
     }
     
-    // Only initialize AI agents if not in Vercel environment (to avoid cold start issues)
-    if (!process.env.VERCEL) {
-      this.initializeAIAgents();
+    // Initialize AI agents with a promise to track completion
+    console.log('[SERVER] Starting agent initialization');
+    this.agentInitializationPromise = this.initializeAIAgentsAsync();
+    console.log('[SERVER] Agent initialization started');
+  }
+  
+  // Asynchronous version of agent initialization that returns a promise
+  async initializeAIAgentsAsync() {
+    try {
+      console.log('[INIT] Starting agent initialization async function');
+      // Initialize AI agents with optimizations for Vercel
+      // Use a delayed initialization to avoid cold start issues
+      if (process.env.VERCEL) {
+        console.log('[INIT] Vercel environment detected, waiting 1 second before initialization');
+        // In Vercel, delay initialization to allow for faster cold starts
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('[INIT] Delay completed, starting agent initialization');
+      }
+      await this.initializeAIAgents();
+      console.log('✅ Agent initialization completed');
+    } catch (error) {
+      console.error('❌ Agent initialization failed:', error);
+      console.error('Stack trace:', error.stack);
     }
   }
   
@@ -169,19 +191,47 @@ class RealAICosmicServer {
   }
   
   setupRoutes() {
+    console.log('[SERVER] Setting up routes');
+    
     // Main interface
     this.app.get('/', (req, res) => {
       res.sendFile(path.join(__dirname, '../web', 'index.html'));
     });
     
     // Real AI API endpoints
-    this.app.get('/api/ai-status', (req, res) => {
+    this.app.get('/api/ai-status', async (req, res) => {
+      console.log('[API] /api/ai-status called');
+      // Wait for agent initialization in Vercel environment
+      if (process.env.VERCEL && this.agentInitializationPromise) {
+        console.log('[API] Waiting for agent initialization to complete');
+        await this.agentInitializationPromise;
+        console.log('[API] Agent initialization completed, continuing with request');
+      }
       res.json(this.getAISystemStatus());
     });
     
-    this.app.get('/api/ai-agents', (req, res) => {
+    this.app.get('/api/ai-agents', async (req, res) => {
+      console.log('[API] /api/ai-agents called');
+      // Wait for agent initialization in Vercel environment
+      if (process.env.VERCEL && this.agentInitializationPromise) {
+        console.log('[API] Waiting for agent initialization to complete');
+        await this.agentInitializationPromise;
+        console.log('[API] Agent initialization completed, continuing with request');
+      }
       const collaborationStatus = this.aiCollaboration.getCollaborationStatus();
       res.json(collaborationStatus.aiAgents);
+    });
+    
+    // Manual initialization endpoint for debugging
+    this.app.post('/api/init-agents', async (req, res) => {
+      console.log('[API] /api/init-agents called');
+      try {
+        await this.initializeAIAgents();
+        res.json({ success: true, message: 'Agents initialized' });
+      } catch (error) {
+        console.error('Agent initialization failed:', error);
+        res.status(500).json({ success: false, error: error.message });
+      }
     });
     
     this.app.post('/api/ai-agents', async (req, res) => {
@@ -203,6 +253,11 @@ class RealAICosmicServer {
     
     this.app.post('/api/ai-collaborate', async (req, res) => {
       try {
+        // Wait for agent initialization in Vercel environment
+        if (process.env.VERCEL && this.agentInitializationPromise) {
+          await this.agentInitializationPromise;
+        }
+        
         const taskData = req.body;
         
         // Generate a unique ID for the task if not provided
@@ -225,7 +280,7 @@ class RealAICosmicServer {
         }
         this.processingTasks.add(taskData.id);
         
-        console.log('\\n🚀 Received AI collaboration request:', taskData.description);
+        console.log('\n🚀 Received AI collaboration request:', taskData.description);
         
         const result = await this.aiCollaboration.submitCollaborativeTask(taskData);
         
@@ -261,7 +316,12 @@ class RealAICosmicServer {
       }
     });
     
-    this.app.post('/api/message', (req, res) => {
+    this.app.post('/api/message', async (req, res) => {
+      // Wait for agent initialization in Vercel environment
+      if (process.env.VERCEL && this.agentInitializationPromise) {
+        await this.agentInitializationPromise;
+      }
+      
       // Handle messages sent from SSE clients via HTTP POST
       const { type, payload } = req.body;
       
@@ -286,18 +346,37 @@ class RealAICosmicServer {
       res.status(200).json({ success: true });
     });
     
-    this.app.get('/api/collaborations', (req, res) => {
+    this.app.get('/api/collaborations', async (req, res) => {
+      // Wait for agent initialization in Vercel environment
+      if (process.env.VERCEL && this.agentInitializationPromise) {
+        await this.agentInitializationPromise;
+      }
       res.json(this.aiCollaboration.getCollaborationStatus().recentSessions);
     });
     
-    this.app.get('/api/task-history', (req, res) => {
+    this.app.get('/api/task-history', async (req, res) => {
+      // Wait for agent initialization in Vercel environment
+      if (process.env.VERCEL && this.agentInitializationPromise) {
+        await this.agentInitializationPromise;
+      }
       res.json(this.taskHistory.slice(-10)); // Last 10 tasks
     });
   }
   
   setupSSERoutes() {
+    console.log('[SERVER] Setting up SSE routes');
+    
     // SSE endpoint
-    this.app.get('/sse', (req, res) => {
+    this.app.get('/sse', async (req, res) => {
+      console.log('[SSE] /sse endpoint called');
+      
+      // Wait for agent initialization in Vercel environment
+      if (process.env.VERCEL && this.agentInitializationPromise) {
+        console.log('[SSE] Waiting for agent initialization to complete');
+        await this.agentInitializationPromise;
+        console.log('[SSE] Agent initialization completed, continuing with request');
+      }
+      
       // Set SSE headers
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -309,12 +388,12 @@ class RealAICosmicServer {
       // Send initial connection message
       res.write(`data: ${JSON.stringify({ event: 'connected', data: { message: 'SSE connection established' } })}\n\n`);
       
-      // Add client to the set
-      this.sseClients.add(res);
-      
       // Send initial AI status
       const aiStatus = this.getAISystemStatus();
       res.write(`event: ai-system-status\ndata: ${JSON.stringify(aiStatus)}\n\n`);
+      
+      // Add client to the set
+      this.sseClients.add(res);
       
       // Handle client disconnect
       req.on('close', () => {
@@ -544,16 +623,19 @@ class RealAICosmicServer {
   }
   
   async initializeAIAgents() {
-    console.log('\\n🧠 Initializing Real AI Agent Network...');
+    console.log('\n🧠 Initializing Real AI Agent Network...');
     
     if (!process.env.OPENAI_API_KEY) {
       console.log('⚠️  Skipping AI agent creation - no OpenAI API key');
       return;
     }
     
+    console.log(`🔑 OpenAI API Key present: ${!!process.env.OPENAI_API_KEY}`);
+    
     try {
       // First create Prof. Smoot as the specialized task allocation expert
       try {
+        console.log('Creating Prof. Smoot agent...');
         const profSmoot = new ProfSmootAgent({
           openaiApiKey: process.env.OPENAI_API_KEY
         });
@@ -563,10 +645,11 @@ class RealAICosmicServer {
         console.log(`   Personality: ${profSmoot.personality.traits.join(', ')}`);
         console.log(`   🏆 Nobel Prize Winner: ${profSmoot.nobelPrize.year} - ${profSmoot.nobelPrize.work}`);
         
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Very small delay to avoid rate limiting, shorter for Vercel
+        await new Promise(resolve => setTimeout(resolve, process.env.VERCEL ? 10 : 100));
       } catch (error) {
         console.error(`Failed to create Prof. Smoot:`, error.message);
+        console.error('Stack trace:', error.stack);
       }
       
       // Create a diverse set of AI agents
@@ -623,22 +706,28 @@ class RealAICosmicServer {
         }
       ];
       
-      // Create AI agents
-      for (const config of agentConfigs) {
+      console.log(`Creating ${agentConfigs.length} additional AI agents...`);
+      
+      // Create AI agents with optimized delays for Vercel
+      for (const [index, config] of agentConfigs.entries()) {
         try {
+          console.log(`Creating agent ${index + 1}/${agentConfigs.length}: ${config.name}...`);
           await this.aiCollaboration.createAIAgent(config);
-          // Small delay to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 100));
+          console.log(`✅ Successfully created ${config.name}`);
+          // Very small delay to avoid rate limiting, shorter for Vercel
+          await new Promise(resolve => setTimeout(resolve, process.env.VERCEL ? 10 : 100));
         } catch (error) {
           console.error(`Failed to create ${config.name}:`, error.message);
+          console.error('Stack trace:', error.stack);
         }
       }
       
       const status = this.aiCollaboration.getCollaborationStatus();
-      console.log(`\\n✅ Created ${status.totalAIAgents} AI agents successfully!`);
+      console.log(`\n✅ Created ${status.totalAIAgents} AI agents successfully!`);
     
     } catch (error) {
       console.error('❌ Failed to initialize AI agents:', error);
+      console.error('Stack trace:', error.stack);
     }
   }
   
@@ -759,7 +848,7 @@ class RealAICosmicServer {
   }
   
   async runDemonstrationCollaboration() {
-    console.log('\\n🎭 Running AI Collaboration Demonstration...');
+    console.log('\n🎭 Running AI Collaboration Demonstration...');
     
     try {
       const demoTask = {
@@ -772,7 +861,7 @@ class RealAICosmicServer {
       
       const result = await this.aiCollaboration.submitCollaborativeTask(demoTask);
       
-      console.log('\\n🎉 Demonstration Collaboration Completed!');
+      console.log('\n🎉 Demonstration Collaboration Completed!');
       console.log('Final Result Preview:', result.finalResult.substring(0, 200) + '...');
       
       // Broadcast to clients
@@ -787,6 +876,12 @@ class RealAICosmicServer {
   getAISystemStatus() {
     const collaborationStatus = this.aiCollaboration.getCollaborationStatus();
     
+    // Log for debugging
+    if (process.env.VERCEL) {
+      console.log(`[VERCEL] AI System Status - Total Agents: ${collaborationStatus.totalAIAgents}`);
+      console.log(`[VERCEL] AI Agents Keys:`, Array.from(collaborationStatus.aiAgents.keys()));
+    }
+    
     return {
       timestamp: Date.now(),
       openaiApiKey: !!process.env.OPENAI_API_KEY,
@@ -799,7 +894,8 @@ class RealAICosmicServer {
       recentTasks: this.taskHistory ? this.taskHistory.slice(-5) : [],
       system: {
         memory: process.memoryUsage(),
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        vercel: !!process.env.VERCEL
       }
     };
   }
@@ -858,7 +954,7 @@ class RealAICosmicServer {
   }
   
   async stop() {
-    console.log('\\n🛑 Shutting down Real AI server...');
+    console.log('\n🛑 Shutting down Real AI server...');
     
     if (this.aiCollaboration) {
       this.aiCollaboration.destroy();
@@ -888,6 +984,19 @@ if (!process.env.VERCEL) {
     await server.stop();
     process.exit(0);
   });
+} else {
+  // In Vercel environment, we need to handle serverless function lifecycle
+  // We'll create a singleton instance that can be reused across requests
+  global.__realAIServerInstance = global.__realAIServerInstance || null;
+  
+  // Export a function to get or create the server instance
+  RealAICosmicServer.getOrCreateInstance = function() {
+    if (!global.__realAIServerInstance) {
+      console.log('Creating new RealAICosmicServer instance for Vercel');
+      global.__realAIServerInstance = new RealAICosmicServer();
+    }
+    return global.__realAIServerInstance;
+  };
 }
 
 export default RealAICosmicServer;
