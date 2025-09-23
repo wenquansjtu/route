@@ -1,6 +1,6 @@
 import RealAICosmicServer from '../src/server-real-ai.js';
 
-·// Get or create server instance (singleton pattern for Vercel)
+// Get or create server instance (singleton pattern for Vercel)
 const server = RealAICosmicServer.getOrCreateInstance();
 
 // Export the Express app for Vercel

@@ -96,4 +96,4 @@ export function createCosmicSystem(config = {}) {
       collaboration.destroy();
     }
   };
-}", "original_text": "", "replace_all": false}]
+}

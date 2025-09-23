@@ -693,6 +693,9 @@ You should provide thorough validation reports with clear pass/fail indicators a
     // Only listen if not in Vercel environment
     if (!process.env.VERCEL) {
       this.server.listen(port, '0.0.0.0', () => {
+        console.log(`🚀 Real AI Cosmic Server is running on http://localhost:${port}`);
+        console.log(`📡 WebSocket server is available for real-time updates`);
+        console.log(`📚 API endpoints ready at http://localhost:${port}/api/...`);
       });
     }
     
@@ -703,6 +706,14 @@ You should provide thorough validation reports with clear pass/fail indicators a
     if (this.server) {
       this.server.close();
     }
+  }
+  
+  // Singleton pattern for Vercel deployment
+  static getOrCreateInstance() {
+    if (!RealAICosmicServer.instance) {
+      RealAICosmicServer.instance = new RealAICosmicServer();
+    }
+    return RealAICosmicServer.instance;
   }
 }
 
