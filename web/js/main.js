@@ -17,12 +17,42 @@ class CosmicAgentApp {
         this.maxConnectionRetries = 3;
         
         // 可视化组件
-        this.networkViz = new NetworkVisualizer('#network-graph');
-        this.tcfViz = new TCFVisualizer('#tcf-visualization');
-        this.taskChainViz = new TaskChainVisualizer('#task-chain-graph');
-        this.collaborationMonitor = new CollaborationMonitor();
-        this.taskManager = new TaskManager();
-        this.systemMonitor = new SystemMonitor();
+        try {
+            // Don't initialize NetworkVisualizer immediately, wait until network view is active
+            this.networkViz = null;
+        } catch (error) {
+            this.networkViz = null;
+        }
+        
+        try {
+            this.tcfViz = new TCFVisualizer('#tcf-visualization');
+        } catch (error) {
+            this.tcfViz = null;
+        }
+        
+        try {
+            this.taskChainViz = new TaskChainVisualizer('#task-chain-graph');
+        } catch (error) {
+            this.taskChainViz = null;
+        }
+        
+        try {
+            this.collaborationMonitor = new CollaborationMonitor();
+        } catch (error) {
+            this.collaborationMonitor = null;
+        }
+        
+        try {
+            this.taskManager = new TaskManager();
+        } catch (error) {
+            this.taskManager = null;
+        }
+        
+        try {
+            this.systemMonitor = new SystemMonitor();
+        } catch (error) {
+            this.systemMonitor = null;
+        }
         
         // 系统状态
         this.systemState = {
@@ -33,38 +63,69 @@ class CosmicAgentApp {
             metrics: {}
         };
         
-        this.init();
+        // Initialize immediately instead of calling this.init() which might have timing issues
+        this.initializeApp();
     }
     
-    async init() {
+    async initializeApp() {
         // Make the app instance globally accessible
         window.cosmicApp = this;
         
         this.setupEventListeners();
         this.setupWebSocketHandlers();
-        this.initializeComponents();
         
         // Connect to the real AI backend on port 8080
         await this.connectToServer();
         
-        // Start data polling
-        this.startDataPolling();
+        // Initialize components after a longer delay to ensure DOM is ready
+        setTimeout(() => {
+            this.initializeComponents();
+            
+            // Start data polling
+            this.startDataPolling();
+            
+            // Generate sample data for demonstration initially
+            this.generateSampleSystemState();
+            
+            // Ensure network visualization is properly initialized
+            if (this.networkViz) {
+                setTimeout(() => {
+                    if (!this.networkViz.initialized || !this.networkViz.svg) {
+                        this.networkViz.reinitialize();
+                    }
+                }, 1500);
+            }
+        }, 1000); // Increased delay to ensure everything is ready
         
-        // Generate sample data for demonstration initially
-        this.generateSampleSystemState();
-        
-        console.log('🌌 Cosmic Agent Network initialized and connected to Real AI backend');
+        // Add a periodic check to ensure NetworkVisualizer is working when on network view
+        setInterval(() => {
+            if (this.currentView === 'network' && this.networkViz) {
+                // If we're on the network view but visualization isn't working, try to fix it
+                if (this.networkViz.nodes.length === 0) {
+                    this.networkViz.generateSampleData();
+                    this.networkViz.render();
+                }
+                
+                // Check if container is properly set up
+                if (!this.networkViz.isProperlySetUp()) {
+                    this.networkViz.forceRender();
+                }
+            }
+        }, 3000); // Check every 3 seconds
+    }
+    
+    async init() {
+        // This is kept for backward compatibility but now just calls initializeApp
+        await this.initializeApp();
     }
     
     async connectToServer() {
         try {
-            console.log('🔄 Attempting to connect to Real AI Server...');
             await this.ws.connect(BackendConfig.getBackendUrl());
             
             // Set up reconnection logic
             this.ws.on('disconnected', (reason) => {
                 this.isConnected = false;
-                console.log('❌ Disconnected from server:', reason);
                 
                 // Only attempt reconnection for unexpected disconnections
                 if (reason !== 'io client disconnect') {
@@ -73,25 +134,45 @@ class CosmicAgentApp {
             });
             
             this.ws.on('error', (error) => {
-                console.error('❌ Connection error:', error);
                 this.attemptReconnect();
             });
         } catch (error) {
-            console.error('❌ Failed to connect to server:', error);
             this.attemptReconnect();
+        }
+    }
+    
+    // Method to fetch real AI agents data
+    fetchRealAIAgents() {
+        // Request topology data from the server
+        if (this.ws && this.ws.connected) {
+            this.ws.send('get-topology-data');
+        } else {
+            // In a real implementation, this would fetch data from the backend
+            // For now, we'll generate sample data
+            this.generateSampleSystemState();
+            
+            // If we have a network visualizer, update it with the new data
+            if (this.networkViz) {
+                this.networkViz.update(this.systemState);
+            }
+        }
+    }
+    
+    // Method to manually initialize or reinitialize the NetworkVisualizer
+    initNetworkVisualizer() {
+        if (this.networkViz) {
+            this.networkViz.reinitialize();
         }
     }
     
     attemptReconnect() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
-            console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
             
             setTimeout(() => {
                 this.connectToServer();
             }, 3000 * this.reconnectAttempts); // Exponential backoff
         } else {
-            console.error('❌ Maximum reconnection attempts reached');
             this.showConnectionError();
         }
     }
@@ -120,12 +201,6 @@ class CosmicAgentApp {
         });
         
         // 布局控制
-        document.getElementById('layout-force')?.addEventListener('click', () => {
-            if (this.networkViz && this.networkViz.svg) {
-                this.networkViz.setLayout('force');
-            }
-        });
-        
         document.getElementById('layout-circular')?.addEventListener('click', () => {
             if (this.networkViz && this.networkViz.svg) {
                 this.networkViz.setLayout('circular');
@@ -139,20 +214,10 @@ class CosmicAgentApp {
         });
         
         // Add refresh button for topology
-        const refreshBtn = document.createElement('button');
-        refreshBtn.textContent = 'Refresh Topology';
-        refreshBtn.className = 'btn';
-        refreshBtn.style.marginLeft = '20px';
-        refreshBtn.addEventListener('click', () => {
-            console.log('🔄 Manual topology refresh triggered');
+        document.getElementById('refresh-topology')?.addEventListener('click', () => {
             this.fetchRealAIAgents();
             this.updateCurrentView();
         });
-        
-        const topologyControls = document.querySelector('#network .controls');
-        if (topologyControls) {
-            topologyControls.appendChild(refreshBtn);
-        }
         
         // 控制滑块
         document.getElementById('node-size')?.addEventListener('input', (e) => {
@@ -167,32 +232,33 @@ class CosmicAgentApp {
             }
         });
         
-        // Task Chain Visualization Controls
-        document.getElementById('refresh-task-chain')?.addEventListener('click', () => {
-            this.refreshTaskChainVisualization();
-        });
-        
-        document.getElementById('clear-task-chain')?.addEventListener('click', () => {
-            this.clearTaskChainVisualization();
+        // Add window resize listener to handle network visualization resizing
+        window.addEventListener('resize', () => {
+            if (this.currentView === 'network' && this.networkViz) {
+                // Small delay to ensure DOM has updated
+                setTimeout(() => {
+                    this.networkViz.resize();
+                }, 100);
+            }
         });
     }
     
     setupWebSocketHandlers() {
         this.ws.on('connected', () => {
-            console.log('✅ Connected to Real AI Server');
             this.isConnected = true;
             this.reconnectAttempts = 0;
             this.updateConnectionStatus('online');
+            
+            // Request initial topology data
+            this.ws.send('get-topology-data');
         });
         
         this.ws.on('disconnected', (reason) => {
-            console.log('❌ Disconnected from server:', reason);
             this.isConnected = false;
             this.updateConnectionStatus('offline');
         });
         
         this.ws.on('error', (error) => {
-            console.error('❌ Connection error:', error);
             this.isConnected = false;
             this.updateConnectionStatus('error');
         });
@@ -217,6 +283,11 @@ class CosmicAgentApp {
             this.updateTopology(data);
         });
         
+        // Add missing handler for network-topology-update event
+        this.ws.on('network-topology-update', (data) => {
+            this.updateTopology(data);
+        });
+        
         this.ws.on('tcf-update', (data) => {
             this.updateTCF(data);
         });
@@ -236,10 +307,25 @@ class CosmicAgentApp {
         this.ws.on('fallback-allocation', (data) => {
             this.handleFallbackAllocation(data);
         });
+        
+        // Add demo mode handler
+        this.ws.on('demo-mode-activated', () => {
+            this.updateConnectionStatus('demo');
+            // Show demo mode notification
+            const demoNotification = document.createElement('div');
+            demoNotification.className = 'demo-notification';
+            demoNotification.innerHTML = `
+                <div style="position: fixed; top: 20px; right: 20px; background: #8b5cf6; color: white; padding: 15px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <strong>🎮 Demo Mode Active</strong>
+                    <p>Running in demo mode with simulated data.</p>
+                    <button onclick="this.parentElement.remove()" style="background: white; color: #8b5cf6; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-top: 5px;">Dismiss</button>
+                </div>
+            `;
+            document.body.appendChild(demoNotification);
+        });
     }
     
     handleProfSmootAllocation(data) {
-        console.log('🎯 Prof. Smoot Allocation:', data);
         // Update UI to show Prof. Smoot's task allocation
         if (this.taskManager) {
             this.taskManager.updateTaskAllocation(data, 'prof-smoot');
@@ -247,7 +333,6 @@ class CosmicAgentApp {
     }
     
     handleFallbackAllocation(data) {
-        console.log('🔄 Fallback Allocation:', data);
         // Update UI to show fallback task allocation
         if (this.taskManager) {
             this.taskManager.updateTaskAllocation(data, 'fallback');
@@ -255,7 +340,6 @@ class CosmicAgentApp {
     }
     
     handleTaskChainExecutionStep(data) {
-        console.log('Task chain execution step:', data);
         // Store the execution step data for visualization
         if (!this.systemState.taskChainSteps) {
             this.systemState.taskChainSteps = new Map();
@@ -279,7 +363,6 @@ class CosmicAgentApp {
     }
     
     handleTaskChainCompleted(data) {
-        console.log('Task chain completed:', data);
         // Store the completed task chain data
         this.systemState.taskChains.set(data.chainId, data);
         
@@ -311,8 +394,6 @@ class CosmicAgentApp {
     }
     
     updateTaskChainVisualization(taskChainId) {
-        console.log('Updating task chain visualization for:', taskChainId);
-        
         // Show the task chain visualization section
         const vizSection = document.getElementById('task-chain-visualization-section');
         if (vizSection) {
@@ -406,7 +487,6 @@ class CosmicAgentApp {
     }
     
     refreshTaskChainVisualization() {
-        console.log('Refreshing task chain visualization');
         // Re-initialize the visualization
         if (this.taskChainViz) {
             this.taskChainViz.init();
@@ -421,8 +501,6 @@ class CosmicAgentApp {
     }
     
     clearTaskChainVisualization() {
-        console.log('Clearing task chain visualization');
-        
         // Hide the visualization section
         const vizSection = document.getElementById('task-chain-visualization-section');
         if (vizSection) {
@@ -447,10 +525,15 @@ class CosmicAgentApp {
             statusElement.className = `status-${status}`;
             statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
         }
+        
+        // Update connection status in header
+        const headerStatus = document.querySelector('.header .status-indicator');
+        if (headerStatus) {
+            headerStatus.className = 'status-indicator ' + status;
+        }
     }
     
     updateSystemStatus(data) {
-        console.log('System status update:', data);
         // Update system metrics
         this.systemState.metrics = data;
         
@@ -461,7 +544,6 @@ class CosmicAgentApp {
     }
     
     updateAgent(agentData) {
-        console.log('Agent update:', agentData);
         // Update agent in system state
         this.systemState.agents.set(agentData.id, agentData);
         
@@ -473,7 +555,6 @@ class CosmicAgentApp {
     }
     
     updateTask(taskData) {
-        console.log('Task update:', taskData);
         // Update task in system state
         this.systemState.tasks.set(taskData.id, taskData);
         
@@ -484,7 +565,6 @@ class CosmicAgentApp {
     }
     
     updateCollaboration(collaborationData) {
-        console.log('Collaboration update:', collaborationData);
         // Update collaboration in system state
         this.systemState.collaborationSessions.set(collaborationData.id, collaborationData);
         
@@ -495,7 +575,6 @@ class CosmicAgentApp {
     }
     
     updateTopology(topologyData) {
-        console.log('Topology update:', topologyData);
         // Update network visualization
         if (this.networkViz) {
             this.networkViz.updateTopology(topologyData);
@@ -503,7 +582,6 @@ class CosmicAgentApp {
     }
     
     updateTCF(tcfData) {
-        console.log('TCF update:', tcfData);
         // Update TCF visualization
         if (this.tcfViz) {
             this.tcfViz.update(tcfData);
@@ -569,7 +647,6 @@ class CosmicAgentApp {
     
     generateSampleSystemState() {
         // Generate sample data for initial display
-        console.log('Generating sample system state');
         
         // Sample agents
         const sampleAgents = [
@@ -642,29 +719,40 @@ class CosmicAgentApp {
     }
     
     initializeComponents() {
-        // Initialize all visualization components
-        if (this.networkViz) {
-            this.networkViz.init();
-        }
-        
+        // Initialize all visualization components except NetworkVisualizer (handled on demand)
         if (this.tcfViz) {
-            this.tcfViz.init();
+            try {
+                this.tcfViz.init();
+            } catch (error) {
+            }
         }
         
         if (this.taskChainViz) {
-            this.taskChainViz.init();
+            try {
+                this.taskChainViz.init();
+            } catch (error) {
+            }
         }
         
         if (this.collaborationMonitor) {
-            this.collaborationMonitor.init();
+            try {
+                this.collaborationMonitor.init();
+            } catch (error) {
+            }
         }
         
         if (this.taskManager) {
-            this.taskManager.init();
+            try {
+                this.taskManager.init();
+            } catch (error) {
+            }
         }
         
         if (this.systemMonitor) {
-            this.systemMonitor.init();
+            try {
+                this.systemMonitor.init();
+            } catch (error) {
+            }
         }
     }
     
@@ -680,53 +768,146 @@ class CosmicAgentApp {
         });
         
         // Show/hide sections
-        document.querySelectorAll('.view-section').forEach(section => {
+        document.querySelectorAll('.view').forEach(section => {
             section.style.display = 'none';
         });
         
         const targetSection = document.getElementById(view);
         if (targetSection) {
             targetSection.style.display = 'block';
+            
+            // Add a small delay before updating the view to ensure DOM is ready
+            setTimeout(() => {
+                // Update visualization for the current view
+                this.updateCurrentView();
+                
+                // Special handling for network view to ensure visualization appears
+                if (view === 'network') {
+                    // Create NetworkVisualizer if it doesn't exist
+                    if (!this.networkViz) {
+                        try {
+                            this.networkViz = new NetworkVisualizer('#network-graph');
+                        } catch (error) {
+                            this.networkViz = null;
+                        }
+                    }
+                    
+                    // Ensure container is visible
+                    const container = document.getElementById('network-graph');
+                    if (container) {
+                        container.style.display = 'block';
+                        container.style.visibility = 'visible';
+                    }
+                    
+                    // Initialize or update the NetworkVisualizer
+                    if (this.networkViz) {
+                        // Initialize NetworkVisualizer when DOM is ready
+                        setTimeout(() => {
+                            if (this.networkViz) {
+                                this.networkViz.initWhenReady(30, 300); // More retries with longer delay
+                                
+                                // Update with current system state after a delay
+                                setTimeout(() => {
+                                    this.networkViz.update(this.systemState);
+                                    
+                                    // Generate sample data if no data exists
+                                    if (this.networkViz.nodes.length === 0) {
+                                        this.networkViz.generateSampleData();
+                                        this.networkViz.render();
+                                    }
+                                }, 1000);
+                            }
+                        }, 500); // Delay to ensure DOM is ready
+                    }
+                }
+            }, 150); // Increased delay to ensure DOM is ready
         }
-        
-        // Update visualization for the current view
-        this.updateCurrentView();
     }
     
     updateCurrentView() {
-        switch (this.currentView) {
-            case 'network':
-                if (this.networkViz) {
-                    this.networkViz.resize();
-                }
-                break;
-            case 'tcf':
-                if (this.tcfViz) {
-                    this.tcfViz.resize();
-                }
-                break;
-            case 'tasks':
-                if (this.taskChainViz) {
-                    this.taskChainViz.resize();
-                }
-                break;
-        }
-    }
-    
-    startDataPolling() {
-        // Start periodic data updates
-        setInterval(() => {
-            if (this.isConnected) {
-                // Request updated system status
-                this.ws.send('get-ai-status');
+        try {
+            switch (this.currentView) {
+                case 'network':
+                    // Create NetworkVisualizer if it doesn't exist
+                    if (!this.networkViz) {
+                        try {
+                            this.networkViz = new NetworkVisualizer('#network-graph');
+                        } catch (error) {
+                            this.networkViz = null;
+                        }
+                    }
+                    
+                    // Update network visualization
+                    if (this.networkViz) {
+                        // Ensure the NetworkVisualizer is properly initialized
+                        if (!this.networkViz.initialized || !this.networkViz.svg) {
+                            this.networkViz.initWhenReady(15, 150);
+                            
+                            // Wait a bit and then update
+                            setTimeout(() => {
+                                this.networkViz.update(this.systemState);
+                                
+                                // Generate sample data if no data exists
+                                if (this.networkViz.nodes.length === 0) {
+                                    this.networkViz.generateSampleData();
+                                    this.networkViz.render();
+                                }
+                                
+                                // Ensure visibility
+                                const container = document.getElementById('network-graph');
+                                if (container) {
+                                    container.style.display = 'block';
+                                    container.style.visibility = 'visible';
+                                }
+                            }, 800);
+                        } else {
+                            // Update with current system state
+                            this.networkViz.update(this.systemState);
+                            
+                            // Generate sample data if no data exists
+                            if (this.networkViz.nodes.length === 0) {
+                                this.networkViz.generateSampleData();
+                                this.networkViz.render();
+                            }
+                            
+                            // Ensure visibility
+                            const container = document.getElementById('network-graph');
+                            if (container) {
+                                container.style.display = 'block';
+                                container.style.visibility = 'visible';
+                            }
+                            
+                            // Ensure SVG is visible
+                            if (this.networkViz.svg) {
+                                this.networkViz.svg.style('display', 'block');
+                                this.networkViz.svg.style('visibility', 'visible');
+                            }
+                        }
+                    }
+                    break;
+                    
+                case 'collaboration':
+                    if (this.collaborationMonitor) {
+                        this.collaborationMonitor.update();
+                    }
+                    break;
+                    
+                case 'monitoring':
+                    if (this.systemMonitor) {
+                        this.systemMonitor.update();
+                    }
+                    break;
             }
-        }, 30000); // Every 30 seconds
-    }
-    
-    fetchRealAIAgents() {
-        // Fetch real AI agents from the server
-        if (this.isConnected) {
-            this.ws.send('get-ai-agents');
+        } catch (error) {
         }
     }
+
 }
+
+// Create the application instance when the DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        const app = new CosmicAgentApp();
+    } catch (error) {
+    }
+});

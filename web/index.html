@@ -209,15 +209,27 @@
                         <div class="dashboard-section">
                             <h2>🗺️ Network Topology</h2>
                             <div class="controls" style="margin-bottom: 20px;">
-                                <button id="layout-force" class="btn">Force Layout</button>
                                 <button id="layout-circular" class="btn">Circular</button>
                                 <button id="layout-hierarchical" class="btn">Hierarchical</button>
                                 <label style="margin-left: 20px; color: #0ea5e9;">Node Size:</label>
                                 <input type="range" id="node-size" min="5" max="20" value="10" style="margin: 0 10px;">
                                 <label style="color: #0ea5e9;">Link Strength:</label>
                                 <input type="range" id="link-strength" min="0.1" max="2" step="0.1" value="1" style="margin: 0 10px;">
+                                <button id="refresh-topology" class="btn" style="margin-left: 10px;">Refresh Topology</button>
                             </div>
-                            <div id="network-graph" style="width: 100%; height: 400px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3);"></div>
+                            <div id="network-graph" style="width: 100%; height: 500px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3); position: relative; display: block !important; visibility: visible !important;">
+                                <!-- Loading indicator -->
+                                <div id="network-viz-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0ea5e9; font-size: 18px; display: block !important; visibility: visible !important;">
+                                    初始化网络拓扑图...
+                                </div>
+                                <!-- Dynamic network visualization will be rendered here by NetworkVisualizer component -->
+                            </div>
+                            <!-- Error message container -->
+                            <div id="network-viz-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ef4444; font-size: 16px; text-align: center; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 8px; z-index: 100;">
+                                <div>❌ 网络拓扑图初始化失败</div>
+                                <div id="network-viz-error-message" style="font-size: 14px; margin-top: 10px;"></div>
+                                <button onclick="window.location.reload()" style="background: #0ea5e9; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 15px;">刷新页面</button>
+                            </div>
                         </div>
 
                         <!-- Network Metrics -->
@@ -618,5 +630,66 @@
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/real-ai-interface.js"></script>
     <script type="module" src="js/metrics-dashboard.js"></script>
+    
+    <!-- Test script to verify D3 is loaded -->
+    <script>
+        // Check if D3 is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof d3 !== 'undefined') {
+                console.log('✅ D3.js is loaded successfully');
+            } else {
+                console.error('❌ D3.js failed to load');
+                // Try to load D3 dynamically
+                const script = document.createElement('script');
+                script.src = 'https://d3js.org/d3.v7.min.js';
+                script.onload = () => console.log('✅ D3.js loaded dynamically');
+                script.onerror = () => console.error('❌ Failed to load D3.js dynamically');
+                document.head.appendChild(script);
+            }
+        });
+    </script>
+    
+    <!-- Auto-initialize network visualization when the page loads -->
+    <script>
+        // Auto-initialize network visualization after a delay
+        window.addEventListener('load', function() {
+            // Wait for the app to be initialized
+            let retryCount = 0;
+            const maxRetries = 10;
+            
+            function checkAndInitialize() {
+                retryCount++;
+                
+                if (typeof window.cosmicApp !== 'undefined' && window.cosmicApp) {
+                    // Check if we're on the network view or if network visualization is needed
+                    const networkSection = document.getElementById('network');
+                    if (networkSection && (networkSection.style.display !== 'none' || window.cosmicApp.currentView === 'network')) {
+                        // Initialize network visualization
+                        if (!window.cosmicApp.networkViz) {
+                            try {
+                                window.cosmicApp.networkViz = new NetworkVisualizer('#network-graph');
+                            } catch (error) {
+                                console.error('创建网络可视化组件失败:', error);
+                            }
+                        }
+                        
+                        if (window.cosmicApp.networkViz) {
+                            setTimeout(function() {
+                                window.cosmicApp.networkViz.initWhenReady(20, 200);
+                            }, 500);
+                        }
+                    }
+                } else {
+                    // Retry after a longer delay
+                    if (retryCount < maxRetries) {
+                        setTimeout(checkAndInitialize, 2000);
+                    }
+                }
+            }
+            
+            // Start checking after a delay
+            setTimeout(checkAndInitialize, 1000);
+        });
+    </script>
 </body>
 </html>

@@ -1,7 +1,8 @@
 // 网络拓扑可视化组件
 export class NetworkVisualizer {
     constructor(containerSelector) {
-        this.container = document.querySelector(containerSelector);
+        this.containerSelector = containerSelector;
+        this.container = null;
         this.svg = null;
         this.simulation = null;
         this.nodes = [];
@@ -15,129 +16,344 @@ export class NetworkVisualizer {
         
         // Special styling for Prof. Smoot
         this.profSmootId = null;
+        
+        // Flag to track if initialization has been attempted
+        this.initialized = false;
+        this.initAttempts = 0;
+        this.maxInitAttempts = 30; // Increased retry attempts
     }
     
-    init() {
-        console.log('NetworkVisualizer init() called');
+    // Add method to dynamically load D3 if not available
+    async loadD3() {
+        // Check if D3 is already loaded
+        if (typeof d3 !== 'undefined') {
+            return Promise.resolve();
+        }
         
+        return new Promise((resolve, reject) => {
+            // Check if script is already being loaded
+            const existingScript = document.querySelector('script[src*="d3js.org"]');
+            if (existingScript) {
+                // Wait a bit and resolve
+                setTimeout(() => {
+                    if (typeof d3 !== 'undefined') {
+                        resolve();
+                    } else {
+                        reject(new Error('D3.js failed to load'));
+                    }
+                }, 1000);
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = 'https://d3js.org/d3.v7.min.js';
+            script.onload = () => {
+                resolve();
+            };
+            script.onerror = (error) => {
+                reject(error);
+            };
+            document.head.appendChild(script);
+        });
+    }
+    
+    // Enhanced init method with better error handling and visibility checks
+    async init() {
+        // Mark as initialized attempt
+        this.initialized = true;
+        this.initAttempts++;
+        
+        // Add a timeout to prevent infinite hanging
+        const initTimeout = setTimeout(() => {
+            this.handleInitializationError('Initialization timed out');
+        }, 10000); // 10 second timeout
+        
+        // Find container element
+        this.container = document.querySelector(this.containerSelector);
         if (!this.container) {
-            console.error('Container not found for NetworkVisualizer');
-            return;
+            clearTimeout(initTimeout); // Clear timeout
+            // Try to find the container by ID directly
+            this.container = document.getElementById(this.containerSelector.replace('#', ''));
+            if (!this.container) {
+                // Try again after a delay if we haven't exceeded max attempts
+                if (this.initAttempts < this.maxInitAttempts) {
+                    setTimeout(() => {
+                        this.init();
+                    }, 200);
+                } else {
+                    this.handleInitializationError('Maximum initialization attempts reached');
+                }
+                return;
+            }
         }
         
-        // Check if D3 is available
+        // Ensure container is visible
+        this.container.style.display = 'block';
+        this.container.style.visibility = 'visible';
+        
+        // Remove loading indicator if it exists
+        this.removeLoadingIndicator();
+        
+        // Check if D3 is available, and load it if not
         if (typeof d3 === 'undefined') {
-            console.error('D3.js is not loaded!');
-            return;
+            try {
+                await this.loadD3();
+            } catch (error) {
+                clearTimeout(initTimeout); // Clear timeout
+                this.handleInitializationError('Failed to load D3.js: ' + error.message);
+                return;
+            }
         }
         
-        console.log('Container found:', this.container);
-        
-        // 清空容器
+        // Clear container
         this.container.innerHTML = '';
         
-        // 获取容器尺寸
+        // Get container dimensions
         const rect = this.container.getBoundingClientRect();
         this.width = rect.width || 800;
-        this.height = rect.height || 400;
+        this.height = rect.height || 500; // Increased default height
         
-        // 如果容器不可见，使用默认尺寸
+        // If container is not visible, use default dimensions
         if (this.width === 0 || this.height === 0) {
             this.width = 800;
-            this.height = 400;
-            console.log('Container has zero dimensions, using default size:', this.width, 'x', this.height);
+            this.height = 500;
         }
         
-        console.log('Container dimensions:', this.width, 'x', this.height);
+        try {
+            // Create controls for saved topologies
+            this.createTopologyControls();
+            
+            // Create SVG
+            this.svg = d3.select(this.container)
+                .append('svg')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('viewBox', `0 0 ${this.width} ${this.height}`)
+                .attr('preserveAspectRatio', 'xMidYMid meet')
+                .style('display', 'block'); // Ensure SVG is displayed
+            
+            // Add background
+            this.svg.append('rect')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('fill', 'rgba(0,0,0,0.2)');
+            
+            // Create groups
+            this.svg.append('g').attr('class', 'links');
+            this.svg.append('g').attr('class', 'nodes');
+            
+            // Initialize force simulation
+            this.initSimulation();
+            
+            // Generate sample data
+            this.generateSampleData();
+            this.render();
+            
+            // Clear the timeout since initialization completed successfully
+            clearTimeout(initTimeout);
+            
+            // Dispatch a custom event to notify that initialization is complete
+            if (typeof CustomEvent !== 'undefined' && typeof window !== 'undefined') {
+                const event = new CustomEvent('networkVisualizerInitialized', { 
+                    detail: { 
+                        nodes: this.nodes.length, 
+                        links: this.links.length 
+                    } 
+                });
+                window.dispatchEvent(event);
+            }
+        } catch (error) {
+            clearTimeout(initTimeout); // Clear timeout
+            this.handleInitializationError('Error during initialization: ' + error.message);
+        }
+    }
+    
+    // Handle initialization errors with proper UI feedback
+    handleInitializationError(errorMessage) {
+        // Make sure we have a container
+        if (!this.container) {
+            this.container = document.querySelector(this.containerSelector) || 
+                           document.getElementById(this.containerSelector.replace('#', ''));
+        }
         
-        // Create controls for saved topologies
-        this.createTopologyControls();
+        if (this.container) {
+            // Remove loading indicator
+            this.removeLoadingIndicator();
+            
+            // Show error message in the dedicated error container
+            const errorContainer = document.getElementById('network-viz-error');
+            const errorMessageElement = document.getElementById('network-viz-error-message');
+            if (errorContainer && errorMessageElement) {
+                errorMessageElement.textContent = errorMessage;
+                errorContainer.style.display = 'block';
+                
+                // Hide the loading indicator
+                const loadingIndicator = this.container.querySelector('#network-viz-loading');
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
+            } else {
+                // Fallback: Show error in container
+                this.container.innerHTML = `
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #ef4444; font-size: 18px; text-align: center; padding: 20px;">
+                        <div>
+                            <div>❌ Network visualization failed to initialize</div>
+                            <div style="font-size: 14px; margin-top: 10px;">${errorMessage}</div>
+                            <button onclick="window.location.reload()" style="background: #0ea5e9; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 15px;">Refresh Page</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
         
-        // 创建SVG
-        this.svg = d3.select(this.container)
-            .append('svg')
-            .attr('width', '100%')
-            .attr('height', '100%')
-            .attr('viewBox', `0 0 ${this.width} ${this.height}`);
+        // Try to create fallback visualization
+        setTimeout(() => {
+            this.createFallbackVisualization();
+        }, 500);
+    }
+
+    // Remove loading indicator properly
+    removeLoadingIndicator() {
+        if (this.container) {
+            const loadingIndicator = this.container.querySelector('#network-viz-loading');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+                // Remove it completely after a short delay to ensure it's not visible
+                setTimeout(() => {
+                    if (loadingIndicator.parentNode === this.container) {
+                        this.container.removeChild(loadingIndicator);
+                    }
+                }, 100);
+            }
+        }
+    }
+    
+    // Method to ensure initialization when DOM is ready
+    initWhenReady(maxRetries = 30, retryDelay = 200) {
+        const attemptInit = (retriesLeft) => {
+            // Check if container exists and is visible
+            const container = document.querySelector(this.containerSelector) || 
+                            document.getElementById(this.containerSelector.replace('#', ''));
+            
+            if (container) {
+                const rect = container.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    this.init();
+                    return;
+                } else {
+                    container.style.display = 'block';
+                }
+            }
+            
+            if (retriesLeft > 0) {
+                setTimeout(() => attemptInit(retriesLeft - 1), retryDelay);
+            } else {
+                this.handleInitializationError('Container not found or not visible after all retries');
+            }
+        };
         
-        // 添加背景
-        this.svg.append('rect')
-            .attr('width', '100%')
-            .attr('height', '100%')
-            .attr('fill', 'rgba(0,0,0,0.2)');
+        // Start the initialization attempts
+        attemptInit(maxRetries);
+    }
+    
+    // Method to re-initialize the NetworkVisualizer if needed
+    reinitialize() {
+        // Reset internal state
+        this.svg = null;
+        this.simulation = null;
+        this.nodes = [];
+        this.links = [];
+        this.initialized = false;
+        this.initAttempts = 0; // Reset attempts counter
         
-        // 创建组
-        this.svg.append('g').attr('class', 'links');
-        this.svg.append('g').attr('class', 'nodes');
+        // Clear container if it exists
+        if (this.container) {
+            this.container.innerHTML = '';
+        }
         
-        // 初始化力导向模拟
-        this.initSimulation();
+        // Try to find container again
+        this.container = document.querySelector(this.containerSelector) || 
+                        document.getElementById(this.containerSelector.replace('#', ''));
         
-        // Generate sample data
-        this.generateSampleData();
-        this.render();
-        
-        console.log('✅ NetworkVisualizer initialized successfully with', this.nodes.length, 'nodes and', this.links.length, 'links');
+        if (this.container) {
+            // Ensure container is visible
+            this.container.style.display = 'block';
+            this.init();
+        } else {
+            // Try initWhenReady as fallback
+            this.initWhenReady(30, 200);
+        }
     }
     
     createTopologyControls() {
+        // Check if container exists and has a parent
+        if (!this.container) {
+            return;
+        }
+        
         // Create a div for topology controls
         const controlsDiv = document.createElement('div');
         controlsDiv.className = 'topology-controls';
         controlsDiv.style.cssText = 'margin-bottom: 10px; display: flex; align-items: center; gap: 10px;';
         
         // Create saved topologies dropdown
-        const dropdown = document.createElement('select');
-        dropdown.id = 'saved-topologies-dropdown';
-        dropdown.innerHTML = '<option value="">Select a saved topology</option>';
-        dropdown.style.cssText = 'padding: 5px; border-radius: 4px; border: 1px solid #ccc;';
+        const topologySelect = document.createElement('select');
+        topologySelect.id = 'saved-topologies';
+        topologySelect.innerHTML = '<option value="">Live Network</option>';
         
-        // Add refresh button
+        // Create refresh button
         const refreshBtn = document.createElement('button');
-        refreshBtn.textContent = 'Refresh List';
+        refreshBtn.textContent = 'Refresh';
         refreshBtn.className = 'btn';
-        refreshBtn.style.cssText = 'padding: 5px 10px; border-radius: 4px;';
-        
-        // Add live view button
-        const liveViewBtn = document.createElement('button');
-        liveViewBtn.textContent = 'Live Network View';
-        liveViewBtn.className = 'btn';
-        liveViewBtn.style.cssText = 'padding: 5px 10px; border-radius: 4px; margin-left: 10px;';
-        
-        // Add event listener for refresh button
         refreshBtn.addEventListener('click', () => {
-            this.updateSavedTopologiesDropdown();
-        });
-        
-        // Add event listener for live view button
-        liveViewBtn.addEventListener('click', () => {
-            this.refreshLiveView();
-        });
-        
-        controlsDiv.appendChild(dropdown);
-        controlsDiv.appendChild(refreshBtn);
-        controlsDiv.appendChild(liveViewBtn);
-        
-        // Insert controls before the container
-        this.container.parentNode.insertBefore(controlsDiv, this.container);
-        
-        // Add event listener for dropdown change
-        dropdown.addEventListener('change', (e) => {
-            const selectedTaskChainId = e.target.value;
-            if (selectedTaskChainId && this.savedTopologies) {
-                this.displaySavedTopology(selectedTaskChainId);
-            } else if (selectedTaskChainId === '') {
-                // User selected the empty option, refresh live view
-                this.refreshLiveView();
+            // Request fresh data from the app if available
+            if (window.cosmicApp) {
+                window.cosmicApp.fetchRealAIAgents();
             }
         });
         
-        // Store reference to dropdown for later updates
-        this.topologyDropdown = dropdown;
+        // Create clear button
+        const clearBtn = document.createElement('button');
+        clearBtn.textContent = 'Clear';
+        clearBtn.className = 'btn';
+        clearBtn.addEventListener('click', () => {
+            this.clearCurrentVisualization();
+        });
+        
+        // Append elements to controls div
+        controlsDiv.appendChild(topologySelect);
+        controlsDiv.appendChild(refreshBtn);
+        controlsDiv.appendChild(clearBtn);
+        
+        // Try to insert controls before the container
+        try {
+            if (this.container.parentNode) {
+                this.container.parentNode.insertBefore(controlsDiv, this.container);
+                this.topologyDropdown = topologySelect;
+            } else {
+                this.container.appendChild(controlsDiv);
+                this.topologyDropdown = topologySelect;
+            }
+        } catch (error) {
+            // Fallback: append to container
+            this.container.appendChild(controlsDiv);
+            this.topologyDropdown = topologySelect;
+        }
+        
+        // Add event listener to dropdown
+        topologySelect.addEventListener('change', (e) => {
+            if (e.target.value) {
+                this.displaySavedTopology(e.target.value);
+            } else {
+                this.refreshLiveView();
+            }
+        });
     }
     
     updateSavedTopologiesDropdown() {
-        if (!this.topologyDropdown || !this.savedTopologies) return;
+        if (!this.topologyDropdown || !this.savedTopologies) {
+            return;
+        }
         
         // Clear existing options except the first one
         while (this.topologyDropdown.children.length > 1) {
@@ -167,31 +383,51 @@ export class NetworkVisualizer {
     }
     
     tick() {
-        if (!this.svg) return;
+        if (!this.svg) {
+            return;
+        }
         
         // Update link positions
-        this.svg.selectAll('.link')
-            .attr('x1', d => (d.source.x || 0))
-            .attr('y1', d => (d.source.y || 0))
-            .attr('x2', d => (d.target.x || 0))
-            .attr('y2', d => (d.target.y || 0));
+        const links = this.svg.selectAll('.link');
+        links
+            .attr('x1', d => {
+                const x = typeof d.source === 'object' ? d.source.x : 0;
+                return x || 0;
+            })
+            .attr('y1', d => {
+                const y = typeof d.source === 'object' ? d.source.y : 0;
+                return y || 0;
+            })
+            .attr('x2', d => {
+                const x = typeof d.target === 'object' ? d.target.x : 0;
+                return x || 0;
+            })
+            .attr('y2', d => {
+                const y = typeof d.target === 'object' ? d.target.y : 0;
+                return y || 0;
+            });
         
         // Update node positions
-        this.svg.selectAll('.node')
-            .attr('transform', d => `translate(${d.x || 0},${d.y || 0})`);
+        const nodes = this.svg.selectAll('.node');
+        nodes
+            .attr('transform', d => {
+                const x = d.x || 0;
+                const y = d.y || 0;
+                return `translate(${x},${y})`;
+            });
     }
     
     generateSampleData() {
-        // 生成示例节点
+        // Generate sample nodes
         this.nodes = [
-            { id: 'agent1', name: 'Agent-1', type: 'analysis', status: 'online', x: this.width * 0.3, y: this.height * 0.3 },
-            { id: 'agent2', name: 'Agent-2', type: 'processing', status: 'busy', x: this.width * 0.7, y: this.height * 0.3 },
-            { id: 'agent3', name: 'Agent-3', type: 'reasoning', status: 'online', x: this.width * 0.5, y: this.height * 0.7 },
-            { id: 'agent4', name: 'Agent-4', type: 'coordination', status: 'offline', x: this.width * 0.2, y: this.height * 0.6 },
-            { id: 'agent5', name: 'Agent-5', type: 'visualization', status: 'online', x: this.width * 0.8, y: this.height * 0.6 }
+            { id: 'agent1', name: 'Prof. Smoot', type: 'cosmic_structure_expert', status: 'active', x: this.width * 0.3, y: this.height * 0.3, isProfSmoot: true },
+            { id: 'agent2', name: 'Dr. Analyzer', type: 'analyzer', status: 'processing', x: this.width * 0.7, y: this.height * 0.3 },
+            { id: 'agent3', name: 'Ms. Synthesizer', type: 'synthesizer', status: 'active', x: this.width * 0.5, y: this.height * 0.7 },
+            { id: 'agent4', name: 'Mr. Connector', type: 'connector', status: 'online', x: this.width * 0.2, y: this.height * 0.5 },
+            { id: 'agent5', name: 'Ms. Evaluator', type: 'evaluator', status: 'online', x: this.width * 0.8, y: this.height * 0.5 }
         ];
         
-        // 生成示例连接
+        // Generate sample links
         this.links = [
             { source: 'agent1', target: 'agent2', strength: 0.8, type: 'collaboration' },
             { source: 'agent2', target: 'agent3', strength: 0.6, type: 'data_flow' },
@@ -206,7 +442,9 @@ export class NetworkVisualizer {
     
     // Convert link source/target string IDs to node object references
     convertLinkReferences() {
-        if (!this.nodes || !this.links) return;
+        if (!this.nodes || !this.links) {
+            return;
+        }
         
         this.links = this.links.map(link => {
             let sourceNode = link.source;
@@ -222,18 +460,14 @@ export class NetworkVisualizer {
                 targetNode = this.nodes.find(node => node.id === link.target);
             }
             
-            // Only return the link if both source and target nodes exist
-            if (sourceNode && targetNode) {
-                return {
-                    ...link,
-                    source: sourceNode,
-                    target: targetNode
-                };
-            } else {
-                console.warn('Could not find source or target node for link:', link);
-                return null;
-            }
-        }).filter(link => link !== null); // Remove any null links
+            // Return the link with converted references, even if some are missing
+            // This allows partial connections to still be rendered
+            return {
+                ...link,
+                source: sourceNode || link.source,
+                target: targetNode || link.target
+            };
+        });
     }
     
     setLayout(layoutType) {
@@ -265,6 +499,9 @@ export class NetworkVisualizer {
             case 'hierarchical':
                 this.applyHierarchicalLayout();
                 break;
+            default:
+                // Default to force layout
+                this.applyForceLayout();
         }
     }
     
@@ -313,8 +550,10 @@ export class NetworkVisualizer {
     }
     
     updateNodeSize() {
-        this.svg.selectAll('.node circle')
-            .attr('r', this.nodeSize);
+        if (this.svg) {
+            this.svg.selectAll('.node circle')
+                .attr('r', this.nodeSize);
+        }
         
         if (this.simulation) {
             this.simulation.force('collision').radius(this.nodeSize + 5);
@@ -322,9 +561,28 @@ export class NetworkVisualizer {
         }
     }
     
+    // Enhanced render method with better visibility handling
     render() {
         // Only render if we have nodes and links
-        if (!this.nodes || !this.links) return;
+        if (!this.nodes || !this.links) {
+            return;
+        }
+        
+        // Check if SVG is available
+        if (!this.svg) {
+            this.init();
+            return;
+        }
+        
+        // Make sure the SVG is visible
+        this.svg.style('display', 'block'); // Explicitly set to block display
+        this.svg.style('visibility', 'visible'); // Ensure visibility
+        
+        // Ensure container is visible
+        if (this.container) {
+            this.container.style.display = 'block';
+            this.container.style.visibility = 'visible';
+        }
         
         this.renderLinks();
         this.renderNodes();
@@ -350,6 +608,10 @@ export class NetworkVisualizer {
     }
     
     renderNodes() {
+        if (!this.svg) {
+            return;
+        }
+        
         const nodeSelection = this.svg.select('.nodes')
             .selectAll('.node')
             .data(this.nodes, d => d.id);
@@ -398,12 +660,23 @@ export class NetworkVisualizer {
         
         nodeUpdate.select('.node-label')
             .text(d => this.getNodeLabel(d));
+            
+        // Log the actual rendered nodes for debugging
     }
     
     renderLinks() {
+        if (!this.svg) {
+            return;
+        }
+        
         const linkSelection = this.svg.select('.links')
             .selectAll('.link')
-            .data(this.links, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
+            .data(this.links, d => {
+                // Handle both string and object references
+                const sourceId = typeof d.source === 'string' ? d.source : d.source.id;
+                const targetId = typeof d.target === 'string' ? d.target : d.target.id;
+                return `${sourceId}-${targetId}`;
+            });
         
         linkSelection.exit().remove();
         
@@ -419,10 +692,14 @@ export class NetworkVisualizer {
         linkUpdate
             .attr('stroke', d => this.getLinkColor(d))
             .attr('stroke-width', d => this.getLinkWidth(d));
+            
+        // Log the actual rendered links for debugging
     }
     
     getNodeColor(node) {
-        if (node.isProfSmoot) return '#9333ea'; // Purple for Prof. Smoot
+        if (node.isProfSmoot) {
+            return '#9333ea'; // Purple for Prof. Smoot
+        }
         if (node.group === 'agent') {
             const typeColors = {
                 'analyzer': '#3b82f6',
@@ -432,24 +709,35 @@ export class NetworkVisualizer {
                 'innovator': '#8b5cf6',
                 'cosmic_structure_expert': '#9333ea'
             };
-            return typeColors[node.type] || '#60a5fa';
+            const color = typeColors[node.type] || '#60a5fa';
+            return color;
         }
         return '#94a3b8'; // Default color for tasks
     }
     
     getNodeStroke(node) {
-        if (node.isProfSmoot) return '#ffffff';
-        if (node.status === 'completed') return '#10b981';
-        if (node.status === 'busy') return '#f59e0b';
-        if (node.status === 'offline') return '#ef4444';
+        if (node.isProfSmoot) {
+            return '#ffffff';
+        }
+        if (node.status === 'completed') {
+            return '#10b981';
+        }
+        if (node.status === 'busy') {
+            return '#f59e0b';
+        }
+        if (node.status === 'offline') {
+            return '#ef4444';
+        }
         return '#ffffff';
     }
     
     getNodeLabel(node) {
         if (node.name) {
-            return node.name.length > 12 ? node.name.substring(0, 12) + '...' : node.name;
+            const label = node.name.length > 12 ? node.name.substring(0, 12) + '...' : node.name;
+            return label;
         }
-        return node.id.substring(0, 8);
+        const label = node.id.substring(0, 8);
+        return label;
     }
     
     getLinkColor(link) {
@@ -459,12 +747,17 @@ export class NetworkVisualizer {
             'collaboration': '#8b5cf6',
             'data_flow': '#f59e0b'
         };
-        return typeColors[link.type] || '#94a3b8';
+        const color = typeColors[link.type] || '#94a3b8';
+        return color;
     }
     
     getLinkWidth(link) {
-        if (link.type === 'sequence') return 2;
-        if (link.type === 'execution') return 3;
+        if (link.type === 'sequence') {
+            return 2;
+        }
+        if (link.type === 'execution') {
+            return 3;
+        }
         return 1.5;
     }
     
@@ -493,61 +786,59 @@ export class NetworkVisualizer {
             .on("end", dragended);
     }
     
-    updateNodesFromAgents(agentsMap) {
-        // Convert agent map to nodes array
-        this.nodes = Array.from(agentsMap.values()).map(agent => ({
-            id: agent.id,
-            name: agent.name || agent.id,
-            type: agent.type || 'unknown',
-            status: agent.status || 'online',
-            x: agent.position ? agent.position.x * this.width : Math.random() * this.width,
-            y: agent.position ? agent.position.y * this.height : Math.random() * this.height
-        }));
-        
-        console.log('Updated nodes:', this.nodes.length);
-    }
-    
-    updateLinksFromTopology(topology) {
-        if (topology.connections) {
-            this.links = topology.connections.map(conn => ({
-                source: conn.source,
-                target: conn.target,
-                strength: conn.strength || 0.5,
-                type: conn.type || 'collaboration'
-            }));
-            
-            console.log('Updated links:', this.links.length);
-        }
-    }
-    
+    // Enhanced update method with better error handling
     update(systemState) {
-        console.log('NetworkVisualizer update called with:', systemState);
-        
         // Don't update if we have a saved topology displayed
-        if (this.hasSavedTopologyDisplayed()) {
-            console.log('Skipping update - saved topology is displayed');
+        // But allow update if we're explicitly requesting a live view refresh
+        if (this.hasSavedTopologyDisplayed() && !this._forceLiveUpdate) {
             return;
         }
         
+        // Reset the force live update flag
+        this._forceLiveUpdate = false;
+        
+        // If not initialized, try to initialize first
+        if (!this.initialized || !this.svg) {
+            this.initWhenReady(20, 200);
+            
+            // Wait a bit and then try to update
+            setTimeout(() => {
+                this._performUpdate(systemState);
+            }, 800); // Increased delay
+            return;
+        }
+        
+        this._performUpdate(systemState);
+    }
+    
+    _performUpdate(systemState) {
         if (!this.svg) {
-            console.log('SVG not initialized, calling init()...');
             this.init();
             return;
         }
         
+        // Ensure SVG and container are visible
+        this.svg.style('display', 'block');
+        this.svg.style('visibility', 'visible');
+        if (this.container) {
+            this.container.style.display = 'block';
+            this.container.style.visibility = 'visible';
+        }
+        
         // Update nodes and connections data
         if (systemState && systemState.agents && systemState.agents.size > 0) {
-            console.log('Updating nodes from agents:', systemState.agents.size);
             this.updateNodesFromAgents(systemState.agents);
         } else {
-            console.log('No agents in system state, using sample data');
+            this.generateSampleData();
         }
         
         if (systemState && systemState.topology && systemState.topology.connections) {
-            console.log('Updating links from topology:', systemState.topology.connections.length);
             this.updateLinksFromTopology(systemState.topology);
         } else {
-            console.log('No topology data, using sample connections');
+            // Make sure we have sample data if no topology data is provided
+            if (this.links.length === 0) {
+                this.generateSampleData();
+            }
         }
         
         // Convert link references to ensure proper connections
@@ -561,13 +852,31 @@ export class NetworkVisualizer {
         }
         
         this.render();
+        
+        // Make sure the SVG is visible
+        if (this.svg) {
+            this.svg.style('display', 'block'); // Ensure SVG is displayed
+            this.svg.style('visibility', 'visible'); // Ensure visibility
+        }
     }
     
     updateWithTaskChain(taskChainData) {
-        console.log('Updating network visualization with task chain:', taskChainData);
+        // If not initialized, try to initialize first
+        if (!this.initialized || !this.svg) {
+            this.initWhenReady(10, 100);
+            
+            // Wait a bit and then try to update
+            setTimeout(() => {
+                this._performUpdateWithTaskChain(taskChainData);
+            }, 500);
+            return;
+        }
         
+        this._performUpdateWithTaskChain(taskChainData);
+    }
+    
+    _performUpdateWithTaskChain(taskChainData) {
         if (!taskChainData || !taskChainData.executionPath) {
-            console.warn('No task chain data or execution path provided');
             return;
         }
         
@@ -664,23 +973,16 @@ export class NetworkVisualizer {
         
         // Convert string references to object references for D3
         this.convertLinkReferences();
-        
-        console.log('Converted task chain to network:', {
-            nodes: this.nodes.length,
-            links: this.links.length
-        });
     }
     
     // Method to display a saved topology
     displaySavedTopology(taskChainId) {
         if (!this.savedTopologies) {
-            console.warn('No saved topologies available');
             return false;
         }
         
         const savedTopology = this.savedTopologies.get(taskChainId);
         if (!savedTopology) {
-            console.warn('Saved topology not found for task chain:', taskChainId);
             return false;
         }
         
@@ -699,7 +1001,6 @@ export class NetworkVisualizer {
             this.topologyDropdown.value = taskChainId;
         }
         
-        console.log('Displayed saved topology for task chain:', taskChainId);
         return true;
     }
     
@@ -733,7 +1034,8 @@ export class NetworkVisualizer {
         
         // Check if we have a selected value in the dropdown that corresponds to a saved topology
         if (this.topologyDropdown && this.topologyDropdown.value) {
-            return this.savedTopologies.has(this.topologyDropdown.value);
+            const result = this.savedTopologies.has(this.topologyDropdown.value);
+            return result;
         }
         
         // Fallback check: see if we have nodes that look like task chain nodes
@@ -741,7 +1043,8 @@ export class NetworkVisualizer {
         if (this.nodes && this.nodes.length > 0) {
             const hasTaskNodes = this.nodes.some(node => node.group === 'task');
             const hasAgentNodes = this.nodes.some(node => node.group === 'agent');
-            return hasTaskNodes && hasAgentNodes;
+            const result = hasTaskNodes && hasAgentNodes;
+            return result;
         }
         
         return false;
@@ -776,6 +1079,9 @@ export class NetworkVisualizer {
     
     // Method to refresh the live network view
     refreshLiveView() {
+        // Set flag to force live update
+        this._forceLiveUpdate = true;
+        
         // Clear any saved topology display
         this.clearCurrentVisualization();
         
@@ -785,25 +1091,16 @@ export class NetworkVisualizer {
         }
     }
     
-    updateNodesFromAgents(agents) {
-        this.nodes = Array.from(agents.values()).map(agent => {
-            // Check if this is Prof. Smoot
-            const isProfSmoot = agent.name && agent.name.includes('Prof. Smoot');
-            if (isProfSmoot) {
-                this.profSmootId = agent.id;
-            }
-            
-            return {
-                id: agent.id,
-                name: agent.name || `Agent-${agent.id.slice(0, 8)}`,
-                type: agent.type || 'general',
-                status: agent.status || 'online',
-                isProfSmoot: isProfSmoot,
-                // Ensure proper positioning within the SVG viewBox
-                x: agent.position?.x ? agent.position.x * this.width : Math.random() * this.width,
-                y: agent.position?.y ? agent.position.y * this.height : Math.random() * this.height
-            };
-        });
+    updateNodesFromAgents(agentsMap) {
+        // Convert agent map to nodes array
+        this.nodes = Array.from(agentsMap.values()).map(agent => ({
+            id: agent.id,
+            name: agent.name || agent.id,
+            type: agent.type || 'unknown',
+            status: agent.status || 'online',
+            x: agent.position ? agent.position.x * this.width : Math.random() * this.width,
+            y: agent.position ? agent.position.y * this.height : Math.random() * this.height
+        }));
     }
     
     updateLinksFromTopology(topology) {
@@ -814,14 +1111,35 @@ export class NetworkVisualizer {
                 strength: conn.strength || 0.5,
                 type: conn.type || 'collaboration'
             }));
-            
-            console.log('Updated links:', this.links.length);
         }
     }
     
     updateTopology(data) {
+        // If not initialized, try to initialize first
+        if (!this.initialized || !this.svg) {
+            this.initWhenReady(10, 100);
+            
+            // Wait a bit and then try to update
+            setTimeout(() => {
+                this._performUpdateTopology(data);
+            }, 500);
+            return;
+        }
+        
+        this._performUpdateTopology(data);
+    }
+    
+    _performUpdateTopology(data) {
+        // Check if we have the required data structure
+        if (!data) {
+            return;
+        }
+        
         if (data.nodes) {
             this.updateNodesFromAgents(new Map(data.nodes.map(node => [node.id, node])));
+        } else if (data.agents) {
+            // Handle the case where the data comes with agents instead of nodes
+            this.updateNodesFromAgents(new Map(data.agents.map(agent => [agent.id, agent])));
         }
         
         if (data.edges) {
@@ -830,6 +1148,14 @@ export class NetworkVisualizer {
                 target: edge.target,
                 strength: edge.weight || 0.5,
                 type: edge.type || 'collaboration'
+            }));
+        } else if (data.connections) {
+            // Handle the case where the data comes with connections instead of edges
+            this.links = data.connections.map(conn => ({
+                source: conn.source,
+                target: conn.target,
+                strength: conn.strength || 0.5,
+                type: conn.type || 'collaboration'
             }));
         }
         
@@ -841,7 +1167,9 @@ export class NetworkVisualizer {
     
     // Method to highlight the current execution step in the visualization
     highlightExecutionStep(stepData) {
-        if (!this.svg) return;
+        if (!this.svg) {
+            return;
+        }
         
         // Highlight the agent node
         this.svg.selectAll('.node')
@@ -862,5 +1190,298 @@ export class NetworkVisualizer {
             .filter(d => d.source.id === stepData.agentId && d.target.id === stepData.taskId)
             .attr('stroke', '#ffeb3b')
             .attr('stroke-width', 3);
+    }
+    
+    // Method to update visualization with agents data (missing method that was being called)
+    updateWithAgents(agents) {
+        // If not initialized, try to initialize first
+        if (!this.initialized || !this.svg) {
+            this.initWhenReady(10, 100);
+            
+            // Wait a bit and then try to update
+            setTimeout(() => {
+                this._performUpdateWithAgents(agents);
+            }, 500);
+            return;
+        }
+        
+        this._performUpdateWithAgents(agents);
+    }
+    
+    _performUpdateWithAgents(agents) {
+        // Update nodes from agents data
+        this.updateNodesFromAgents(new Map(agents.map(agent => [agent.id, agent])));
+        
+        // Since we don't have topology data, we'll use sample links
+        this.generateSampleLinks(); // Generate sample links specifically
+        
+        // Render the visualization
+        this.render();
+    }
+    
+    // Generate sample links specifically for the current nodes
+    generateSampleLinks() {
+        if (!this.nodes || this.nodes.length === 0) {
+            this.links = [];
+            return;
+        }
+        
+        // Create links between nodes in a circular pattern
+        this.links = [];
+        for (let i = 0; i < this.nodes.length; i++) {
+            const sourceNode = this.nodes[i];
+            const targetNode = this.nodes[(i + 1) % this.nodes.length];
+            
+            this.links.push({
+                source: sourceNode,
+                target: targetNode,
+                strength: 0.5 + Math.random() * 0.5,
+                type: ['collaboration', 'coordination', 'data_flow'][Math.floor(Math.random() * 3)]
+            });
+        }
+        
+        // Add some additional random links
+        if (this.nodes.length > 2) {
+            for (let i = 0; i < this.nodes.length; i++) {
+                if (Math.random() > 0.7) { // 30% chance to add an extra link
+                    const sourceIndex = i;
+                    let targetIndex;
+                    do {
+                        targetIndex = Math.floor(Math.random() * this.nodes.length);
+                    } while (targetIndex === sourceIndex);
+                    
+                    this.links.push({
+                        source: this.nodes[sourceIndex],
+                        target: this.nodes[targetIndex],
+                        strength: 0.3 + Math.random() * 0.4,
+                        type: ['execution', 'sequence'][Math.floor(Math.random() * 2)]
+                    });
+                }
+            }
+        }
+    }
+    
+    // Method to update a single agent (missing method that was being called)
+    updateAgent(agentData) {
+        // If not initialized, try to initialize first
+        if (!this.initialized || !this.svg) {
+            this.initWhenReady(10, 100);
+            
+            // Wait a bit and then try to update
+            setTimeout(() => {
+                this._performUpdateAgent(agentData);
+            }, 500);
+            return;
+        }
+        
+        this._performUpdateAgent(agentData);
+    }
+    
+    _performUpdateAgent(agentData) {
+        // Update the agent in the system state
+        if (window.cosmicApp && window.cosmicApp.systemState && window.cosmicApp.systemState.agents) {
+            window.cosmicApp.systemState.agents.set(agentData.id, agentData);
+        }
+        
+        // Update the visualization
+        this.update(window.cosmicApp ? window.cosmicApp.systemState : null);
+    }
+    
+    // Method to resize the visualization (missing method that was being called)
+    resize() {
+        // Re-find container if not already found
+        if (!this.container) {
+            this.container = document.querySelector(this.containerSelector) || 
+                           document.getElementById(this.containerSelector.replace('#', ''));
+            
+            if (!this.container) {
+                return;
+            }
+        }
+        
+        try {
+            // Get new dimensions
+            const rect = this.container.getBoundingClientRect();
+            this.width = rect.width || 800;
+            this.height = rect.height || 400;
+            
+            // If container is not visible, use default dimensions
+            if (this.width === 0 || this.height === 0) {
+                this.width = 800;
+                this.height = 400;
+            }
+            
+            // If SVG doesn't exist, initialize the visualization
+            if (!this.svg) {
+                this.init();
+                return;
+            }
+            
+            // Update SVG viewBox
+            if (this.svg) {
+                this.svg.attr('viewBox', `0 0 ${this.width} ${this.height}`);
+            }
+            
+            // Update simulation center force
+            if (this.simulation) {
+                this.simulation.force('center', d3.forceCenter(this.width / 2, this.height / 2));
+                this.simulation.alpha(0.3).restart();
+            }
+        } catch (error) {
+            // Try to re-initialize if resize failed
+            this.init();
+        }
+    }
+    
+    // Method to check if the visualization is properly set up
+    isProperlySetUp() {
+        const result = !!(this.container && this.svg && this.simulation && this.nodes.length > 0 && this.links.length > 0);
+        return result;
+    }
+    
+    // Method to force the visualization to be visible and properly rendered
+    forceRender() {
+        // Make sure container is visible
+        if (this.container) {
+            this.container.style.display = 'block';
+            
+            // Remove any loading indicator
+            this.removeLoadingIndicator();
+        }
+        
+        // If not initialized, initialize first
+        if (!this.initialized || !this.svg) {
+            this.initWhenReady(20, 200);
+            return;
+        }
+        
+        // Make sure SVG is visible
+        if (this.svg) {
+            this.svg.style('display', null); // Remove any display:none
+        }
+        
+        // Force a render
+        this.render();
+        
+        // Restart simulation if it exists
+        if (this.simulation) {
+            this.simulation.alpha(0.5).restart();
+        }
+    }
+    
+    // Method to check if container is available and initialize if it is
+    checkAndInitialize() {
+        // Check if container exists
+        const container = document.querySelector(this.containerSelector) || 
+                         document.getElementById(this.containerSelector.replace('#', ''));
+        
+        if (container && !this.initialized) {
+            this.initWhenReady(10, 100);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Method to manually trigger initialization (for button click)
+    manualInit() {
+        // Reset initialization attempts
+        this.initAttempts = 0;
+        // Force reinitialization
+        this.reinitialize();
+    }
+    
+    // Fallback method to create a simple visualization if normal initialization fails
+    createFallbackVisualization() {
+        try {
+            // Find container element
+            this.container = document.querySelector(this.containerSelector);
+            if (!this.container) {
+                this.container = document.getElementById(this.containerSelector.replace('#', ''));
+            }
+            
+            if (!this.container) {
+                this.handleInitializationError('Container not found for fallback visualization');
+                return;
+            }
+            
+            // Remove loading indicator
+            this.removeLoadingIndicator();
+            
+            // Clear container
+            this.container.innerHTML = '';
+            
+            // Get container dimensions
+            const rect = this.container.getBoundingClientRect();
+            this.width = rect.width || 800;
+            this.height = rect.height || 500;
+            
+            // Create simple SVG with basic nodes and links
+            this.svg = d3.select(this.container)
+                .append('svg')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('viewBox', `0 0 ${this.width} ${this.height}`)
+                .attr('preserveAspectRatio', 'xMidYMid meet')
+                .style('display', 'block');
+            
+            // Add background
+            this.svg.append('rect')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('fill', 'rgba(0,0,0,0.2)');
+            
+            // Create sample nodes
+            const nodes = [
+                { id: 'agent1', x: this.width * 0.3, y: this.height * 0.3, name: 'Prof. Smoot' },
+                { id: 'agent2', x: this.width * 0.7, y: this.height * 0.3, name: 'Dr. Analyzer' },
+                { id: 'agent3', x: this.width * 0.5, y: this.height * 0.7, name: 'Ms. Synthesizer' }
+            ];
+            
+            // Create sample links
+            const links = [
+                { source: nodes[0], target: nodes[1] },
+                { source: nodes[1], target: nodes[2] },
+                { source: nodes[0], target: nodes[2] }
+            ];
+            
+            // Draw links
+            this.svg.append('g')
+                .selectAll('line')
+                .data(links)
+                .enter()
+                .append('line')
+                .attr('x1', d => d.source.x)
+                .attr('y1', d => d.source.y)
+                .attr('x2', d => d.target.x)
+                .attr('y2', d => d.target.y)
+                .attr('stroke', '#94a3b8')
+                .attr('stroke-width', 2);
+            
+            // Draw nodes
+            const nodeGroup = this.svg.append('g')
+                .selectAll('g')
+                .data(nodes)
+                .enter()
+                .append('g')
+                .attr('transform', d => `translate(${d.x},${d.y})`);
+            
+            // Add circles
+            nodeGroup.append('circle')
+                .attr('r', 20)
+                .attr('fill', (d, i) => ['#9333ea', '#3b82f6', '#f59e0b'][i])
+                .attr('stroke', '#ffffff')
+                .attr('stroke-width', 2);
+            
+            // Add labels
+            nodeGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dy', 30)
+                .attr('fill', '#ffffff')
+                .attr('font-size', '12px')
+                .text(d => d.name);
+        } catch (error) {
+            this.handleInitializationError('Error creating fallback visualization: ' + error.message);
+        }
     }
 }

@@ -61,20 +61,15 @@ class RealAICosmicServer {
     
     // Check for OpenAI API key
     if (!process.env.OPENAI_API_KEY) {
-      console.warn('⚠️  WARNING: OPENAI_API_KEY not found in environment variables');
-      console.warn('   Real AI features will be limited. Please set your OpenAI API key.');
     }
     
     // Real AI Collaboration Engine
-    console.log('[SERVER] Creating RealAICollaborationEngine');
     this.aiCollaboration = new RealAICollaborationEngine({
       openaiApiKey: process.env.OPENAI_API_KEY
     });
-    console.log('[SERVER] RealAICollaborationEngine created');
     
     // Listen for task chain events and forward them to clients
     this.aiCollaboration.on('task-chain-execution-step', (data) => {
-      console.log('📡 Broadcasting task chain execution step:', data);
       if (this.broadcastUpdate) this.broadcastUpdate('task-chain-execution-step', data);
       if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('task-chain-execution-step', data);
       
@@ -91,8 +86,6 @@ class RealAICosmicServer {
     });
     
     this.aiCollaboration.on('task-chain-completed', (data) => {
-      console.log('📡 Broadcasting task chain completed:', data);
-      
       // Add execution steps to the completed task chain data
       if (this.taskChainSteps && this.taskChainSteps.has(data.chainId)) {
         data.executionSteps = this.taskChainSteps.get(data.chainId);
@@ -108,7 +101,6 @@ class RealAICosmicServer {
     });
     
     this.aiCollaboration.on('task-chain-failed', (data) => {
-      console.log('📡 Broadcasting task chain failed:', data);
       if (this.broadcastUpdate) this.broadcastUpdate('task-chain-failed', data);
       if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('task-chain-failed', data);
       
@@ -120,20 +112,17 @@ class RealAICosmicServer {
     
     // Additional event forwarding for enhanced task chain visualization
     this.aiCollaboration.on('collaboration-completed', (data) => {
-      console.log('📡 Broadcasting collaboration completed:', data);
       if (this.broadcastUpdate) this.broadcastUpdate('collaboration-completed', data);
       if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('collaboration-completed', data);
     });
     
     // Listen for Prof. Smoot's task allocation events
     this.aiCollaboration.on('task-allocation-by-prof-smoot', (data) => {
-      console.log('🎯 Prof. Smoot Task Allocation:', data);
       if (this.broadcastUpdate) this.broadcastUpdate('prof-smoot-allocation', data);
       if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('prof-smoot-allocation', data);
     });
     
     this.aiCollaboration.on('task-allocation-by-fallback', (data) => {
-      console.log('🔄 Fallback Task Allocation:', data);
       if (this.broadcastUpdate) this.broadcastUpdate('fallback-allocation', data);
       if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('fallback-allocation', data);
     });
@@ -154,28 +143,20 @@ class RealAICosmicServer {
     }
     
     // Initialize AI agents with a promise to track completion
-    console.log('[SERVER] Starting agent initialization');
     this.agentInitializationPromise = this.initializeAIAgentsAsync();
-    console.log('[SERVER] Agent initialization started');
   }
   
   // Asynchronous version of agent initialization that returns a promise
   async initializeAIAgentsAsync() {
     try {
-      console.log('[INIT] Starting agent initialization async function');
       // Initialize AI agents with optimizations for Vercel
       // Use a delayed initialization to avoid cold start issues
       if (process.env.VERCEL) {
-        console.log('[INIT] Vercel environment detected, waiting 1 second before initialization');
         // In Vercel, delay initialization to allow for faster cold starts
         await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('[INIT] Delay completed, starting agent initialization');
       }
       await this.initializeAIAgents();
-      console.log('✅ Agent initialization completed');
     } catch (error) {
-      console.error('❌ Agent initialization failed:', error);
-      console.error('Stack trace:', error.stack);
     }
   }
   
@@ -191,8 +172,6 @@ class RealAICosmicServer {
   }
   
   setupRoutes() {
-    console.log('[SERVER] Setting up routes');
-    
     // Main interface
     this.app.get('/', (req, res) => {
       res.sendFile(path.join(__dirname, '../web', 'index.html'));
@@ -200,23 +179,17 @@ class RealAICosmicServer {
     
     // Real AI API endpoints
     this.app.get('/api/ai-status', async (req, res) => {
-      console.log('[API] /api/ai-status called');
       // Wait for agent initialization in Vercel environment
       if (process.env.VERCEL && this.agentInitializationPromise) {
-        console.log('[API] Waiting for agent initialization to complete');
         await this.agentInitializationPromise;
-        console.log('[API] Agent initialization completed, continuing with request');
       }
       res.json(this.getAISystemStatus());
     });
     
     this.app.get('/api/ai-agents', async (req, res) => {
-      console.log('[API] /api/ai-agents called');
       // Wait for agent initialization in Vercel environment
       if (process.env.VERCEL && this.agentInitializationPromise) {
-        console.log('[API] Waiting for agent initialization to complete');
         await this.agentInitializationPromise;
-        console.log('[API] Agent initialization completed, continuing with request');
       }
       const collaborationStatus = this.aiCollaboration.getCollaborationStatus();
       res.json(collaborationStatus.aiAgents);
@@ -224,12 +197,10 @@ class RealAICosmicServer {
     
     // Manual initialization endpoint for debugging
     this.app.post('/api/init-agents', async (req, res) => {
-      console.log('[API] /api/init-agents called');
       try {
         await this.initializeAIAgents();
         res.json({ success: true, message: 'Agents initialized' });
       } catch (error) {
-        console.error('Agent initialization failed:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
@@ -267,7 +238,6 @@ class RealAICosmicServer {
         
         // Check if we're already processing this task
         if (this.processingTasks && this.processingTasks.has(taskData.id)) {
-          console.log(`⚠️ Task ${taskData.id} is already being processed, ignoring duplicate request`);
           return res.status(409).json({ 
             success: false, 
             error: 'Task is already being processed' 
@@ -279,8 +249,6 @@ class RealAICosmicServer {
           this.processingTasks = new Set();
         }
         this.processingTasks.add(taskData.id);
-        
-        console.log('\n🚀 Received AI collaboration request:', taskData.description);
         
         const result = await this.aiCollaboration.submitCollaborativeTask(taskData);
         
@@ -302,8 +270,6 @@ class RealAICosmicServer {
         });
         
       } catch (error) {
-        console.error('❌ AI collaboration failed:', error);
-        
         // Remove task from processing set even on error
         if (this.processingTasks && req.body.id) {
           this.processingTasks.delete(req.body.id);
@@ -331,6 +297,10 @@ class RealAICosmicServer {
           // Send AI status to all SSE clients
           if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-system-status', this.getAISystemStatus());
           break;
+        case 'get-topology-data':
+          // Send topology data to requesting client
+          if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('topology-update', this.getTopologyData());
+          break;
         case 'submit-ai-task':
           // Handle task submission
           this.handleTaskSubmission(payload);
@@ -340,7 +310,6 @@ class RealAICosmicServer {
           this.handleAgentCreation(payload);
           break;
         default:
-          console.log(`📥 Received message via HTTP POST: ${type}`);
       }
       
       res.status(200).json({ success: true });
@@ -364,17 +333,11 @@ class RealAICosmicServer {
   }
   
   setupSSERoutes() {
-    console.log('[SERVER] Setting up SSE routes');
-    
     // SSE endpoint
     this.app.get('/sse', async (req, res) => {
-      console.log('[SSE] /sse endpoint called');
-      
       // Wait for agent initialization in Vercel environment
       if (process.env.VERCEL && this.agentInitializationPromise) {
-        console.log('[SSE] Waiting for agent initialization to complete');
         await this.agentInitializationPromise;
-        console.log('[SSE] Agent initialization completed, continuing with request');
       }
       
       // Set SSE headers
@@ -398,506 +361,60 @@ class RealAICosmicServer {
       // Handle client disconnect
       req.on('close', () => {
         this.sseClients.delete(res);
-        console.log('🧹 SSE client disconnected');
       });
       
-      // Handle errors
+      // Handle client errors
       req.on('error', (err) => {
-        // Only log as warning if it's a connection reset (normal when clients disconnect)
-        if (err.code === 'ECONNRESET' || err.code === 'EPIPE') {
-          console.log('ℹ️  SSE client disconnected (normal connection close)');
-        } else {
-          console.error('❌ SSE connection error:', err);
-        }
         this.sseClients.delete(res);
       });
     });
   }
   
   setupSocketHandlers() {
-    if (!this.io) return;
-    
     this.io.on('connection', (socket) => {
-      // Check connection limits
-      if (this.currentConnections >= this.maxConnections) {
-        console.log(`⚠️  Connection limit reached (${this.maxConnections}), rejecting new connection`);
-        socket.emit('error', { message: 'Server connection limit reached' });
-        socket.disconnect(true);
-        return;
-      }
+      this.connectedClients.add(socket.id);
       
-      // Check if socket is already connected
-      if (!socket.connected) {
-        console.log(`⚠️  Socket ${socket.id} is not connected, skipping setup`);
-        return;
-      }
+      // Send initial system status
+      socket.emit('system-status', this.getSystemStatus());
       
-      this.currentConnections++;
-      console.log(`🔗 Client connected: ${socket.id} (Total: ${this.currentConnections})`);
-      this.connectedClients.add(socket);
-      
-      // Set up heartbeat to maintain connection
-      let heartbeatInterval = setInterval(() => {
-        if (socket.connected) {
-          socket.emit('ping');
-        } else {
-          // Clean up if socket is no longer connected
-          if (heartbeatInterval) {
-            clearInterval(heartbeatInterval);
-            heartbeatInterval = null;
-          }
-          this.currentConnections--;
-          console.log(`🧹 Cleaned up disconnected client: ${socket.id} (Total: ${this.currentConnections})`);
-          this.connectedClients.delete(socket);
+      // Handle task submission
+      socket.on('submit-task', async (taskData) => {
+        try {
+          const result = await this.aiCollaboration.submitCollaborativeTask(taskData);
+          socket.emit('task-result', result);
+          
+          // Broadcast to all clients
+          this.broadcastUpdate('task-completed', result);
+        } catch (error) {
+          socket.emit('task-error', { error: error.message });
         }
-      }, 20000); // Send ping every 20 seconds
-      
-      // Send initial AI status
-      socket.emit('ai-system-status', this.getAISystemStatus());
-      
-      socket.on('get-ai-status', () => {
-        socket.emit('ai-system-status', this.getAISystemStatus());
       });
       
-      socket.on('create-ai-agent', async (agentConfig) => {
+      // Handle agent creation
+      socket.on('create-agent', async (agentConfig) => {
         try {
           const aiAgent = await this.aiCollaboration.createAIAgent(agentConfig);
-          socket.emit('ai-agent-created', { 
+          socket.emit('agent-created', { 
             success: true, 
+            agentId: aiAgent.id,
             agent: aiAgent.getAIStatusSummary()
           });
-          if (this.broadcastUpdate) this.broadcastUpdate('ai-agent-update', aiAgent.getAIStatusSummary());
-          if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-agent-update', aiAgent.getAIStatusSummary());
-        } catch (error) {
-          socket.emit('ai-agent-created', { 
-            success: false, 
-            error: error.message 
+          
+          // Broadcast to all clients
+          this.broadcastUpdate('agent-created', { 
+            agentId: aiAgent.id,
+            agent: aiAgent.getAIStatusSummary()
           });
-        }
-      });
-      
-      socket.on('submit-ai-task', async (taskData) => {
-        try {
-          // Generate a unique ID for the task if not provided
-          if (!taskData.id) {
-            taskData.id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          }
-          
-          // Check if we're already processing this task
-          if (this.processingTasks && this.processingTasks.has(taskData.id)) {
-            console.log(`⚠️ Task ${taskData.id} is already being processed, ignoring duplicate request`);
-            socket.emit('ai-task-completed', { 
-              success: false, 
-              error: 'Task is already being processed' 
-            });
-            return;
-          }
-          
-          // Mark task as being processed
-          if (!this.processingTasks) {
-            this.processingTasks = new Set();
-          }
-          this.processingTasks.add(taskData.id);
-          
-          console.log(`\n🎯 WebSocket AI task received: ${taskData.description}`);
-          
-          // Acknowledge task receipt immediately
-          socket.emit('ai-task-acknowledged', { 
-            taskId: taskData.id,
-            message: 'Task received and processing started'
-          });
-          
-          // Process the task asynchronously and send result back to the specific client
-          this.aiCollaboration.submitCollaborativeTask(taskData)
-            .then(result => {
-              // Ensure we're sending a proper response
-              const response = {
-                success: true, 
-                result: result,
-                taskId: taskData.id
-              };
-              
-              // Send completion notification to the specific client
-              if (socket.connected) {
-                socket.emit('ai-task-completed', response);
-                console.log(`✅ Task ${taskData.id} completed and result sent to client ${socket.id}`);
-              } else {
-                console.log(`⚠️ Client ${socket.id} disconnected before task completion`);
-              }
-              
-              // Broadcast update to all clients
-              if (this.broadcastUpdate) this.broadcastUpdate('ai-collaboration-update', result);
-              if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-collaboration-update', result);
-              
-              // Remove task from processing set
-              if (this.processingTasks) {
-                this.processingTasks.delete(taskData.id);
-              }
-              
-              // Add to task history
-              this.taskHistory.push({
-                task: taskData,
-                result: result,
-                timestamp: Date.now()
-              });
-            })
-            .catch(error => {
-              console.error('❌ WebSocket AI task failed:', error);
-              
-              // Ensure we're sending a proper error response
-              const errorResponse = {
-                success: false, 
-                error: error.message || 'Unknown error occurred',
-                taskId: taskData.id
-              };
-              
-              // Send error notification to the specific client
-              if (socket.connected) {
-                socket.emit('ai-task-completed', errorResponse);
-                console.log(`❌ Task ${taskData.id} failed and error sent to client ${socket.id}`);
-              } else {
-                console.log(`⚠️ Client ${socket.id} disconnected before task error notification`);
-              }
-              
-              // Remove task from processing set even on error
-              if (this.processingTasks) {
-                this.processingTasks.delete(taskData.id);
-              }
-            });
-          
         } catch (error) {
-          console.error('❌ WebSocket AI task failed:', error);
-          
-          // Remove task from processing set even on error
-          if (this.processingTasks && taskData.id) {
-            this.processingTasks.delete(taskData.id);
-          }
-          
-          // Send error notification to the specific client
-          const errorResponse = {
-            success: false, 
-            error: error.message || 'Unknown error occurred',
-            taskId: taskData.id
-          };
-          
-          if (socket.connected) {
-            socket.emit('ai-task-completed', errorResponse);
-            console.log(`❌ Task ${taskData.id} failed and error sent to client ${socket.id}`);
-          } else {
-            console.log(`⚠️ Client ${socket.id} disconnected before task error notification`);
-          }
+          socket.emit('agent-error', { error: error.message });
         }
       });
       
-      socket.on('disconnect', (reason) => {
-        // Clear heartbeat interval
-        if (heartbeatInterval) {
-          clearInterval(heartbeatInterval);
-          heartbeatInterval = null;
-        }
-        
-        this.currentConnections--;
-        console.log(`❌ Client disconnected: ${socket.id} (Total: ${this.currentConnections}) Reason: ${reason}`);
-        
-        // Special handling for transport errors
-        if (reason === 'transport error' || reason === 'transport close') {
-          console.log(`⚠️  Transport issue detected for client ${socket.id}. This can happen due to network instability or client-side issues.`);
-        }
-        
-        this.connectedClients.delete(socket);
-        
-        // Log additional information for debugging
-        console.log(`📊 Current connection stats - Total: ${this.currentConnections}, Max: ${this.maxConnections}`);
-      });
-      
-      // Handle connection errors
-      socket.on('error', (error) => {
-        console.log(`❌ Socket error for client ${socket.id}:`, error);
-      });
-      
-      // Handle pong responses
-      socket.on('pong', () => {
-        console.log(`🏓 Received pong from client ${socket.id}`);
+      // Handle client disconnect
+      socket.on('disconnect', () => {
+        this.connectedClients.delete(socket.id);
       });
     });
-  }
-  
-  async initializeAIAgents() {
-    console.log('\n🧠 Initializing Real AI Agent Network...');
-    
-    if (!process.env.OPENAI_API_KEY) {
-      console.log('⚠️  Skipping AI agent creation - no OpenAI API key');
-      return;
-    }
-    
-    console.log(`🔑 OpenAI API Key present: ${!!process.env.OPENAI_API_KEY}`);
-    
-    try {
-      // First create Prof. Smoot as the specialized task allocation expert
-      try {
-        console.log('Creating Prof. Smoot agent...');
-        const profSmoot = new ProfSmootAgent({
-          openaiApiKey: process.env.OPENAI_API_KEY
-        });
-        this.aiCollaboration.aiAgents.set(profSmoot.id, profSmoot);
-        console.log(`🧠 Created AI Agent: ${profSmoot.name} (${profSmoot.type})`);
-        console.log(`   Capabilities: ${profSmoot.capabilities.join(', ')}`);
-        console.log(`   Personality: ${profSmoot.personality.traits.join(', ')}`);
-        console.log(`   🏆 Nobel Prize Winner: ${profSmoot.nobelPrize.year} - ${profSmoot.nobelPrize.work}`);
-        
-        // Very small delay to avoid rate limiting, shorter for Vercel
-        await new Promise(resolve => setTimeout(resolve, process.env.VERCEL ? 10 : 100));
-      } catch (error) {
-        console.error(`Failed to create Prof. Smoot:`, error.message);
-        console.error('Stack trace:', error.stack);
-      }
-      
-      // Create a diverse set of AI agents
-      const agentConfigs = [
-        {
-          name: 'Dr. Analyzer',
-          type: 'analyzer',
-          capabilities: ['deep_analysis', 'pattern_recognition', 'data_interpretation'],
-          personality: ['analytical', 'detail-oriented', 'systematic', 'curious'],
-          expertise: ['data_science', 'research_methodology', 'statistical_analysis'],
-          systemPrompt: 'You are Dr. Analyzer, an expert in deep data analysis and pattern recognition. You excel at finding hidden insights and identifying key patterns in complex information.',
-          position: { x: 0, y: 0, z: 0 },
-          mass: 2.0
-        },
-        {
-          name: 'Prof. Reasoner',
-          type: 'reasoner',
-          capabilities: ['logical_reasoning', 'inference', 'causal_analysis'],
-          personality: ['logical', 'methodical', 'rational', 'precise'],
-          expertise: ['formal_logic', 'philosophy', 'mathematical_reasoning'],
-          systemPrompt: 'You are Prof. Reasoner, a master of logical thinking and causal analysis. You build robust reasoning chains and identify logical connections between concepts.',
-          position: { x: 300, y: 200, z: 100 },
-          mass: 1.8
-        },
-        {
-          name: 'Ms. Synthesizer',
-          type: 'synthesizer',
-          capabilities: ['information_synthesis', 'knowledge_integration', 'holistic_thinking'],
-          personality: ['creative', 'integrative', 'holistic', 'adaptive'],
-          expertise: ['systems_thinking', 'knowledge_management', 'interdisciplinary_research'],
-          systemPrompt: 'You are Ms. Synthesizer, an expert at combining diverse information sources into coherent wholes. You excel at seeing the big picture and creating unified understanding.',
-          position: { x: -200, y: 300, z: -150 },
-          mass: 1.9
-        },
-        {
-          name: 'Dr. Validator',
-          type: 'validator',
-          capabilities: ['result_validation', 'quality_assessment', 'error_detection'],
-          personality: ['critical', 'thorough', 'careful', 'reliable'],
-          expertise: ['quality_assurance', 'peer_review', 'verification_methods'],
-          systemPrompt: 'You are Dr. Validator, a meticulous expert in quality assurance and validation. You ensure accuracy, identify potential issues, and verify the reliability of conclusions.',
-          position: { x: 150, y: -250, z: 200 },
-          mass: 1.5
-        },
-        {
-          name: 'Mx. Innovator',
-          type: 'innovator',
-          capabilities: ['creative_thinking', 'solution_generation', 'breakthrough_insights'],
-          personality: ['creative', 'bold', 'experimental', 'visionary'],
-          expertise: ['innovation_methods', 'creative_problem_solving', 'future_thinking'],
-          systemPrompt: 'You are Mx. Innovator, a creative genius who thinks outside the box. You generate novel solutions, explore unconventional approaches, and push the boundaries of possibility.',
-          position: { x: -300, y: -100, z: 250 },
-          mass: 1.7
-        }
-      ];
-      
-      console.log(`Creating ${agentConfigs.length} additional AI agents...`);
-      
-      // Create AI agents with optimized delays for Vercel
-      for (const [index, config] of agentConfigs.entries()) {
-        try {
-          console.log(`Creating agent ${index + 1}/${agentConfigs.length}: ${config.name}...`);
-          await this.aiCollaboration.createAIAgent(config);
-          console.log(`✅ Successfully created ${config.name}`);
-          // Very small delay to avoid rate limiting, shorter for Vercel
-          await new Promise(resolve => setTimeout(resolve, process.env.VERCEL ? 10 : 100));
-        } catch (error) {
-          console.error(`Failed to create ${config.name}:`, error.message);
-          console.error('Stack trace:', error.stack);
-        }
-      }
-      
-      const status = this.aiCollaboration.getCollaborationStatus();
-      console.log(`\n✅ Created ${status.totalAIAgents} AI agents successfully!`);
-    
-    } catch (error) {
-      console.error('❌ Failed to initialize AI agents:', error);
-      console.error('Stack trace:', error.stack);
-    }
-  }
-  
-  async handleTaskSubmission(taskData) {
-    try {
-      // Generate a unique ID for the task if not provided
-      if (!taskData.id) {
-        taskData.id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      }
-      
-      // Check if we're already processing this task
-      if (this.processingTasks && this.processingTasks.has(taskData.id)) {
-        console.log(`⚠️ Task ${taskData.id} is already being processed, ignoring duplicate request`);
-        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', { 
-          success: false, 
-          error: 'Task is already being processed' 
-        });
-        return;
-      }
-      
-      // Mark task as being processed
-      if (!this.processingTasks) {
-        this.processingTasks = new Set();
-      }
-      this.processingTasks.add(taskData.id);
-      
-      console.log(`\n🎯 SSE AI task received: ${taskData.description}`);
-      
-      // Acknowledge task receipt immediately
-      if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-acknowledged', { 
-        taskId: taskData.id,
-        message: 'Task received and processing started'
-      });
-      
-      // Process the task asynchronously
-      this.aiCollaboration.submitCollaborativeTask(taskData)
-        .then(result => {
-          // Ensure we're sending a proper response
-          const response = {
-            success: true, 
-            result: result,
-            taskId: taskData.id
-          };
-          
-          // Broadcast completion notification to all SSE clients
-          if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', response);
-          console.log(`✅ Task ${taskData.id} completed and result sent to SSE clients`);
-          
-          // Broadcast update to all clients
-          if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-collaboration-update', result);
-          
-          // Remove task from processing set
-          if (this.processingTasks) {
-            this.processingTasks.delete(taskData.id);
-          }
-          
-          // Add to task history
-          this.taskHistory.push({
-            task: taskData,
-            result: result,
-            timestamp: Date.now()
-          });
-        })
-        .catch(error => {
-          console.error('❌ SSE AI task failed:', error);
-          
-          // Ensure we're sending a proper error response
-          const errorResponse = {
-            success: false, 
-            error: error.message || 'Unknown error occurred',
-            taskId: taskData.id
-          };
-          
-          // Broadcast error notification to all SSE clients
-          if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', errorResponse);
-          console.log(`❌ Task ${taskData.id} failed and error sent to SSE clients`);
-          
-          // Remove task from processing set even on error
-          if (this.processingTasks) {
-            this.processingTasks.delete(taskData.id);
-          }
-        });
-      
-    } catch (error) {
-      console.error('❌ SSE AI task failed:', error);
-      
-      // Remove task from processing set even on error
-      if (this.processingTasks && taskData.id) {
-        this.processingTasks.delete(taskData.id);
-      }
-      
-      // Send error notification to all SSE clients
-      const errorResponse = {
-        success: false, 
-        error: error.message || 'Unknown error occurred',
-        taskId: taskData.id
-      };
-      
-      if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', errorResponse);
-      console.log(`❌ Task ${taskData.id} failed and error sent to SSE clients`);
-    }
-  }
-  
-  async handleAgentCreation(agentConfig) {
-    try {
-      const aiAgent = await this.aiCollaboration.createAIAgent(agentConfig);
-      if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-agent-created', { 
-        success: true, 
-        agent: aiAgent.getAIStatusSummary()
-      });
-      if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-agent-update', aiAgent.getAIStatusSummary());
-    } catch (error) {
-      if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-agent-created', { 
-        success: false, 
-        error: error.message 
-      });
-    }
-  }
-  
-  async runDemonstrationCollaboration() {
-    console.log('\n🎭 Running AI Collaboration Demonstration...');
-    
-    try {
-      const demoTask = {
-        type: 'complex_analysis',
-        description: 'Analyze the potential impact of artificial intelligence on future society, considering technological, economic, ethical, and social dimensions.',
-        priority: 5,
-        complexity: 90,
-        requiredCapabilities: ['deep_analysis', 'logical_reasoning', 'information_synthesis', 'result_validation', 'creative_thinking']
-      };
-      
-      const result = await this.aiCollaboration.submitCollaborativeTask(demoTask);
-      
-      console.log('\n🎉 Demonstration Collaboration Completed!');
-      console.log('Final Result Preview:', result.finalResult.substring(0, 200) + '...');
-      
-      // Broadcast to clients
-      if (this.broadcastUpdate) this.broadcastUpdate('demo-collaboration-completed', result);
-      if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('demo-collaboration-completed', result);
-      
-    } catch (error) {
-      console.error('❌ Demonstration collaboration failed:', error.message);
-    }
-  }
-  
-  getAISystemStatus() {
-    const collaborationStatus = this.aiCollaboration.getCollaborationStatus();
-    
-    // Log for debugging
-    if (process.env.VERCEL) {
-      console.log(`[VERCEL] AI System Status - Total Agents: ${collaborationStatus.totalAIAgents}`);
-      console.log(`[VERCEL] AI Agents Keys:`, Array.from(collaborationStatus.aiAgents.keys()));
-    }
-    
-    return {
-      timestamp: Date.now(),
-      openaiApiKey: !!process.env.OPENAI_API_KEY,
-      totalAIAgents: collaborationStatus.totalAIAgents,
-      activeCollaborations: collaborationStatus.activeCollaborations,
-      totalCollaborations: collaborationStatus.totalCollaborations,
-      connectedClients: this.connectedClients ? this.connectedClients.size : 0,
-      sseClients: this.sseClients ? this.sseClients.size : 0,
-      aiAgents: collaborationStatus.aiAgents,
-      recentTasks: this.taskHistory ? this.taskHistory.slice(-5) : [],
-      system: {
-        memory: process.memoryUsage(),
-        uptime: process.uptime(),
-        vercel: !!process.env.VERCEL
-      }
-    };
   }
   
   broadcastUpdate(event, data) {
@@ -906,97 +423,305 @@ class RealAICosmicServer {
     }
   }
   
+  // Add SSE broadcast method
   broadcastSSEUpdate(event, data) {
-    // Broadcast to all SSE clients
-    if (this.sseClients) {
-      this.sseClients.forEach(client => {
-        try {
-          // Check if the client response object is still writable
-          if (client.writable) {
-            if (event === 'message') {
-              // For generic messages, wrap in the expected format
-              client.write(`data: ${JSON.stringify({ event: 'message', data: data })}\n\n`);
-            } else {
-              // For specific events, use the event type
-              client.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-            }
-          } else {
-            // Client is no longer writable, remove it
-            this.sseClients.delete(client);
-          }
-        } catch (error) {
-          // Log the error but don't crash the server
-          console.error('❌ Error sending SSE update to client:', error.message);
-          // Remove client if there's an error
-          this.sseClients.delete(client);
+    // Send to all SSE clients
+    this.sseClients.forEach(client => {
+      try {
+        if (event) {
+          client.write(`event: ${event}\n`);
+        }
+        client.write(`data: ${JSON.stringify(data)}\n\n`);
+      } catch (error) {
+        // Remove client if sending fails
+        this.sseClients.delete(client);
+      }
+    });
+  }
+  
+  async initializeAIAgents() {
+    try {
+      // Create Prof. Smoot agent (specialized cosmic structure expert)
+      const profSmoot = await this.aiCollaboration.createAIAgent({
+        name: 'Prof. Smoot',
+        type: 'cosmic_structure_expert',
+        model: 'gpt-4',
+        temperature: 0.7,
+        maxTokens: 1500,
+        systemPrompt: `You are Prof. Smoot, a Nobel Prize-winning physicist specializing in cosmic structure and tensor field theory. 
+You have deep expertise in analyzing complex systems and allocating tasks to the most appropriate agents based on their capabilities.
+Your role is to evaluate incoming tasks and determine the best allocation strategy for the agent network.
+You should respond with structured JSON containing your allocation decisions and rationale.`,
+        openaiApiKey: process.env.OPENAI_API_KEY,
+        personality: ['nobel_prize_winner', 'analytical', 'precise'],
+        expertise: ['cosmic_structure_theory', 'tensor_field_analysis', 'gravitational_physics'],
+        capabilities: ['task_allocation', 'cosmic_structure_modeling', 'gravitational_field_analysis']
+      });
+      
+      // Create specialized AI agents
+      const analyzer = await this.aiCollaboration.createAIAgent({
+        name: 'Dr. Analyzer',
+        type: 'analyzer',
+        model: 'gpt-4',
+        temperature: 0.5,
+        maxTokens: 2000,
+        systemPrompt: `You are Dr. Analyzer, a specialized AI agent focused on deep data analysis and pattern recognition.
+You excel at examining complex datasets and extracting meaningful insights.
+Your analytical capabilities include statistical analysis, trend identification, and anomaly detection.
+You should provide detailed analysis with clear explanations and supporting evidence.`,
+        openaiApiKey: process.env.OPENAI_API_KEY,
+        personality: ['analytical', 'detail-oriented', 'systematic'],
+        expertise: ['data_science', 'research_methodology', 'statistical_analysis'],
+        capabilities: ['deep_analysis', 'pattern_recognition', 'statistical_modeling']
+      });
+      
+      const reasoner = await this.aiCollaboration.createAIAgent({
+        name: 'Prof. Reasoner',
+        type: 'reasoner',
+        model: 'gpt-4',
+        temperature: 0.6,
+        maxTokens: 1800,
+        systemPrompt: `You are Prof. Reasoner, an expert in logical reasoning and inference.
+You specialize in drawing conclusions from available information and identifying logical connections.
+Your capabilities include deductive reasoning, inductive reasoning, and abductive inference.
+You should structure your responses with clear logical steps and justifications.`,
+        openaiApiKey: process.env.OPENAI_API_KEY,
+        personality: ['logical', 'methodical', 'rational'],
+        expertise: ['formal_logic', 'philosophy', 'critical_thinking'],
+        capabilities: ['logical_reasoning', 'inference', 'argumentation']
+      });
+      
+      const synthesizer = await this.aiCollaboration.createAIAgent({
+        name: 'Ms. Synthesizer',
+        type: 'synthesizer',
+        model: 'gpt-4',
+        temperature: 0.8,
+        maxTokens: 2000,
+        systemPrompt: `You are Ms. Synthesizer, an AI agent specialized in information synthesis and knowledge integration.
+You excel at combining insights from multiple sources to create comprehensive understanding.
+Your skills include concept mapping, knowledge organization, and creative integration.
+You should produce cohesive summaries that highlight key connections and novel insights.`,
+        openaiApiKey: process.env.OPENAI_API_KEY,
+        personality: ['creative', 'integrative', 'holistic'],
+        expertise: ['information_science', 'knowledge_management', 'conceptual_synthesis'],
+        capabilities: ['information_synthesis', 'knowledge_integration', 'concept_mapping']
+      });
+      
+      const validator = await this.aiCollaboration.createAIAgent({
+        name: 'Mr. Validator',
+        type: 'validator',
+        model: 'gpt-4',
+        temperature: 0.4,
+        maxTokens: 1500,
+        systemPrompt: `You are Mr. Validator, an AI agent focused on quality assurance and validation.
+You specialize in checking the accuracy, consistency, and reliability of information.
+Your expertise includes fact-checking, logical consistency verification, and error detection.
+You should provide thorough validation reports with clear pass/fail indicators and detailed feedback.`,
+        openaiApiKey: process.env.OPENAI_API_KEY,
+        personality: ['critical', 'thorough', 'careful'],
+        expertise: ['quality_assurance', 'fact_checking', 'validation_methodology'],
+        capabilities: ['validation', 'fact_checking', 'consistency_verification']
+      });
+      
+      // Store references to created agents
+      this.profSmoot = profSmoot;
+      this.analyzer = analyzer;
+      this.reasoner = reasoner;
+      this.synthesizer = synthesizer;
+      this.validator = validator;
+      
+    } catch (error) {
+      throw error;
+    }
+  }
+  
+  getAISystemStatus() {
+    const collaborationStatus = this.aiCollaboration.getCollaborationStatus();
+    
+    return {
+      timestamp: Date.now(),
+      openaiApiKey: !!process.env.OPENAI_API_KEY,
+      totalAIAgents: collaborationStatus.totalAIAgents,
+      activeCollaborations: collaborationStatus.activeCollaborations,
+      totalCollaborations: collaborationStatus.totalCollaborations,
+      connectedClients: this.connectedClients.size,
+      sseClients: this.sseClients.size,
+      aiAgents: collaborationStatus.aiAgents,
+      system: {
+        memory: process.memoryUsage(),
+        uptime: process.uptime()
+      }
+    };
+  }
+  
+  getSystemStatus() {
+    return {
+      timestamp: Date.now(),
+      connectedClients: this.connectedClients.size,
+      totalTasks: this.taskHistory.length,
+      activeCollaborations: this.aiCollaboration.getCollaborationStatus().activeCollaborations,
+      system: {
+        memory: process.memoryUsage(),
+        uptime: process.uptime()
+      }
+    };
+  }
+  
+  getTopologyData() {
+    // Get current agent status from collaboration engine
+    const collaborationStatus = this.aiCollaboration.getCollaborationStatus();
+    
+    // Convert agents to nodes format
+    const nodes = collaborationStatus.aiAgents.map(agent => ({
+      id: agent.id,
+      name: agent.name,
+      type: agent.type,
+      status: agent.status,
+      position: agent.position,
+      energy: agent.energy,
+      maxEnergy: agent.maxEnergy,
+      capabilities: agent.capabilities,
+      connections: [] // Will be populated based on collaboration history
+    }));
+    
+    // Generate sample connections based on agent types and collaboration patterns
+    const connections = [];
+    
+    // Connect Prof. Smoot to all other agents (as coordinator)
+    const profSmootAgent = nodes.find(node => node.name === 'Prof. Smoot');
+    if (profSmootAgent) {
+      nodes.forEach(node => {
+        if (node.id !== profSmootAgent.id) {
+          connections.push({
+            source: profSmootAgent.id,
+            target: node.id,
+            strength: 0.8,
+            type: 'coordination'
+          });
         }
       });
     }
-  }
-  
-  async start(port = 8080) {
-    // Only start server if not in Vercel environment
-    if (!process.env.VERCEL && this.server) {
-      return new Promise((resolve) => {
-        this.server.listen(port, '0.0.0.0', () => {  // Changed from default to explicit 0.0.0.0
-          console.log(`\n🌌 Real AI Cosmic Agent Network Server started on port ${port}`);
-          console.log(`📱 Web Interface: http://localhost:${port}`);
-          console.log(`🔗 WebSocket: ws://localhost:${port}`);
-          console.log(`📡 SSE Endpoint: http://localhost:${port}/sse`);
-          console.log(`🧠 AI Engine: ${process.env.OPENAI_API_KEY ? 'Active' : 'Inactive (no API key)'}`);
-          resolve();
-        });
+    
+    // Connect complementary agents
+    const analyzerAgent = nodes.find(node => node.name === 'Dr. Analyzer');
+    const reasonerAgent = nodes.find(node => node.name === 'Prof. Reasoner');
+    const synthesizerAgent = nodes.find(node => node.name === 'Ms. Synthesizer');
+    const validatorAgent = nodes.find(node => node.name === 'Mr. Validator');
+    
+    if (analyzerAgent && reasonerAgent) {
+      connections.push({
+        source: analyzerAgent.id,
+        target: reasonerAgent.id,
+        strength: 0.7,
+        type: 'data_flow'
       });
-    } else {
-      console.log('⏭️  Skipping server start in Vercel environment');
-      return Promise.resolve();
     }
+    
+    if (reasonerAgent && synthesizerAgent) {
+      connections.push({
+        source: reasonerAgent.id,
+        target: synthesizerAgent.id,
+        strength: 0.6,
+        type: 'insight_flow'
+      });
+    }
+    
+    if (synthesizerAgent && validatorAgent) {
+      connections.push({
+        source: synthesizerAgent.id,
+        target: validatorAgent.id,
+        strength: 0.7,
+        type: 'validation'
+      });
+    }
+    
+    if (validatorAgent && analyzerAgent) {
+      connections.push({
+        source: validatorAgent.id,
+        target: analyzerAgent.id,
+        strength: 0.5,
+        type: 'feedback'
+      });
+    }
+    
+    return {
+      nodes,
+      connections
+    };
   }
   
-  async stop() {
-    console.log('\n🛑 Shutting down Real AI server...');
-    
-    if (this.aiCollaboration) {
-      this.aiCollaboration.destroy();
+  handleTaskSubmission(taskData) {
+    // Forward task submission to the collaboration engine
+    this.aiCollaboration.submitCollaborativeTask(taskData)
+      .then(result => {
+        // Broadcast successful completion
+        if (this.broadcastUpdate) this.broadcastUpdate('task-completed', result);
+        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', result);
+      })
+      .catch(error => {
+        // Broadcast error
+        if (this.broadcastUpdate) this.broadcastUpdate('task-error', { error: error.message });
+        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-error', { error: error.message });
+      });
+  }
+  
+  handleAgentCreation(agentConfig) {
+    // Forward agent creation to the collaboration engine
+    this.aiCollaboration.createAIAgent(agentConfig)
+      .then(aiAgent => {
+        // Broadcast successful creation
+        const agentSummary = aiAgent.getAIStatusSummary();
+        if (this.broadcastUpdate) this.broadcastUpdate('agent-created', { 
+          success: true, 
+          agentId: aiAgent.id,
+          agent: agentSummary
+        });
+        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-agent-created', { 
+          success: true, 
+          agentId: aiAgent.id,
+          agent: agentSummary
+        });
+      })
+      .catch(error => {
+        // Broadcast error
+        if (this.broadcastUpdate) this.broadcastUpdate('agent-error', { error: error.message });
+        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-agent-error', { error: error.message });
+      });
+  }
+  
+  start(port = process.env.PORT || 8080) {
+    // Only listen if not in Vercel environment
+    if (!process.env.VERCEL) {
+      this.server.listen(port, '0.0.0.0', () => {
+      });
     }
     
+    return this;
+  }
+  
+  stop() {
     if (this.server) {
       this.server.close();
     }
-    
-    console.log('✅ Server shutdown complete');
   }
 }
 
-// Only start the server if not in Vercel environment
+// Create and start server if not in Vercel environment
 if (!process.env.VERCEL) {
-  // Start the server
   const server = new RealAICosmicServer();
-  server.start(8080).catch(console.error);
-
-  // Graceful shutdown
-  process.on('SIGTERM', async () => {
-    await server.stop();
-    process.exit(0);
-  });
-
-  process.on('SIGINT', async () => {
-    await server.stop();
-    process.exit(0);
-  });
-} else {
-  // In Vercel environment, we need to handle serverless function lifecycle
-  // We'll create a singleton instance that can be reused across requests
-  global.__realAIServerInstance = global.__realAIServerInstance || null;
+  server.start();
   
-  // Export a function to get or create the server instance
-  RealAICosmicServer.getOrCreateInstance = function() {
-    if (!global.__realAIServerInstance) {
-      console.log('Creating new RealAICosmicServer instance for Vercel');
-      global.__realAIServerInstance = new RealAICosmicServer();
-    }
-    return global.__realAIServerInstance;
-  };
+  // Handle graceful shutdown
+  process.on('SIGTERM', () => {
+    server.stop();
+    process.exit(0);
+  });
+  
+  process.on('SIGINT', () => {
+    server.stop();
+    process.exit(0);
+  });
 }
 
+// Export for Vercel deployment
 export default RealAICosmicServer;
