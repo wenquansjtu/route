@@ -350,6 +350,33 @@
     .performance-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    
+    .metrics-dashboard {
+        padding: 15px;
+    }
+    
+    .dashboard-section {
+        padding: 20px;
+    }
+    
+    .dashboard-section h2 {
+        font-size: 1.3em;
+    }
+    
+    .status-info h3 {
+        font-size: 1.8em;
+    }
+    
+    /* Adjust panel positions for medium screens */
+    .ai-control-panel {
+        right: 10px;
+        width: 320px;
+    }
+    
+    .collaboration-panel {
+        left: 10px;
+        width: 320px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -365,6 +392,235 @@
     
     .dashboard-section {
         padding: 15px;
+        margin-bottom: 25px;
+    }
+    
+    .dashboard-section h2 {
+        font-size: 1.2em;
+        margin-bottom: 15px;
+    }
+    
+    .status-card {
+        padding: 15px;
+        gap: 10px;
+    }
+    
+    .status-icon {
+        font-size: 2em;
+    }
+    
+    .status-info h3 {
+        font-size: 1.5em;
+    }
+    
+    .status-info p {
+        font-size: 0.8em;
+    }
+    
+    .agent-metric-card {
+        padding: 15px;
+    }
+    
+    .agent-header {
+        margin-bottom: 10px;
+    }
+    
+    .agent-name {
+        font-size: 1em;
+    }
+    
+    .agent-type {
+        font-size: 0.7em;
+        padding: 3px 6px;
+    }
+    
+    .agent-metrics {
+        gap: 10px;
+    }
+    
+    .metric-item .label {
+        font-size: 0.7em;
+    }
+    
+    .metric-item .value {
+        font-size: 1em;
+    }
+    
+    .metric-card {
+        padding: 15px;
+    }
+    
+    .metric-card h4 {
+        font-size: 0.9em;
+        margin-bottom: 10px;
+    }
+    
+    .metric-value {
+        font-size: 1.5em;
+        margin-bottom: 8px;
+    }
+    
+    .resource-meter h4 {
+        font-size: 0.9em;
+        margin-bottom: 10px;
+    }
+    
+    .meter {
+        height: 35px;
+    }
+    
+    .meter-value {
+        font-size: 0.8em;
+    }
+    
+    .meter-value.uptime {
+        font-size: 1.2em;
+        margin-top: 8px;
+    }
+    
+    .activity-feed {
+        max-height: 300px;
+        padding: 10px;
+    }
+    
+    .activity-item {
+        gap: 8px;
+        padding: 8px 0;
+    }
+    
+    .activity-message {
+        font-size: 0.8em;
+    }
+    
+    .activity-time {
+        font-size: 0.7em;
+    }
+    
+    .metrics-dashboard {
+        padding: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-section {
+        padding: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .dashboard-section h2 {
+        font-size: 1.1em;
+        margin-bottom: 12px;
+    }
+    
+    .status-card {
+        padding: 12px;
+        gap: 8px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .status-icon {
+        font-size: 1.8em;
+    }
+    
+    .status-info {
+        width: 100%;
+    }
+    
+    .status-info h3 {
+        font-size: 1.3em;
+    }
+    
+    .status-info p {
+        font-size: 0.75em;
+    }
+    
+    .status-indicator {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+    
+    .agent-metric-card {
+        padding: 12px;
+    }
+    
+    .agent-header {
+        margin-bottom: 8px;
+    }
+    
+    .agent-name {
+        font-size: 0.9em;
+    }
+    
+    .agent-type {
+        font-size: 0.6em;
+        padding: 2px 5px;
+    }
+    
+    .agent-metrics {
+        gap: 8px;
+    }
+    
+    .metric-item .label {
+        font-size: 0.65em;
+    }
+    
+    .metric-item .value {
+        font-size: 0.9em;
+    }
+    
+    .metric-card {
+        padding: 12px;
+    }
+    
+    .metric-card h4 {
+        font-size: 0.8em;
+        margin-bottom: 8px;
+    }
+    
+    .metric-value {
+        font-size: 1.3em;
+        margin-bottom: 6px;
+    }
+    
+    .resource-meter h4 {
+        font-size: 0.8em;
+        margin-bottom: 8px;
+    }
+    
+    .meter {
+        height: 30px;
+    }
+    
+    .meter-value {
+        font-size: 0.7em;
+    }
+    
+    .meter-value.uptime {
+        font-size: 1em;
+        margin-top: 6px;
+    }
+    
+    .activity-feed {
+        max-height: 250px;
+        padding: 8px;
+    }
+    
+    .activity-item {
+        gap: 6px;
+        padding: 6px 0;
+    }
+    
+    .activity-message {
+        font-size: 0.75em;
+    }
+    
+    .activity-time {
+        font-size: 0.65em;
+    }
+    
+    .metrics-dashboard {
+        padding: 8px;
     }
 }
 
@@ -508,13 +764,296 @@
 }
 
 /* Responsive behavior for smaller screens */
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
     .collaboration-panel {
         width: 350px;
     }
     
     .collaboration-panel.collapsed {
         width: 50px;
+    }
+    
+    .ai-control-panel {
+        width: 300px;
+    }
+    
+    .ai-control-panel.collapsed {
+        width: 50px;
+    }
+}
+
+/* Additional responsive adjustments for medium screens */
+@media (max-width: 992px) {
+    .collaboration-panel {
+        width: 300px;
+    }
+    
+    .ai-control-panel {
+        width: 280px;
+    }
+    
+    .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .agent-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .ai-control-panel,
+    .collaboration-panel {
+        width: calc(100% - 40px);
+        max-height: 50vh;
+        left: 20px;
+        right: 20px;
+        top: 70px;
+        position: fixed;
+        z-index: 5000;
+    }
+    
+    .ai-control-panel {
+        right: 20px;
+        left: auto;
+    }
+    
+    .ai-control-panel.collapsed,
+    .collaboration-panel.collapsed {
+        width: 50px;
+        height: 50px;
+        overflow: hidden;
+    }
+    
+    .panel-toggle {
+        position: static;
+        margin-bottom: 10px;
+    }
+    
+    .collaboration-panel .panel-toggle,
+    .ai-control-panel .panel-toggle {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        left: auto;
+        border-radius: 8px;
+        transform: rotate(0deg);
+    }
+    
+    .collaboration-panel.collapsed .panel-toggle,
+    .ai-control-panel.collapsed .panel-toggle {
+        transform: rotate(180deg);
+    }
+    
+    .task-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40vh;
+        max-height: 300px;
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+        padding: 15px;
+        overflow-y: auto;
+    }
+    
+    .task-panel .panel-header h3 {
+        font-size: 1.1em;
+    }
+    
+    /* Adjust form layouts for better mobile experience */
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .capabilities-checkboxes {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Adjust metrics grid for mobile */
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Notification adjustments */
+    .notification {
+        right: 10px;
+        left: 10px;
+        top: 10px;
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+    
+    /* Adjust network visualization controls */
+    .topology-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .topology-controls select,
+    .topology-controls .btn {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    /* Optimize AI panels for mobile */
+    .ai-agents-section,
+    .collaboration-section {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    
+    .agents-list,
+    .collaborations-list {
+        max-height: 30vh;
+        overflow-y: auto;
+    }
+    
+    .task-submission {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    
+    /* Adjust task history for mobile */
+    .history-list {
+        max-height: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ai-control-panel,
+    .collaboration-panel {
+        width: calc(100% - 20px);
+        left: 10px;
+        right: 10px;
+        padding: 15px;
+        max-height: 40vh;
+    }
+    
+    .ai-control-panel {
+        right: 10px;
+        left: auto;
+    }
+    
+    .panel-header h3 {
+        font-size: 1em;
+    }
+    
+    .task-panel {
+        height: 50vh;
+        max-height: 250px;
+        padding: 12px;
+    }
+    
+    .task-panel .panel-header h3 {
+        font-size: 1em;
+    }
+    
+    /* Further adjust form elements for small screens */
+    .form-group {
+        margin-bottom: 12px;
+    }
+    
+    .form-group label {
+        font-size: 0.9em;
+        margin-bottom: 4px;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        padding: 6px 10px;
+        font-size: 0.9em;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.9em;
+    }
+    
+    .btn-primary,
+    .btn-success {
+        padding: 8px 16px;
+    }
+    
+    /* Adjust task result displays */
+    .task-result {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .result-header h4 {
+        font-size: 1.1em;
+    }
+    
+    .timestamp {
+        font-size: 0.8em;
+    }
+    
+    .result-content h5 {
+        font-size: 1em;
+        margin-bottom: 8px;
+    }
+    
+    .analysis-text {
+        padding: 12px;
+        font-size: 0.9em;
+    }
+    
+    .metrics-grid {
+        gap: 8px;
+    }
+    
+    .metric {
+        padding: 6px 10px;
+    }
+    
+    .metric-label {
+        font-size: 0.8em;
+    }
+    
+    .metric-value {
+        font-size: 0.9em;
+    }
+    
+    /* Adjust agent metrics display */
+    .agent-metric-card {
+        padding: 12px;
+    }
+    
+    .agent-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .agent-name {
+        font-size: 0.9em;
+    }
+    
+    .agent-type {
+        font-size: 0.7em;
+    }
+    
+    /* Adjust status cards */
+    .status-card {
+        padding: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .status-icon {
+        font-size: 1.5em;
+    }
+    
+    .status-info h3 {
+        font-size: 1.3em;
+    }
+    
+    .status-info p {
+        font-size: 0.8em;
     }
 }
 
@@ -530,6 +1069,70 @@
 
 .collaboration-panel:hover:not(.collapsed) {
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .nav-btn::before {
+        display: none;
+    }
+    
+    .nav-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .status-card:hover,
+    .visualization-card:hover,
+    .log-card:hover {
+        transform: none;
+    }
+    
+    .agent-metric-card:hover {
+        background: rgba(16, 185, 129, 0.05);
+    }
+    
+    .btn:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+    
+    .btn-success:hover {
+        background: linear-gradient(135deg, #10b981, #16a34a);
+    }
+    
+    .collaboration-panel:hover:not(.collapsed) {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Increase touch targets for better mobile experience */
+    .nav-btn {
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .control-btn {
+        min-height: 40px;
+        min-width: 40px;
+    }
+    
+    .panel-toggle {
+        min-height: 44px;
+        min-width: 44px;
+    }
 }
 
 /* Content fade effect */
@@ -1026,6 +1629,7 @@
     50% { opacity: 0.5; }
     100% { opacity: 1; }
 }
+
 .notification {
     position: fixed;
     top: 20px;
@@ -1146,6 +1750,81 @@
     .metrics-grid {
         grid-template-columns: 1fr;
     }
+    
+    .notification {
+        right: 10px;
+        left: 10px;
+        top: 10px;
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-group {
+        margin-bottom: 12px;
+    }
+    
+    .form-group label {
+        font-size: 0.9em;
+        margin-bottom: 4px;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        padding: 6px 10px;
+        font-size: 0.9em;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.9em;
+    }
+    
+    .btn-primary,
+    .btn-success {
+        padding: 8px 16px;
+    }
+    
+    .task-result {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .result-header h4 {
+        font-size: 1.1em;
+    }
+    
+    .timestamp {
+        font-size: 0.8em;
+    }
+    
+    .result-content h5 {
+        font-size: 1em;
+        margin-bottom: 8px;
+    }
+    
+    .analysis-text {
+        padding: 12px;
+        font-size: 0.9em;
+    }
+    
+    .metrics-grid {
+        gap: 8px;
+    }
+    
+    .metric {
+        padding: 6px 10px;
+    }
+    
+    .metric-label {
+        font-size: 0.8em;
+    }
+    
+    .metric-value {
+        font-size: 0.9em;
+    }
 }
 
 /* Network Visualization */
@@ -1249,4 +1928,1299 @@
 
 .view-topology-btn:hover {
     background: rgba(14, 165, 233, 0.3);
+}
+
+/* Mobile-specific adjustments for network visualization */
+@media (max-width: 768px) {
+    #network-graph {
+        height: 350px;
+    }
+    
+    #task-chain-graph {
+        height: 350px;
+    }
+    
+    .topology-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .topology-controls select,
+    .topology-controls .btn {
+        width: 100%;
+        margin-bottom: 5px;
+        padding: 8px;
+        font-size: 14px;
+    }
+    
+    #task-chain-details {
+        padding: 12px;
+    }
+    
+    .agent-step-group {
+        padding: 8px;
+        margin-bottom: 12px;
+    }
+    
+    .agent-step-group h6 {
+        font-size: 0.9em;
+        margin-bottom: 6px;
+    }
+    
+    /* Optimize network visualization for mobile */
+    .node {
+        r: 6px;
+    }
+    
+    .node-label {
+        font-size: 8px;
+    }
+    
+    .link {
+        stroke-width: 1px;
+    }
+}
+
+@media (max-width: 480px) {
+    #network-graph {
+        height: 280px;
+    }
+    
+    #task-chain-graph {
+        height: 280px;
+    }
+    
+    #task-chain-details {
+        padding: 10px;
+        margin-top: 15px;
+    }
+    
+    .agent-step-group {
+        padding: 6px;
+        margin-bottom: 10px;
+    }
+    
+    .agent-step-group h6 {
+        font-size: 0.8em;
+    }
+    
+    .agent-step-group ul {
+        padding-left: 15px;
+    }
+    
+    .agent-step-group li {
+        font-size: 0.8em;
+    }
+    
+    /* Further optimize for very small screens */
+    .node {
+        r: 5px;
+    }
+    
+    .node-label {
+        font-size: 7px;
+    }
+    
+    .link {
+        stroke-width: 0.8px;
+    }
+    
+    .topology-controls select,
+    .topology-controls .btn {
+        padding: 6px;
+        font-size: 13px;
+    }
+}
+
+/* Animation improvements */
+.collaboration-panel {
+    will-change: transform;
+}
+
+.collaboration-panel .panel-toggle span {
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+
+.collaboration-panel:hover:not(.collapsed) {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .nav-btn::before {
+        display: none;
+    }
+    
+    .nav-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .status-card:hover,
+    .visualization-card:hover,
+    .log-card:hover {
+        transform: none;
+    }
+    
+    .agent-metric-card:hover {
+        background: rgba(16, 185, 129, 0.05);
+    }
+    
+    .btn:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+    
+    .btn-success:hover {
+        background: linear-gradient(135deg, #10b981, #16a34a);
+    }
+    
+    .collaboration-panel:hover:not(.collapsed) {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Increase touch targets for better mobile experience */
+    .nav-btn {
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .control-btn {
+        min-height: 40px;
+        min-width: 40px;
+    }
+    
+    .panel-toggle {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Content fade effect */
+.collaboration-panel.collapsed .form-group,
+.collaboration-panel.collapsed .task-submission h4,
+.collaboration-panel.collapsed .btn {
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.task-panel {
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    height: 300px;
+    overflow-y: auto;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.panel-header h3 {
+    margin: 0;
+    color: #0ea5e9;
+    font-size: 1.2em;
+}
+
+.ai-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.online {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+}
+
+.status-dot.offline {
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+}
+
+.status-dot.warning {
+    background: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
+}
+
+.status-dot.error {
+    background: #dc2626;
+    box-shadow: 0 0 8px #dc2626;
+}
+
+/* AI Agents List */
+.agents-list {
+    margin-bottom: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.agent-card {
+    background: rgba(14, 165, 233, 0.1);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.agent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.agent-header h5 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1em;
+}
+
+.agent-type {
+    background: rgba(14, 165, 233, 0.2);
+    color: #0ea5e9;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.agent-status.idle {
+    color: #10b981;
+}
+
+.agent-status.busy {
+    color: #f59e0b;
+}
+
+.agent-status.offline {
+    color: #ef4444;
+}
+
+.agent-details {
+    font-size: 0.9em;
+}
+
+.agent-stats {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 8px;
+}
+
+.agent-stats span {
+    color: #94a3b8;
+}
+
+.agent-capabilities {
+    margin-bottom: 8px;
+}
+
+.capability-tag {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7em;
+    margin-right: 4px;
+}
+
+.current-thought {
+    font-style: italic;
+    color: #a855f7;
+    font-size: 0.8em;
+    margin-top: 8px;
+    padding: 4px 8px;
+    background: rgba(168, 85, 247, 0.1);
+    border-radius: 4px;
+}
+
+/* Task Submission Form */
+.task-submission {
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    color: #0ea5e9;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    background: rgba(14, 165, 233, 0.1);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #ffffff;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+}
+
+.capabilities-checkboxes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.capabilities-checkboxes label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.capabilities-checkboxes input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+/* Buttons */
+.btn {
+    background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    background: linear-gradient(135deg, #0284c7, #2563eb);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981, #16a34a);
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #059669, #15803d);
+}
+
+/* Task Progress */
+.active-task {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 8px;
+}
+
+.task-progress {
+    margin-bottom: 15px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(14, 165, 233, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #0ea5e9);
+    transition: width 0.5s ease;
+    border-radius: 4px;
+}
+
+#progress-text {
+    color: #a855f7;
+    font-weight: 500;
+}
+
+/* Task Results */
+.task-result {
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.result-header h4 {
+    margin: 0;
+    color: #10b981;
+}
+
+.timestamp {
+    color: #94a3b8;
+    font-size: 0.9em;
+}
+
+.result-meta {
+    margin-bottom: 20px;
+}
+
+.meta-item {
+    display: flex;
+    margin-bottom: 8px;
+}
+
+.meta-item .label {
+    color: #0ea5e9;
+    font-weight: 500;
+    min-width: 120px;
+}
+
+.meta-item .value {
+    color: #ffffff;
+}
+
+.result-content {
+    margin-bottom: 20px;
+}
+
+.result-content h5 {
+    color: #0ea5e9;
+    margin-bottom: 10px;
+}
+
+.analysis-text {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 4px solid #10b981;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.result-metrics {
+    margin-top: 20px;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(14, 165, 233, 0.1);
+    border-radius: 6px;
+}
+
+.metric-label {
+    color: #94a3b8;
+    font-size: 0.9em;
+}
+
+.metric-value {
+    font-weight: 500;
+}
+
+.metric-value.success {
+    color: #10b981;
+}
+
+.metric-value.warning {
+    color: #f59e0b;
+}
+
+/* Task History */
+.history-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.no-history {
+    text-align: center;
+    color: #94a3b8;
+    font-style: italic;
+    padding: 20px;
+    background: rgba(14, 165, 233, 0.05);
+    border: 1px dashed rgba(14, 165, 233, 0.3);
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.history-item {
+    background: rgba(14, 165, 233, 0.05);
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.history-item:hover {
+    background: rgba(14, 165, 233, 0.1);
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.task-type {
+    background: rgba(14, 165, 233, 0.2);
+    color: #0ea5e9;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.task-description {
+    color: #94a3b8;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.result-preview {
+    color: #ffffff;
+    font-size: 0.8em;
+    font-style: italic;
+}
+
+/* Custom Agent Styling */
+.custom-agent {
+    border-left: 3px solid #10b981 !important;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+}
+
+.agent-type.custom {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.agent-creation-modal .form-group input:focus,
+.agent-creation-modal .form-group textarea:focus,
+.agent-creation-modal .form-group select:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+}
+
+.agent-creation-modal .close-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+}
+
+.agent-creation-modal .cancel-btn:hover {
+    background: #5b6470;
+    transform: translateY(-1px);
+}
+
+.agent-creation-modal button[type="submit"]:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Status indicators for different connection states */
+.status-dot.error {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    animation: pulse 2s infinite;
+}
+
+.status-dot.offline {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 500;
+    z-index: 15000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.notification.success {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.notification.error {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.notification.info {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+}
+
+.notification.warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* View transitions */
+.view {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    display: none;
+}
+
+.view.active {
+    opacity: 1;
+    transform: translateY(0);
+    display: block;
+    animation: fadeIn 0.4s ease;
+}
+
+.slide-in {
+    animation: slideIn 0.5s ease;
+}
+
+/* Enhanced Mobile Responsiveness for AI Panels */
+@media (max-width: 1200px) {
+    .ai-control-panel,
+    .collaboration-panel {
+        position: relative;
+        width: 100%;
+        max-height: none;
+        margin-bottom: 20px;
+    }
+    
+    .ai-control-panel.collapsed,
+    .collaboration-panel.collapsed {
+        width: 60px;
+        position: fixed;
+        right: 20px;
+        top: 80px;
+    }
+    
+    .task-panel {
+        position: relative;
+        height: auto;
+        left: 0;
+        right: 0;
+        bottom: auto;
+    }
+    
+    /* Adjust panel positions for medium screens */
+    .ai-control-panel {
+        right: 10px;
+        width: 320px;
+    }
+    
+    .collaboration-panel {
+        left: 10px;
+        width: 320px;
+    }
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .capabilities-checkboxes {
+        grid-template-columns: 1fr;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .notification {
+        right: 10px;
+        left: 10px;
+        top: 10px;
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+    
+    /* Mobile optimization for AI panels */
+    .ai-control-panel,
+    .collaboration-panel {
+        width: calc(100% - 40px);
+        max-height: 50vh;
+        left: 20px;
+        right: 20px;
+        top: 70px;
+        position: fixed;
+        z-index: 5000;
+        padding: 15px;
+    }
+    
+    .ai-control-panel {
+        right: 20px;
+        left: auto;
+    }
+    
+    .ai-control-panel.collapsed,
+    .collaboration-panel.collapsed {
+        width: 50px;
+        height: 50px;
+        overflow: hidden;
+    }
+    
+    .panel-toggle {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        left: auto;
+        border-radius: 8px;
+        transform: rotate(0deg);
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .collaboration-panel.collapsed .panel-toggle,
+    .ai-control-panel.collapsed .panel-toggle {
+        transform: rotate(180deg);
+    }
+    
+    .task-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40vh;
+        max-height: 300px;
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+        padding: 15px;
+        overflow-y: auto;
+        z-index: 4000;
+    }
+    
+    .task-panel .panel-header h3 {
+        font-size: 1.1em;
+    }
+    
+    /* Adjust form layouts for better mobile experience */
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .capabilities-checkboxes {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Adjust metrics grid for mobile */
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Optimize AI panels for mobile */
+    .ai-agents-section,
+    .collaboration-section {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    
+    .agents-list,
+    .collaborations-list {
+        max-height: 30vh;
+        overflow-y: auto;
+    }
+    
+    .task-submission {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    
+    /* Adjust task history for mobile */
+    .history-list {
+        max-height: 150px;
+    }
+    
+    /* Mobile-specific adjustments for panel content */
+    .ai-control-panel .panel-content,
+    .collaboration-panel .panel-content {
+        max-height: calc(50vh - 60px);
+        overflow-y: auto;
+    }
+    
+    /* Adjust agent list for mobile */
+    .agents-list {
+        max-height: 200px;
+    }
+    
+    /* Adjust collaboration list for mobile */
+    .collaborations-list {
+        max-height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-group {
+        margin-bottom: 12px;
+    }
+    
+    .form-group label {
+        font-size: 0.9em;
+        margin-bottom: 4px;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        padding: 6px 10px;
+        font-size: 0.9em;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.9em;
+    }
+    
+    .btn-primary,
+    .btn-success {
+        padding: 8px 16px;
+    }
+    
+    .task-result {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .result-header h4 {
+        font-size: 1.1em;
+    }
+    
+    .timestamp {
+        font-size: 0.8em;
+    }
+    
+    .result-content h5 {
+        font-size: 1em;
+        margin-bottom: 8px;
+    }
+    
+    .analysis-text {
+        padding: 12px;
+        font-size: 0.9em;
+    }
+    
+    .metrics-grid {
+        gap: 8px;
+    }
+    
+    .metric {
+        padding: 6px 10px;
+    }
+    
+    .metric-label {
+        font-size: 0.8em;
+    }
+    
+    .metric-value {
+        font-size: 0.9em;
+    }
+    
+    /* Further mobile optimization for AI panels */
+    .ai-control-panel,
+    .collaboration-panel {
+        width: calc(100% - 20px);
+        left: 10px;
+        right: 10px;
+        padding: 12px;
+        max-height: 45vh;
+    }
+    
+    .ai-control-panel {
+        right: 10px;
+        left: auto;
+    }
+    
+    .panel-header h3 {
+        font-size: 1.1em;
+    }
+    
+    .task-panel {
+        height: 45vh;
+        max-height: 250px;
+        padding: 12px;
+    }
+    
+    .task-panel .panel-header h3 {
+        font-size: 1em;
+    }
+    
+    /* Adjust agent cards for small screens */
+    .agent-card {
+        padding: 10px;
+    }
+    
+    .agent-header h5 {
+        font-size: 0.9em;
+    }
+    
+    .agent-type {
+        font-size: 0.7em;
+        padding: 2px 6px;
+    }
+    
+    .agent-details {
+        font-size: 0.8em;
+    }
+    
+    .agent-stats {
+        gap: 10px;
+    }
+    
+    /* Adjust capability tags for small screens */
+    .capability-tag {
+        font-size: 0.6em;
+        padding: 1px 4px;
+        margin-right: 2px;
+    }
+    
+    /* Adjust task submission form for small screens */
+    .task-submission {
+        max-height: 50vh;
+    }
+    
+    /* Adjust history list for small screens */
+    .history-list {
+        max-height: 120px;
+    }
+    
+    .history-item {
+        padding: 8px;
+    }
+    
+    .history-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .task-type {
+        font-size: 0.7em;
+        padding: 1px 6px;
+    }
+    
+    .task-description {
+        font-size: 0.8em;
+    }
+    
+    .result-preview {
+        font-size: 0.7em;
+    }
+}
+
+/* Network Visualization */
+#network-graph {
+    width: 100%;
+    height: 400px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.node-label {
+    font-size: 10px;
+    fill: #ffffff;
+    pointer-events: none;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+}
+
+.node-icon {
+    font-size: 12px;
+    fill: #ffffff;
+    pointer-events: none;
+}
+
+.link {
+    stroke: #94a3b8;
+    stroke-opacity: 0.6;
+}
+
+.prof-smoot-node {
+    filter: drop-shadow(0 0 5px rgba(147, 51, 234, 0.7));
+}
+
+.topology-controls {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.topology-controls select {
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background: rgba(0,0,0,0.3);
+    color: white;
+}
+
+.topology-controls .btn {
+    padding: 5px 10px;
+    border-radius: 4px;
+    background: rgba(14, 165, 233, 0.2);
+    color: #0ea5e9;
+    border: 1px solid rgba(14, 165, 233, 0.5);
+    cursor: pointer;
+}
+
+.topology-controls .btn:hover {
+    background: rgba(14, 165, 233, 0.3);
+}
+
+/* Task Chain Visualization */
+#task-chain-graph {
+    width: 100%;
+    height: 500px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+#task-chain-details {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(14, 165, 233, 0.1);
+    border-radius: 8px;
+}
+
+.agent-step-group {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 6px;
+}
+
+.agent-step-group h6 {
+    color: #10b981;
+    margin-bottom: 8px;
+}
+
+/* Button Styles */
+.btn-small {
+    padding: 4px 8px;
+    font-size: 0.8em;
+}
+
+.view-topology-btn {
+    background: rgba(14, 165, 233, 0.2);
+    color: #0ea5e9;
+    border: 1px solid rgba(14, 165, 233, 0.5);
+}
+
+.view-topology-btn:hover {
+    background: rgba(14, 165, 233, 0.3);
+}
+
+/* Mobile-specific adjustments for network visualization */
+@media (max-width: 768px) {
+    #network-graph {
+        height: 350px;
+    }
+    
+    #task-chain-graph {
+        height: 350px;
+    }
+    
+    .topology-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .topology-controls select,
+    .topology-controls .btn {
+        width: 100%;
+        margin-bottom: 5px;
+        padding: 8px;
+        font-size: 14px;
+    }
+    
+    #task-chain-details {
+        padding: 12px;
+    }
+    
+    .agent-step-group {
+        padding: 8px;
+        margin-bottom: 12px;
+    }
+    
+    .agent-step-group h6 {
+        font-size: 0.9em;
+        margin-bottom: 6px;
+    }
+    
+    /* Optimize network visualization for mobile */
+    .node {
+        r: 6px;
+    }
+    
+    .node-label {
+        font-size: 8px;
+    }
+    
+    .link {
+        stroke-width: 1px;
+    }
+}
+
+@media (max-width: 480px) {
+    #network-graph {
+        height: 280px;
+    }
+    
+    #task-chain-graph {
+        height: 280px;
+    }
+    
+    #task-chain-details {
+        padding: 10px;
+        margin-top: 15px;
+    }
+    
+    .agent-step-group {
+        padding: 6px;
+        margin-bottom: 10px;
+    }
+    
+    .agent-step-group h6 {
+        font-size: 0.8em;
+    }
+    
+    .agent-step-group ul {
+        padding-left: 15px;
+    }
+    
+    .agent-step-group li {
+        font-size: 0.8em;
+    }
+    
+    /* Further optimize for very small screens */
+    .node {
+        r: 5px;
+    }
+    
+    .node-label {
+        font-size: 7px;
+    }
+    
+    .link {
+        stroke-width: 0.8px;
+    }
+    
+    .topology-controls select,
+    .topology-controls .btn {
+        padding: 6px;
+        font-size: 13px;
+    }
 }

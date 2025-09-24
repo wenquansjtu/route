@@ -407,10 +407,25 @@ export class RealAICollaborationEngine extends EventEmitter {
       
       console.log(`✅ Collaboration completed in ${session.duration}ms`);
       
+      // Emit collaboration completed event
       this.emit('collaboration-completed', {
         sessionId: sessionId,
         result: finalResult,
         duration: session.duration
+      });
+      
+      // Also emit ai-task-completed event for compatibility with frontend
+      this.emit('ai-task-completed', {
+        success: true,
+        result: {
+          taskId: session.task.id,
+          sessionId: sessionId,
+          finalResult: finalResult.finalResult,
+          synthesizedBy: finalResult.synthesizedBy,
+          participantContributions: finalResult.participantContributions,
+          convergenceMetrics: finalResult.convergenceMetrics,
+          timestamp: finalResult.timestamp
+        }
       });
       
       // Emit task chain completed event
@@ -431,6 +446,12 @@ export class RealAICollaborationEngine extends EventEmitter {
       console.error('❌ Collaboration failed:', error);
       session.status = 'failed';
       session.error = error.message;
+      
+      // Emit task failed event
+      this.emit('ai-task-completed', {
+        success: false,
+        error: error.message
+      });
       
       // Emit task chain failed event
       this.emit('task-chain-failed', {

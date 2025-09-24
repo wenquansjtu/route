@@ -263,6 +263,60 @@ class RealAIInterface {
         // Also try after a short delay in case DOM isn't ready
         setTimeout(setupListeners, 50);
         setTimeout(setupListeners, 200);
+        
+        // Add window resize listener for mobile responsiveness
+        window.addEventListener('resize', this.handleWindowResize.bind(this));
+    }
+    
+    // Handle window resize for mobile responsiveness
+    handleWindowResize() {
+        // Get all panels
+        const aiControlPanel = document.querySelector('.ai-control-panel');
+        const collaborationPanel = document.querySelector('.collaboration-panel');
+        const taskPanel = document.querySelector('.task-panel');
+        
+        // Check if we're on a mobile device
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+            // On mobile, stack panels vertically
+            if (aiControlPanel) {
+                aiControlPanel.style.position = 'fixed';
+                aiControlPanel.style.width = 'calc(100% - 40px)';
+                aiControlPanel.style.maxHeight = '50vh';
+            }
+            
+            if (collaborationPanel) {
+                collaborationPanel.style.position = 'fixed';
+                collaborationPanel.style.width = 'calc(100% - 40px)';
+                collaborationPanel.style.maxHeight = '50vh';
+            }
+            
+            if (taskPanel) {
+                taskPanel.style.position = 'fixed';
+                taskPanel.style.height = '40vh';
+                taskPanel.style.maxHeight = '300px';
+            }
+        } else {
+            // On desktop, reset to default positioning
+            if (aiControlPanel) {
+                aiControlPanel.style.position = '';
+                aiControlPanel.style.width = '';
+                aiControlPanel.style.maxHeight = '';
+            }
+            
+            if (collaborationPanel) {
+                collaborationPanel.style.position = '';
+                collaborationPanel.style.width = '';
+                collaborationPanel.style.maxHeight = '';
+            }
+            
+            if (taskPanel) {
+                taskPanel.style.position = '';
+                taskPanel.style.height = '';
+                taskPanel.style.maxHeight = '';
+            }
+        }
     }
     
     connectWebSocket() {
@@ -342,30 +396,61 @@ class RealAIInterface {
             }
         });
         
+        this.websocket.on('send-error', (data) => {
+            console.error('❌ Send error:', data);
+            this.showTaskError(`Failed to send task to server: ${data.error || data.statusText || 'Unknown error'}`);
+        });
+        
         this.websocket.on('ai-task-acknowledged', (data) => {
             console.log('📨 Task acknowledged:', data);
+            // Update the task display with the actual task ID from server
             this.showTaskInProgress(data.taskId);
         });
         
+        this.websocket.on('ai-task-error', (data) => {
+            console.error('❌ Task error from server:', data);
+            this.showTaskError(data.error || 'Unknown task error occurred');
+        });
+        
+        // Add handler for ai-task-completed event
         this.websocket.on('ai-task-completed', (data) => {
             console.log('✅ Task completed:', data);
-            if (data.success) {
-                this.showTaskResult(data.result);
-                this.addToTaskHistory(data.result);
-            } else {
-                this.showTaskError(data.error);
+            // Hide the active task display when task is completed
+            const activeTaskDisplay = document.getElementById('active-task-display');
+            if (activeTaskDisplay) {
+                activeTaskDisplay.style.display = 'none';
+            }
+            
+            try {
+                if (data && data.success) {
+                    this.showTaskResult(data.result);
+                    this.addToTaskHistory(data.result);
+                } else {
+                    const error = data && data.error ? data.error : 'Unknown error occurred';
+                    this.showTaskError(error);
+                }
+            } catch (e) {
+                console.error('Error processing task completion:', e);
+                this.showTaskError('Error processing task result');
             }
         });
         
-        this.websocket.on('ai-collaboration-update', (data) => {
-            console.log('🔄 Collaboration update:', data);
-            this.updateCollaborationProgress(data);
-        });
-        
+        // Add handler for collaboration-completed event
         this.websocket.on('collaboration-completed', (data) => {
             console.log('🎉 Collaboration completed:', data);
-            this.showCollaborationResult(data);
-            this.addToTaskHistory(data);
+            // Hide the active task display when collaboration is completed
+            const activeTaskDisplay = document.getElementById('active-task-display');
+            if (activeTaskDisplay) {
+                activeTaskDisplay.style.display = 'none';
+            }
+            
+            try {
+                this.showCollaborationResult(data);
+                this.addToTaskHistory(data);
+            } catch (e) {
+                console.error('Error processing collaboration completion:', e);
+                this.showTaskError('Error processing collaboration result');
+            }
         });
     }
     
@@ -479,14 +564,35 @@ class RealAIInterface {
         
         // Send task to server
         if (this.websocket && this.websocket.connected) {
+            console.log('📤 Sending task to server via WebSocket');
+            const result = this.websocket.send('submit-ai-task', taskData);
+            console.log('📤 Task submission result:', result);
+            
+            // Show task in progress immediately after submission
+            this.showTaskInProgress('pending'); // Show pending status while waiting for server ack
+            
+            // Clear form
+            document.getElementById('ai-task-form').reset();
+            document.getElementById('complexity-value').textContent = '50';
+        } else if (this.websocket && this.websocket.isDemoMode) {
+            console.log('📤 Sending task to server via Demo Mode');
             this.websocket.send('submit-ai-task', taskData);
-            console.log('📤 Task submitted to server');
+            
+            // Show task in progress immediately after submission
+            this.showTaskInProgress('pending'); // Show pending status while waiting for server ack
             
             // Clear form
             document.getElementById('ai-task-form').reset();
             document.getElementById('complexity-value').textContent = '50';
         } else {
             console.error('❌ Not connected to server, cannot submit task');
+            console.log('WebSocket state:', this.websocket);
+            if (this.websocket) {
+                console.log('Connected:', this.websocket.connected);
+                console.log('Demo Mode:', this.websocket.isDemoMode);
+                console.log('Connection Failed:', this.websocket.hasConnectionFailed);
+            }
+            this.showTaskError('Not connected to AI server. Please check your connection.');
             alert('Not connected to AI server. Please check your connection.');
         }
     }
@@ -497,7 +603,12 @@ class RealAIInterface {
         
         if (activeTaskDisplay && progressText) {
             activeTaskDisplay.style.display = 'block';
-            progressText.textContent = `Task ${taskId.substring(0, 8)}... is being processed`;
+            // Improve the message based on the task ID
+            if (taskId === 'pending') {
+                progressText.textContent = 'Task submitted, waiting for server acknowledgment...';
+            } else {
+                progressText.textContent = `Task ${taskId.substring(0, 8)}... is being processed`;
+            }
         }
     }
     
@@ -510,14 +621,23 @@ class RealAIInterface {
         }
         
         if (taskResults && result) {
+            // Ensure result has required properties
+            const taskId = (result.taskId || result.id || 'unknown').toString();
+            const taskResult = result.finalResult || result.result || 'No result available';
+            
+            // Ensure taskResult is a string
+            const resultText = typeof taskResult === 'object' ? 
+                JSON.stringify(taskResult, null, 2) : 
+                (taskResult || 'No result available');
+            
             const resultElement = document.createElement('div');
             resultElement.className = 'task-result';
             resultElement.innerHTML = `
                 <h4>Task Result</h4>
                 <div class="result-content">
-                    <p><strong>Task ID:</strong> ${result.taskId || 'N/A'}</p>
+                    <p><strong>Task ID:</strong> ${taskId.substring(0, 8)}</p>
                     <p><strong>Result:</strong></p>
-                    <div class="result-text">${result.finalResult || result.result || 'No result available'}</div>
+                    <div class="result-text">${resultText}</div>
                 </div>
             `;
             taskResults.prepend(resultElement);
@@ -533,12 +653,17 @@ class RealAIInterface {
         }
         
         if (taskResults) {
+            // Ensure error is a string and not undefined
+            const errorMessage = error && typeof error === 'object' ? 
+                (error.message || JSON.stringify(error)) : 
+                (error || 'Unknown error occurred');
+                
             const errorElement = document.createElement('div');
             errorElement.className = 'task-error';
             errorElement.innerHTML = `
                 <h4>Task Error</h4>
                 <div class="error-content">
-                    <p>${error}</p>
+                    <p>${errorMessage}</p>
                 </div>
             `;
             taskResults.prepend(errorElement);
@@ -570,18 +695,31 @@ class RealAIInterface {
         }
         
         if (taskResults && data) {
+            // Ensure data has required properties
+            const sessionId = (data.sessionId || data.id || 'unknown').toString();
+            const finalResult = data.finalResult || data.result || 'No result available';
+            
+            // Ensure finalResult is a string
+            const resultText = typeof finalResult === 'object' ? 
+                JSON.stringify(finalResult, null, 2) : 
+                (finalResult || 'No result available');
+            
             const resultElement = document.createElement('div');
             resultElement.className = 'task-result collaboration-result';
             resultElement.innerHTML = `
                 <h4>Collaboration Result</h4>
                 <div class="result-content">
-                    <p><strong>Collaboration ID:</strong> ${data.sessionId || data.id || 'N/A'}</p>
+                    <p><strong>Collaboration ID:</strong> ${sessionId.substring(0, 8)}</p>
                     <p><strong>Final Result:</strong></p>
-                    <div class="result-text">${data.finalResult || 'No result available'}</div>
+                    <div class="result-text">${resultText}</div>
                     ${data.executionSteps ? `
                     <p><strong>Execution Steps:</strong></p>
                     <ul>
-                        ${data.executionSteps.map(step => `<li>${step.agentName}: ${step.taskName}</li>`).join('')}
+                        ${Array.isArray(data.executionSteps) ? 
+                          data.executionSteps.map(step => 
+                            `<li>${(step.agentName || 'Unknown Agent')}: ${step.taskName || step.taskId || 'Unknown Task'}</li>`
+                          ).join('') : 
+                          '<li>No execution steps available</li>'}
                     </ul>
                     ` : ''}
                 </div>
@@ -591,27 +729,79 @@ class RealAIInterface {
     }
     
     addToTaskHistory(task) {
-        this.taskHistory.unshift(task);
-        this.taskHistory = this.taskHistory.slice(0, 10); // Keep only last 10 items
-        this.updateTaskHistoryDisplay();
+        try {
+            // Ensure task is an object
+            if (!task || typeof task !== 'object') {
+                console.warn('Invalid task data for history:', task);
+                return;
+            }
+            
+            // Ensure task has required properties for display
+            if (!task.taskId && !task.id) {
+                task.taskId = 'unknown-' + Date.now(); // Generate a temporary ID if missing
+            }
+            
+            if (!task.description && !task.taskDescription) {
+                task.description = 'Unnamed Task'; // Set a default description if missing
+            }
+            
+            this.taskHistory.unshift(task);
+            this.taskHistory = this.taskHistory.slice(0, 10); // Keep only last 10 items
+            this.updateTaskHistoryDisplay();
+        } catch (e) {
+            console.error('Error adding task to history:', e);
+        }
     }
     
     updateTaskHistoryDisplay() {
         const historyList = document.getElementById('history-list');
         if (!historyList) return;
         
-        historyList.innerHTML = this.taskHistory.map(task => `
-            <div class="history-item">
-                <h5>${task.description || task.taskDescription || 'Unnamed Task'}</h5>
-                <p class="task-meta">
-                    <span>ID: ${task.taskId ? task.taskId.substring(0, 8) : 'N/A'}</span>
-                    <span>Date: ${new Date().toLocaleDateString()}</span>
-                </p>
-                <div class="task-preview">
-                    ${task.finalResult ? task.finalResult.substring(0, 100) + '...' : 'No preview available'}
+        if (this.taskHistory.length === 0) {
+            historyList.innerHTML = '<div class="history-item"><p>No task history available</p></div>';
+            return;
+        }
+        
+        historyList.innerHTML = this.taskHistory.map(task => {
+            try {
+                // Ensure task has required properties
+                const taskId = (task.taskId || task.id || 'unknown').toString();
+                const description = task.description || task.taskDescription || 'Unnamed Task';
+                const result = task.finalResult || task.result || 'No result available';
+                
+                // Ensure result is a string
+                const resultText = typeof result === 'object' ? 
+                    JSON.stringify(result, null, 2) : 
+                    (result || 'No result available');
+                
+                return `
+                <div class="history-item">
+                    <h5>${description}</h5>
+                    <p class="task-meta">
+                        <span>ID: ${taskId.substring(0, 8)}</span>
+                        <span>Date: ${new Date().toLocaleDateString()}</span>
+                    </p>
+                    <div class="task-preview">
+                        ${resultText.substring(0, 100) + (resultText.length > 100 ? '...' : '')}
+                    </div>
                 </div>
-            </div>
-        `).join('');
+                `;
+            } catch (e) {
+                // Handle any errors in processing task data
+                return `
+                <div class="history-item">
+                    <h5>Task Processing Error</h5>
+                    <p class="task-meta">
+                        <span>ID: unknown</span>
+                        <span>Date: ${new Date().toLocaleDateString()}</span>
+                    </p>
+                    <div class="task-preview">
+                        Error displaying task: ${e.message}
+                    </div>
+                </div>
+                `;
+            }
+        }).join('');
     }
     
     showCreateAgentDialog() {
@@ -676,6 +866,22 @@ class RealAIInterface {
                 this.hideCreateAgentDialog();
             }
         });
+        
+        // Make modal responsive on mobile
+        this.makeModalResponsive(modal);
+    }
+    
+    // Make modal responsive on mobile devices
+    makeModalResponsive(modal) {
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+            const modalContent = modal.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.style.width = '95%';
+                modalContent.style.maxHeight = '90vh';
+                modalContent.style.margin = '5vh auto';
+            }
+        }
     }
     
     hideCreateAgentDialog() {
@@ -774,11 +980,53 @@ class RealAIInterface {
             })));
         }
     }
+    
+    // Add a method to test the connection and task submission
+    testConnectionAndTaskSubmission() {
+        console.log('=== Testing Connection and Task Submission ===');
+        
+        // Check WebSocket connection
+        console.log('WebSocket state:', this.websocket);
+        if (this.websocket) {
+            console.log('Connected:', this.websocket.connected);
+            console.log('Demo Mode:', this.websocket.isDemoMode);
+            console.log('Connection Failed:', this.websocket.hasConnectionFailed);
+            
+            // Try to send a test message
+            const testTask = {
+                type: 'strategic_analysis',
+                description: 'Test task for connection debugging',
+                priority: 3,
+                complexity: 50,
+                requiredCapabilities: ['deep_analysis']
+            };
+            
+            console.log('Sending test task:', testTask);
+            const result = this.websocket.send('submit-ai-task', testTask);
+            console.log('Send result:', result);
+        } else {
+            console.error('❌ WebSocket is not initialized');
+        }
+    }
 }
 
 // Initialize the Real AI Interface when page loads
 document.addEventListener('DOMContentLoaded', () => {
     window.realAIInterface = new RealAIInterface();
+    
+    // Handle initial mobile responsiveness
+    setTimeout(() => {
+        if (window.realAIInterface) {
+            window.realAIInterface.handleWindowResize();
+        }
+    }, 100);
+    
+    // Add a global function for debugging
+    window.testConnectionAndTaskSubmission = () => {
+        if (window.realAIInterface) {
+            window.realAIInterface.testConnectionAndTaskSubmission();
+        }
+    };
 });
 
 export default RealAIInterface;

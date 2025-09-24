@@ -2,10 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Cosmic Agent Network - Real AI Multi-Agent System</title>
+    <meta name="description" content="Real AI Multi-Agent System with collaborative intelligence and network topology visualization">
+    <meta name="theme-color" content="#0a0e27">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/real-ai.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
@@ -649,6 +653,41 @@
         });
     </script>
     
+    <!-- Debug button for testing connection and task submission -->
+    <script>
+        // Add a debug button for testing
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create debug button
+            const debugButton = document.createElement('button');
+            debugButton.id = 'debug-connection-btn';
+            debugButton.textContent = 'Debug Connection';
+            debugButton.style.position = 'fixed';
+            debugButton.style.bottom = '20px';
+            debugButton.style.right = '20px';
+            debugButton.style.zIndex = '10000';
+            debugButton.style.padding = '10px 15px';
+            debugButton.style.backgroundColor = '#0ea5e9';
+            debugButton.style.color = 'white';
+            debugButton.style.border = 'none';
+            debugButton.style.borderRadius = '5px';
+            debugButton.style.cursor = 'pointer';
+            debugButton.style.fontSize = '14px';
+            
+            // Add click handler
+            debugButton.addEventListener('click', function() {
+                console.log('=== Debug Connection Button Clicked ===');
+                if (typeof window.testConnectionAndTaskSubmission === 'function') {
+                    window.testConnectionAndTaskSubmission();
+                } else {
+                    console.error('❌ testConnectionAndTaskSubmission function not available');
+                }
+            });
+            
+            // Add to document
+            document.body.appendChild(debugButton);
+        });
+    </script>
+    
     <!-- Auto-initialize network visualization when the page loads -->
     <script>
         // Auto-initialize network visualization after a delay
@@ -656,6 +695,9 @@
             // Wait for the app to be initialized
             let retryCount = 0;
             const maxRetries = 10;
+            
+            // Check if we're on a mobile device
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             
             function checkAndInitialize() {
                 retryCount++;
@@ -674,8 +716,12 @@
                         }
                         
                         if (window.cosmicApp.networkViz) {
+                            // Adjust initialization parameters based on device type
+                            const maxAttempts = isMobile ? 15 : 20;
+                            const retryDelay = isMobile ? 300 : 200;
+                            
                             setTimeout(function() {
-                                window.cosmicApp.networkViz.initWhenReady(20, 200);
+                                window.cosmicApp.networkViz.initWhenReady(maxAttempts, retryDelay);
                             }, 500);
                         }
                     }
@@ -687,7 +733,7 @@
                 }
             }
             
-            // Start checking after a delay
+            // Start checking after a short delay
             setTimeout(checkAndInitialize, 1000);
         });
     </script>

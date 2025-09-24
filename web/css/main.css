@@ -11,6 +11,8 @@ body {
     color: #ffffff;
     min-height: 100vh;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .container {
@@ -43,6 +45,9 @@ body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .nav {
@@ -64,6 +69,7 @@ body {
     user-select: none;
     position: relative;
     overflow: hidden;
+    white-space: nowrap;
 }
 
 .nav-btn::before {
@@ -319,6 +325,8 @@ body {
     cursor: pointer;
     font-size: 14px;
     transition: all 0.3s ease;
+    min-height: 44px; /* Minimum touch target size */
+    min-width: 44px;
 }
 
 .primary-btn {
@@ -386,6 +394,7 @@ body {
 
 .modal-header h3 {
     color: #64b5f6;
+    margin: 0;
 }
 
 .modal-close {
@@ -402,6 +411,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
 }
 
 .modal-close:hover {
@@ -445,6 +456,7 @@ body {
     color: #ffffff;
     font-size: 14px;
     transition: border-color 0.3s ease;
+    min-height: 44px; /* Minimum touch target size */
 }
 
 .form-group input:focus,
@@ -456,6 +468,7 @@ body {
 
 .form-group input[type="range"] {
     width: auto;
+    min-height: auto;
 }
 
 .capabilities {
@@ -470,14 +483,16 @@ body {
     gap: 8px;
     font-size: 14px;
     cursor: pointer;
+    min-height: 44px; /* Minimum touch target size */
 }
 
 .capabilities input[type="checkbox"] {
     width: auto;
+    min-height: auto;
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
     .header .container {
         flex-direction: column;
         gap: 15px;
@@ -510,6 +525,333 @@ body {
         width: 95%;
         margin: 20px;
     }
+    
+    /* Network visualization adjustments */
+    #network-graph {
+        height: 400px;
+    }
+    
+    /* Task chain visualization adjustments */
+    #task-chain-graph {
+        height: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .header .container {
+        padding: 10px 15px;
+    }
+    
+    .logo {
+        font-size: 20px;
+    }
+    
+    .nav-btn {
+        padding: 8px 15px;
+        font-size: 13px;
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .main {
+        padding: 15px 0;
+    }
+    
+    .view-header h2 {
+        font-size: 24px;
+    }
+    
+    .status-card,
+    .visualization-card,
+    .log-card {
+        padding: 20px;
+    }
+    
+    .status-card h3,
+    .visualization-card h3,
+    .log-card h3 {
+        font-size: 16px;
+    }
+    
+    .metric-value {
+        font-size: 20px;
+    }
+    
+    .full-viz {
+        height: 400px;
+    }
+    
+    .controls {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .control-group {
+        width: 100%;
+    }
+    
+    .control-group input[type="range"] {
+        width: 100%;
+    }
+    
+    .collaboration-panel,
+    .tasks-panel,
+    .monitoring-panel {
+        padding: 15px;
+    }
+    
+    .modal-content {
+        border-radius: 15px;
+        width: 95%;
+        max-width: none;
+        margin: 10px;
+    }
+    
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 15px;
+    }
+    
+    .form-group label {
+        font-size: 13px;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+    
+    /* Network visualization adjustments */
+    #network-graph {
+        height: 300px;
+    }
+    
+    /* Task chain visualization adjustments */
+    #task-chain-graph {
+        height: 300px;
+    }
+    
+    /* Status grid adjustments */
+    .status-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Performance grid adjustments */
+    .performance-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Resource grid adjustments */
+    .resource-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Agent metrics grid adjustments */
+    .agent-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Activity feed adjustments */
+    .activity-feed {
+        max-height: 300px;
+    }
+    
+    /* Task chain visualization section */
+    #task-chain-visualization-section {
+        margin-top: 20px;
+    }
+    
+    #task-chain-details {
+        padding: 12px;
+    }
+    
+    /* Optimize for touch devices */
+    .nav-btn,
+    .control-btn,
+    .btn,
+    .modal-close {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Reduce hover effects on touch devices */
+    @media (pointer: coarse) {
+        .nav-btn:hover,
+        .control-btn:hover,
+        .btn:hover {
+            transform: none;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 10px;
+    }
+    
+    .header .container {
+        padding: 8px 10px;
+    }
+    
+    .logo {
+        font-size: 18px;
+    }
+    
+    .nav-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 20px;
+        min-height: 40px;
+        min-width: 40px;
+    }
+    
+    .main {
+        padding: 10px 0;
+    }
+    
+    .view-header h2 {
+        font-size: 20px;
+    }
+    
+    .status-card,
+    .visualization-card,
+    .log-card {
+        padding: 15px;
+    }
+    
+    .status-card h3,
+    .visualization-card h3,
+    .log-card h3 {
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+    
+    .metric-value {
+        font-size: 18px;
+    }
+    
+    .full-viz {
+        height: 300px;
+    }
+    
+    .capabilities {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        width: 98%;
+        margin: 10px;
+        border-radius: 12px;
+    }
+    
+    .modal-header h3 {
+        font-size: 18px;
+    }
+    
+    .modal-close {
+        font-size: 20px;
+        width: 30px;
+        height: 30px;
+        min-height: 30px;
+        min-width: 30px;
+    }
+    
+    /* Network visualization adjustments */
+    #network-graph {
+        height: 250px;
+    }
+    
+    /* Task chain visualization adjustments */
+    #task-chain-graph {
+        height: 250px;
+    }
+    
+    /* Dashboard section adjustments */
+    .dashboard-section {
+        padding: 15px;
+    }
+    
+    .dashboard-section h2 {
+        font-size: 1.3em;
+    }
+    
+    /* Status info adjustments */
+    .status-info h3 {
+        font-size: 1.5em;
+    }
+    
+    .status-info p {
+        font-size: 0.8em;
+    }
+    
+    /* Metric card adjustments */
+    .metric-card h4 {
+        font-size: 0.9em;
+    }
+    
+    .metric-value {
+        font-size: 1.5em;
+    }
+    
+    /* Task chain details adjustments */
+    #task-chain-details {
+        padding: 10px;
+        margin-top: 15px;
+    }
+    
+    .agent-step-group {
+        padding: 6px;
+        margin-bottom: 10px;
+    }
+    
+    .agent-step-group h6 {
+        font-size: 0.8em;
+    }
+    
+    .agent-step-group ul {
+        padding-left: 15px;
+    }
+    
+    .agent-step-group li {
+        font-size: 0.8em;
+    }
+    
+    /* Form adjustments for small screens */
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+    
+    .capabilities label {
+        font-size: 12px;
+        min-height: 36px;
+    }
+    
+    .primary-btn,
+    .secondary-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        min-height: 40px;
+    }
 }
 
 /* 滚动条样式 */
@@ -530,6 +872,53 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
+}
+
+/* Mobile device specific styles */
+.mobile-device {
+    /* Reduce heavy animations on mobile */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+.mobile-device .nav-btn::before {
+    display: none;
+}
+
+.mobile-device .status-card:hover,
+.mobile-device .visualization-card:hover,
+.mobile-device .log-card:hover {
+    transform: none;
+}
+
+/* Adjust for touch devices */
+@media (pointer: coarse) {
+    .nav-btn,
+    .control-btn,
+    .btn,
+    .modal-close {
+        /* Increase touch targets */
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Reduce hover effects on touch devices */
+    .nav-btn:hover,
+    .control-btn:hover,
+    .btn:hover {
+        transform: none;
+    }
+    
+    /* Adjust form elements for better touch experience */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        min-height: 44px;
+    }
+    
+    .capabilities label {
+        min-height: 44px;
+    }
 }
 
 /* 动画效果 */
@@ -656,12 +1045,24 @@ body {
     overflow: hidden;
 }
 
+/* Task Chain Graph Container */
+#task-chain-graph {
+    width: 100%;
+    height: 500px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
 /* Topology Controls */
 .topology-controls {
     margin-bottom: 10px;
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .topology-controls select {
@@ -669,6 +1070,7 @@ body {
     border-radius: 4px;
     border: 1px solid #ccc;
     background: white;
+    min-width: 150px;
 }
 
 .topology-controls button {
@@ -678,8 +1080,54 @@ body {
     color: white;
     border: none;
     cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    min-width: 44px;
 }
 
 .topology-controls button:hover {
     background: #1976d2;
+}
+
+/* Mobile-specific adjustments for visualization containers */
+@media (max-width: 768px) {
+    #network-graph,
+    #task-chain-graph {
+        height: 350px;
+        border-radius: 6px;
+    }
+    
+    .topology-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .topology-controls select,
+    .topology-controls button {
+        width: 100%;
+        margin-bottom: 5px;
+        min-width: auto;
+        padding: 8px;
+        font-size: 14px;
+        min-height: 44px;
+    }
+    
+    .topology-controls select {
+        background: rgba(255, 255, 255, 0.9);
+    }
+}
+
+@media (max-width: 480px) {
+    #network-graph,
+    #task-chain-graph {
+        height: 280px;
+    }
+    
+    .topology-controls select,
+    .topology-controls button {
+        padding: 6px;
+        font-size: 13px;
+        min-height: 40px;
+    }
 }

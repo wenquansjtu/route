@@ -412,6 +412,7 @@ export class WebSocketClient {
     send(type, payload = {}) {
         // In demo mode, simulate responses
         if (this.demoMode) {
+            console.log('📤 Sending message in demo mode:', type, payload);
             this.simulateDemoResponse(type, payload);
             return true;
         }
@@ -421,6 +422,7 @@ export class WebSocketClient {
             try {
                 // Convert WebSocket URL to API URL for sending messages
                 const apiUrl = this.convertToSSEUrl(BackendConfig.getWebSocketUrl()).replace('/sse', '/api/message');
+                console.log('📤 Sending message to API:', apiUrl, { type, payload });
                 
                 fetch(apiUrl, {
                     method: 'POST',
@@ -430,16 +432,28 @@ export class WebSocketClient {
                     body: JSON.stringify({ type, payload })
                 }).then(response => {
                     if (!response.ok) {
+                        console.error('❌ Failed to send message:', response.status, response.statusText);
+                        this.emit('send-error', { 
+                            type, 
+                            status: response.status, 
+                            statusText: response.statusText 
+                        });
                     } else {
+                        console.log('✅ Message sent successfully');
                     }
                 }).catch(error => {
+                    console.error('❌ Error sending message:', error);
+                    this.emit('send-error', { type, error: error.message });
                 });
                 
                 return true;
             } catch (error) {
+                console.error('❌ Exception while sending message:', error);
+                this.emit('send-error', { type, error: error.message });
                 return false;
             }
         } else {
+            console.warn('⚠️ Not connected, cannot send message');
             // Try to reconnect if not connected
             if (!this.isConnecting) {
                 this.connect();

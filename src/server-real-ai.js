@@ -116,6 +116,12 @@ class RealAICosmicServer {
       if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('collaboration-completed', data);
     });
     
+    // Forward ai-task-completed events to clients
+    this.aiCollaboration.on('ai-task-completed', (data) => {
+      if (this.broadcastUpdate) this.broadcastUpdate('ai-task-completed', data);
+      if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', data);
+    });
+    
     // Listen for Prof. Smoot's task allocation events
     this.aiCollaboration.on('task-allocation-by-prof-smoot', (data) => {
       if (this.broadcastUpdate) this.broadcastUpdate('prof-smoot-allocation', data);
@@ -651,6 +657,19 @@ You should provide thorough validation reports with clear pass/fail indicators a
   }
   
   handleTaskSubmission(taskData) {
+    // Generate a unique ID for the task if not provided
+    if (!taskData.id) {
+      taskData.id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    
+    // Send task acknowledgment to client immediately
+    if (this.broadcastSSEUpdate) {
+      this.broadcastSSEUpdate('ai-task-acknowledged', { 
+        taskId: taskData.id,
+        message: 'Task received and processing started'
+      });
+    }
+    
     // Forward task submission to the collaboration engine
     this.aiCollaboration.submitCollaborativeTask(taskData)
       .then(result => {

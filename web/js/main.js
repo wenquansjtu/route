@@ -71,6 +71,9 @@ class CosmicAgentApp {
         // Make the app instance globally accessible
         window.cosmicApp = this;
         
+        // Register service worker for PWA support
+        this.registerServiceWorker();
+        
         this.setupEventListeners();
         this.setupWebSocketHandlers();
         
@@ -112,6 +115,21 @@ class CosmicAgentApp {
                 }
             }
         }, 3000); // Check every 3 seconds
+    }
+    
+    // Register service worker for PWA support
+    registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
     }
     
     async init() {
