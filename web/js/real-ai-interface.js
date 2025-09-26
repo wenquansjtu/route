@@ -28,6 +28,11 @@ class RealAIInterface {
         this.setupEventListeners();
         console.log('✅ Event listeners setup');
         
+        // Apply mobile layout on initialization if needed
+        setTimeout(() => {
+            this.handleWindowResize();
+        }, 100);
+        
         // Verify form elements after creation
         setTimeout(() => {
             const descriptionElement = document.getElementById('ai-task-description');
@@ -46,7 +51,7 @@ class RealAIInterface {
             if (!formElement) {
                 console.error('❌ AI task form not found after initialization!');
             }
-        }, 100);
+        }, 200);
         
         console.log('✅ Real AI Interface initialization complete');
     }
@@ -158,7 +163,7 @@ class RealAIInterface {
         // Add toggle functionality
         this.setupCollaborationPanelToggle();
     }
-    
+
     createTaskInterface() {
         const taskPanel = document.createElement('div');
         taskPanel.className = 'task-panel';
@@ -270,51 +275,94 @@ class RealAIInterface {
     
     // Handle window resize for mobile responsiveness
     handleWindowResize() {
-        // Get all panels
+        const isMobile = window.innerWidth <= 768;
         const aiControlPanel = document.querySelector('.ai-control-panel');
         const collaborationPanel = document.querySelector('.collaboration-panel');
         const taskPanel = document.querySelector('.task-panel');
         
-        // Check if we're on a mobile device
-        const isMobile = window.innerWidth <= 768;
-        
         if (isMobile) {
-            // On mobile, stack panels vertically
+            // On mobile devices
+            aiControlPanel?.classList.add('mobile-layout');
+            collaborationPanel?.classList.add('mobile-layout');
+            taskPanel?.classList.add('mobile-layout');
+            
+            // Adjust panel positioning for mobile
             if (aiControlPanel) {
-                aiControlPanel.style.position = 'fixed';
-                aiControlPanel.style.width = 'calc(100% - 40px)';
-                aiControlPanel.style.maxHeight = '50vh';
+                aiControlPanel.style.position = 'static';
+                aiControlPanel.style.width = '100%';
+                aiControlPanel.style.maxHeight = '30vh';
+                aiControlPanel.style.marginBottom = '15px';
+                aiControlPanel.style.marginLeft = 'auto';
+                aiControlPanel.style.marginRight = 'auto';
+                aiControlPanel.style.boxSizing = 'border-box';
             }
             
             if (collaborationPanel) {
-                collaborationPanel.style.position = 'fixed';
-                collaborationPanel.style.width = 'calc(100% - 40px)';
-                collaborationPanel.style.maxHeight = '50vh';
+                collaborationPanel.style.position = 'static';
+                collaborationPanel.style.width = '100%';
+                collaborationPanel.style.maxHeight = '30vh';
+                collaborationPanel.style.marginBottom = '15px';
+                collaborationPanel.style.marginLeft = 'auto';
+                collaborationPanel.style.marginRight = 'auto';
+                collaborationPanel.style.boxSizing = 'border-box';
             }
             
             if (taskPanel) {
-                taskPanel.style.position = 'fixed';
-                taskPanel.style.height = '40vh';
-                taskPanel.style.maxHeight = '300px';
+                taskPanel.style.position = 'static';
+                taskPanel.style.height = 'auto';
+                taskPanel.style.maxHeight = 'none';
+                taskPanel.style.margin = '20px auto';
+                taskPanel.style.marginLeft = 'auto';
+                taskPanel.style.marginRight = 'auto';
+                taskPanel.style.width = 'calc(100% - 40px)';
+                taskPanel.style.boxSizing = 'border-box';
             }
         } else {
             // On desktop, reset to default positioning
             if (aiControlPanel) {
-                aiControlPanel.style.position = '';
+                aiControlPanel.style.position = 'fixed';
                 aiControlPanel.style.width = '';
                 aiControlPanel.style.maxHeight = '';
+                aiControlPanel.style.top = '80px';
+                aiControlPanel.style.right = '20px';
+                aiControlPanel.style.left = 'auto';
+                aiControlPanel.style.zIndex = '5000';
+                aiControlPanel.style.marginBottom = '';
+                aiControlPanel.style.marginLeft = '';
+                aiControlPanel.style.marginRight = '';
+                aiControlPanel.style.boxSizing = '';
+                aiControlPanel.classList.remove('mobile-layout');
             }
             
             if (collaborationPanel) {
-                collaborationPanel.style.position = '';
+                collaborationPanel.style.position = 'fixed';
                 collaborationPanel.style.width = '';
                 collaborationPanel.style.maxHeight = '';
+                collaborationPanel.style.top = '80px';
+                collaborationPanel.style.left = '20px';
+                collaborationPanel.style.right = 'auto';
+                collaborationPanel.style.zIndex = '5000';
+                collaborationPanel.style.marginBottom = '';
+                collaborationPanel.style.marginLeft = '';
+                collaborationPanel.style.marginRight = '';
+                collaborationPanel.style.boxSizing = '';
+                collaborationPanel.classList.remove('mobile-layout');
             }
             
             if (taskPanel) {
-                taskPanel.style.position = '';
+                taskPanel.style.position = 'fixed';
                 taskPanel.style.height = '';
                 taskPanel.style.maxHeight = '';
+                taskPanel.style.bottom = '20px';
+                taskPanel.style.left = '20px';
+                taskPanel.style.right = '20px';
+                taskPanel.style.zIndex = '';
+                taskPanel.style.margin = '';
+                taskPanel.style.marginLeft = '';
+                taskPanel.style.marginRight = '';
+                taskPanel.style.width = '';
+                taskPanel.style.boxSizing = '';
+                taskPanel.classList.remove('mobile-layout');
             }
         }
     }
@@ -931,12 +979,85 @@ class RealAIInterface {
         const panel = toggle?.closest('.ai-control-panel');
         const content = panel?.querySelector('.panel-content');
         const arrow = toggle?.querySelector('span');
+        const header = panel?.querySelector('.panel-header h3');
         
         if (toggle && content && arrow) {
+            // Initialize panel state
+            let isCollapsed = false;
+            
+            // Add visual feedback for toggle button
+            toggle.addEventListener('mouseenter', () => {
+                toggle.style.background = 'rgba(14, 165, 233, 0.3)';
+            });
+            
+            toggle.addEventListener('mouseleave', () => {
+                toggle.style.background = 'rgba(0, 20, 40, 0.5)';
+            });
+            
             toggle.addEventListener('click', () => {
-                const isCollapsed = content.style.display === 'none';
-                content.style.display = isCollapsed ? 'block' : 'none';
-                arrow.textContent = isCollapsed ? '▶' : '◀';
+                isCollapsed = !isCollapsed;
+                
+                // Add loading state to prevent rapid clicks
+                toggle.style.pointerEvents = 'none';
+                
+                if (isCollapsed) {
+                    // Collapse panel with animation
+                    panel.classList.add('collapsed');
+                    content.style.opacity = '0';
+                    content.style.pointerEvents = 'none';
+                    content.style.transform = 'scale(0.8)';
+                    arrow.textContent = '▶';
+                    arrow.style.transform = 'rotate(180deg)';
+                    if (header) {
+                        header.style.opacity = '0';
+                    }
+                    
+                    // Update toggle button position for collapsed state
+                    if (window.innerWidth > 768) {
+                        toggle.style.right = '-50px';
+                    } else {
+                        toggle.style.right = '10px';
+                    }
+                } else {
+                    // Expand panel with animation
+                    panel.classList.remove('collapsed');
+                    // 先重置样式，再设置展开样式，确保动画流畅
+                    content.style.transform = 'scale(0.8)';
+                    content.style.opacity = '0';
+                    
+                    // 触发重排
+                    content.offsetHeight;
+                    
+                    // 设置展开样式
+                    content.style.opacity = '1';
+                    content.style.pointerEvents = 'auto';
+                    content.style.transform = 'scale(1)';
+                    arrow.textContent = '▶';
+                    arrow.style.transform = 'rotate(0deg)';
+                    if (header) {
+                        header.style.opacity = '1';
+                    }
+                    
+                    // Update toggle button position for expanded state
+                    if (window.innerWidth > 768) {
+                        toggle.style.right = '-40px';
+                    } else {
+                        toggle.style.right = '10px';
+                    }
+                }
+                
+                // Add smooth transition effect
+                toggle.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                arrow.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                if (header) {
+                    header.style.transition = 'opacity 0.3s ease';
+                }
+                content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                
+                // Re-enable toggle after animation
+                setTimeout(() => {
+                    toggle.style.pointerEvents = 'auto';
+                }, 300);
             });
         }
     }
@@ -946,16 +1067,89 @@ class RealAIInterface {
         const panel = toggle?.closest('.collaboration-panel');
         const content = panel?.querySelector('.panel-content');
         const arrow = toggle?.querySelector('span');
+        const header = panel?.querySelector('.panel-header h3');
         
         if (toggle && content && arrow) {
+            // Initialize panel state
+            let isCollapsed = false;
+            
+            // Add visual feedback for toggle button
+            toggle.addEventListener('mouseenter', () => {
+                toggle.style.background = 'rgba(14, 165, 233, 0.3)';
+            });
+            
+            toggle.addEventListener('mouseleave', () => {
+                toggle.style.background = 'rgba(0, 20, 40, 0.5)';
+            });
+            
             toggle.addEventListener('click', () => {
-                const isCollapsed = content.style.display === 'none';
-                content.style.display = isCollapsed ? 'block' : 'none';
-                arrow.textContent = isCollapsed ? '◀' : '▶';
+                isCollapsed = !isCollapsed;
+                
+                // Add loading state to prevent rapid clicks
+                toggle.style.pointerEvents = 'none';
+                
+                if (isCollapsed) {
+                    // Collapse panel with animation
+                    panel.classList.add('collapsed');
+                    content.style.opacity = '0';
+                    content.style.pointerEvents = 'none';
+                    content.style.transform = 'scale(0.8)';
+                    arrow.textContent = '◀';
+                    arrow.style.transform = 'rotate(180deg)';
+                    if (header) {
+                        header.style.opacity = '0';
+                    }
+                    
+                    // Update toggle button position for collapsed state
+                    if (window.innerWidth > 768) {
+                        toggle.style.left = '-50px';
+                    } else {
+                        toggle.style.right = '10px';
+                    }
+                } else {
+                    // Expand panel with animation
+                    panel.classList.remove('collapsed');
+                    // 先重置样式，再设置展开样式，确保动画流畅
+                    content.style.transform = 'scale(0.8)';
+                    content.style.opacity = '0';
+                    
+                    // 触发重排
+                    content.offsetHeight;
+                    
+                    // 设置展开样式
+                    content.style.opacity = '1';
+                    content.style.pointerEvents = 'auto';
+                    content.style.transform = 'scale(1)';
+                    arrow.textContent = '◀';
+                    arrow.style.transform = 'rotate(0deg)';
+                    if (header) {
+                        header.style.opacity = '1';
+                    }
+                    
+                    // Update toggle button position for expanded state
+                    if (window.innerWidth > 768) {
+                        toggle.style.left = '-40px';
+                    } else {
+                        toggle.style.right = '10px';
+                    }
+                }
+                
+                // Add smooth transition effect
+                toggle.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                arrow.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                if (header) {
+                    header.style.transition = 'opacity 0.3s ease';
+                }
+                content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                
+                // Re-enable toggle after animation
+                setTimeout(() => {
+                    toggle.style.pointerEvents = 'auto';
+                }, 300);
             });
         }
     }
-    
+
     debugFormState() {
         console.log('=== Form Debug Info ===');
         const descriptionElement = document.getElementById('ai-task-description');
@@ -981,36 +1175,9 @@ class RealAIInterface {
         }
     }
     
-    // Add a method to test the connection and task submission
-    testConnectionAndTaskSubmission() {
-        console.log('=== Testing Connection and Task Submission ===');
-        
-        // Check WebSocket connection
-        console.log('WebSocket state:', this.websocket);
-        if (this.websocket) {
-            console.log('Connected:', this.websocket.connected);
-            console.log('Demo Mode:', this.websocket.isDemoMode);
-            console.log('Connection Failed:', this.websocket.hasConnectionFailed);
-            
-            // Try to send a test message
-            const testTask = {
-                type: 'strategic_analysis',
-                description: 'Test task for connection debugging',
-                priority: 3,
-                complexity: 50,
-                requiredCapabilities: ['deep_analysis']
-            };
-            
-            console.log('Sending test task:', testTask);
-            const result = this.websocket.send('submit-ai-task', testTask);
-            console.log('Send result:', result);
-        } else {
-            console.error('❌ WebSocket is not initialized');
-        }
-    }
+    // Initialize the Real AI Interface when page loads
 }
 
-// Initialize the Real AI Interface when page loads
 document.addEventListener('DOMContentLoaded', () => {
     window.realAIInterface = new RealAIInterface();
     
@@ -1020,13 +1187,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.realAIInterface.handleWindowResize();
         }
     }, 100);
-    
-    // Add a global function for debugging
-    window.testConnectionAndTaskSubmission = () => {
-        if (window.realAIInterface) {
-            window.realAIInterface.testConnectionAndTaskSubmission();
-        }
-    };
 });
 
 export default RealAIInterface;

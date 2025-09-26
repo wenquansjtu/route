@@ -569,6 +569,9 @@
                     </div>
                 </div>
             </section>
+            
+            <!-- 空白块 -->
+            <div style="height: 300px;"></div>
         </main>
 
         <!-- 任务创建模态框 -->
@@ -650,41 +653,6 @@
                 script.onerror = () => console.error('❌ Failed to load D3.js dynamically');
                 document.head.appendChild(script);
             }
-        });
-    </script>
-    
-    <!-- Debug button for testing connection and task submission -->
-    <script>
-        // Add a debug button for testing
-        document.addEventListener('DOMContentLoaded', function() {
-            // Create debug button
-            const debugButton = document.createElement('button');
-            debugButton.id = 'debug-connection-btn';
-            debugButton.textContent = 'Debug Connection';
-            debugButton.style.position = 'fixed';
-            debugButton.style.bottom = '20px';
-            debugButton.style.right = '20px';
-            debugButton.style.zIndex = '10000';
-            debugButton.style.padding = '10px 15px';
-            debugButton.style.backgroundColor = '#0ea5e9';
-            debugButton.style.color = 'white';
-            debugButton.style.border = 'none';
-            debugButton.style.borderRadius = '5px';
-            debugButton.style.cursor = 'pointer';
-            debugButton.style.fontSize = '14px';
-            
-            // Add click handler
-            debugButton.addEventListener('click', function() {
-                console.log('=== Debug Connection Button Clicked ===');
-                if (typeof window.testConnectionAndTaskSubmission === 'function') {
-                    window.testConnectionAndTaskSubmission();
-                } else {
-                    console.error('❌ testConnectionAndTaskSubmission function not available');
-                }
-            });
-            
-            // Add to document
-            document.body.appendChild(debugButton);
         });
     </script>
     

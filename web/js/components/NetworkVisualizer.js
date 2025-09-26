@@ -120,9 +120,6 @@ export class NetworkVisualizer {
         }
         
         try {
-            // Create controls for saved topologies
-            this.createTopologyControls();
-            
             // Create SVG
             this.svg = d3.select(this.container)
                 .append('svg')
@@ -283,90 +280,6 @@ export class NetworkVisualizer {
             // Try initWhenReady as fallback
             this.initWhenReady(30, 200);
         }
-    }
-    
-    createTopologyControls() {
-        // Check if container exists and has a parent
-        if (!this.container) {
-            return;
-        }
-        
-        // Create a div for topology controls
-        const controlsDiv = document.createElement('div');
-        controlsDiv.className = 'topology-controls';
-        controlsDiv.style.cssText = 'margin-bottom: 10px; display: flex; align-items: center; gap: 10px;';
-        
-        // Create saved topologies dropdown
-        const topologySelect = document.createElement('select');
-        topologySelect.id = 'saved-topologies';
-        topologySelect.innerHTML = '<option value="">Live Network</option>';
-        
-        // Create refresh button
-        const refreshBtn = document.createElement('button');
-        refreshBtn.textContent = 'Refresh';
-        refreshBtn.className = 'btn';
-        refreshBtn.addEventListener('click', () => {
-            // Request fresh data from the app if available
-            if (window.cosmicApp) {
-                window.cosmicApp.fetchRealAIAgents();
-            }
-        });
-        
-        // Create clear button
-        const clearBtn = document.createElement('button');
-        clearBtn.textContent = 'Clear';
-        clearBtn.className = 'btn';
-        clearBtn.addEventListener('click', () => {
-            this.clearCurrentVisualization();
-        });
-        
-        // Append elements to controls div
-        controlsDiv.appendChild(topologySelect);
-        controlsDiv.appendChild(refreshBtn);
-        controlsDiv.appendChild(clearBtn);
-        
-        // Try to insert controls before the container
-        try {
-            if (this.container.parentNode) {
-                this.container.parentNode.insertBefore(controlsDiv, this.container);
-                this.topologyDropdown = topologySelect;
-            } else {
-                this.container.appendChild(controlsDiv);
-                this.topologyDropdown = topologySelect;
-            }
-        } catch (error) {
-            // Fallback: append to container
-            this.container.appendChild(controlsDiv);
-            this.topologyDropdown = topologySelect;
-        }
-        
-        // Add event listener to dropdown
-        topologySelect.addEventListener('change', (e) => {
-            if (e.target.value) {
-                this.displaySavedTopology(e.target.value);
-            } else {
-                this.refreshLiveView();
-            }
-        });
-    }
-    
-    updateSavedTopologiesDropdown() {
-        if (!this.topologyDropdown || !this.savedTopologies) {
-            return;
-        }
-        
-        // Clear existing options except the first one
-        while (this.topologyDropdown.children.length > 1) {
-            this.topologyDropdown.removeChild(this.topologyDropdown.lastChild);
-        }
-        
-        // Add options for each saved topology
-        this.savedTopologies.forEach((data, id) => {
-            const option = document.createElement('option');
-            option.value = id;
-            option.textContent = `Task ${id.substring(0, 8)}... (${new Date(data.timestamp).toLocaleTimeString()})`;
-            this.topologyDropdown.appendChild(option);
-        });
     }
     
     initSimulation() {
@@ -901,7 +814,7 @@ export class NetworkVisualizer {
         });
         
         // Update the dropdown with saved topologies
-        this.updateSavedTopologiesDropdown();
+        // this.updateSavedTopologiesDropdown(); // Removed as part of cleanup
     }
     
     convertTaskChainToNetwork(executionPath) {
@@ -997,9 +910,7 @@ export class NetworkVisualizer {
         this.render();
         
         // Update the dropdown to show the selected topology
-        if (this.topologyDropdown) {
-            this.topologyDropdown.value = taskChainId;
-        }
+        // Removed as part of cleanup since topologyDropdown is no longer created
         
         return true;
     }
@@ -1022,7 +933,7 @@ export class NetworkVisualizer {
         if (this.savedTopologies) {
             this.savedTopologies.clear();
         }
-        this.updateSavedTopologiesDropdown();
+        // this.updateSavedTopologiesDropdown(); // Removed as part of cleanup
     }
     
     // Method to check if a saved topology is currently displayed
@@ -1033,10 +944,7 @@ export class NetworkVisualizer {
         }
         
         // Check if we have a selected value in the dropdown that corresponds to a saved topology
-        if (this.topologyDropdown && this.topologyDropdown.value) {
-            const result = this.savedTopologies.has(this.topologyDropdown.value);
-            return result;
-        }
+        // Removed as part of cleanup since topologyDropdown is no longer created
         
         // Fallback check: see if we have nodes that look like task chain nodes
         // (nodes with both agent and task groups)
@@ -1053,9 +961,7 @@ export class NetworkVisualizer {
     // Method to clear the current visualization and reset to sample data
     clearCurrentVisualization() {
         // Clear the saved topology selection
-        if (this.topologyDropdown) {
-            this.topologyDropdown.value = '';
-        }
+        // Removed as part of cleanup since topologyDropdown is no longer created
         
         // Stop the simulation
         if (this.simulation) {
