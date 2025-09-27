@@ -289,6 +289,7 @@
     background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
     padding: 15px;
+    margin-bottom: 60px;
 }
 
 .activity-item {
@@ -1318,11 +1319,55 @@
 
 .task-panel {
     position: fixed;
-    bottom: 20px;
+    bottom: 70px;
     left: 20px;
     right: 20px;
-    height: 300px;
+    height: 400px;
     overflow-y: auto;
+}
+
+/* 新增的水平布局样式 */
+.task-panel.horizontal-layout {
+    display: flex;
+    flex-direction: row;
+    height: 480px;
+    min-height: 480px;
+    position: fixed;
+    bottom: 20px;
+    left: 10px;
+    right: 30px;
+    top: auto;
+    padding: 0;
+    transform: translateY(30px);
+}
+
+.task-panel.horizontal-layout .panel-section {
+    flex: 1;
+    padding: 20px;
+    border-right: 1px solid rgba(14, 165, 233, 0.3);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.task-panel.horizontal-layout .panel-section:first-child {
+    flex: 0.5;
+}
+
+.task-panel.horizontal-layout .panel-section:nth-child(3) {
+    flex: 0.5;
+}
+
+.task-panel.horizontal-layout .panel-section:last-child {
+    border-right: none;
+    padding-right: 20px;
+}
+
+.task-panel.horizontal-layout .panel-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(14, 165, 233, 0.3);
 }
 
 .panel-header {
@@ -1503,17 +1548,19 @@
 .capabilities-checkboxes {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-top: 5px;
+    gap: 1px;
+    margin-top: 0px;
+    padding: 0px;
 }
 
 .capabilities-checkboxes label {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0px;
     margin: 0;
     font-weight: normal;
     cursor: pointer;
+    height: 20px;
 }
 
 .capabilities-checkboxes input[type="checkbox"] {
@@ -2316,6 +2363,28 @@
     font-size: 1.2em;
 }
 
+/* 新增的子面板标题样式 */
+.panel-subheader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+}
+
+.panel-subheader h4 {
+    margin: 0;
+    color: #0ea5e9;
+    font-size: 1.1em;
+}
+
+.panel-subheader h5 {
+    margin: 0;
+    color: #0ea5e9;
+    font-size: 1em;
+}
+
 .ai-status {
     display: flex;
     align-items: center;
@@ -2350,6 +2419,10 @@
 }
 
 /* AI Agents List */
+.ai-agents-section {
+    margin-bottom: 20px;
+}
+
 .agents-list {
     margin-bottom: 20px;
     max-height: 300px;
@@ -2435,6 +2508,10 @@
 }
 
 /* Task Submission Form */
+.collaboration-lab-section {
+    margin-bottom: 30px;
+}
+
 .task-submission {
     margin-bottom: 30px;
 }
@@ -2479,8 +2556,9 @@
 .capabilities-checkboxes {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 1px;
     margin-top: 5px;
+    padding: 2.5px;
 }
 
 .capabilities-checkboxes label {
@@ -2883,94 +2961,32 @@
     }
     
     .task-panel {
-        position: relative;
-        height: auto;
-        left: 0;
-        right: 0;
-        bottom: auto;
+/* ... existing code ... */
+
+/* Enhanced Mobile Responsiveness for AI Panels */
+@media (max-width: 1200px) {
+    .task-panel {
+        position: fixed;
+        height: 400px;
+        left: 20px;
+        right: 20px;
+        bottom: 70px;
         margin-top: 20px;
         margin-left: auto;
         margin-right: auto;
         box-sizing: border-box;
-        width: 100%;
+        width: calc(100% - 40px);
         max-width: 100%;
     }
     
     /* Adjust panel positions for medium screens */
-    .ai-control-panel {
-        right: 10px;
-        width: 320px;
-    }
-    
-    .collaboration-panel {
-        left: 10px;
-        width: 320px;
+    .task-panel {
+        right: 20px;
+        width: calc(100% - 40px);
     }
 }
 
 @media (max-width: 768px) {
-    .ai-control-panel,
-    .collaboration-panel {
-        width: calc(100% - 40px);
-        max-height: 30vh;
-        left: 20px;
-        right: 20px;
-        position: static;
-        z-index: 5000;
-        margin-bottom: 15px;
-        transition: all 0.3s ease;
-        box-sizing: border-box;
-    }
-    
-    .collaboration-panel {
-        top: 70px;
-    }
-    
-    .ai-control-panel {
-        top: calc(70px + 30vh + 15px);
-    }
-    
-    /* 在非常小的屏幕上，默认折叠面板以节省空间 */
-    @media (max-height: 600px), (max-width: 480px) {
-        .ai-control-panel:not(.collapsed),
-        .collaboration-panel:not(.collapsed) {
-            max-height: 25vh;
-        }
-        
-        .ai-control-panel {
-            top: calc(70px + 25vh + 15px);
-        }
-        
-        .task-panel {
-            height: 30vh;
-            max-height: 200px;
-        }
-    }
-    
-    .panel-toggle {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        left: auto;
-        border-radius: 8px;
-        transform: rotate(0deg);
-        width: 36px;
-        height: 36px;
-        font-size: 14px;
-        z-index: 5002;
-    }
-    
-    .collaboration-panel .panel-toggle,
-    .ai-control-panel .panel-toggle {
-        right: 10px;
-        left: auto;
-    }
-    
-    .collaboration-panel.collapsed .panel-toggle,
-    .ai-control-panel.collapsed .panel-toggle {
-        transform: rotate(180deg);
-    }
-    
     .task-panel {
         position: static;
         bottom: 0;
@@ -2989,8 +3005,20 @@
         box-sizing: border-box;
     }
     
+    /* 在非常小的屏幕上，默认折叠面板以节省空间 */
+    @media (max-height: 600px), (max-width: 480px) {
+        .task-panel:not(.collapsed) {
+            max-height: 25vh;
+        }
+        
+        .task-panel {
+            height: 30vh;
+            max-height: 400px;
+        }
+    }
+    
     /* Improve touch targets on mobile */
-    .panel-toggle {
+    .task-panel {
         min-height: 44px;
         min-width: 44px;
         display: flex;
@@ -3017,16 +3045,28 @@
     }
     
     /* Mobile-specific collapsed states */
-    .ai-control-panel.collapsed .panel-content,
-    .collaboration-panel.collapsed .panel-content {
+    .task-panel.collapsed .panel-content {
         opacity: 0;
         pointer-events: none;
         transform: scale(0.95);
     }
     
-    .ai-control-panel .panel-content,
-    .collaboration-panel .panel-content {
+    .task-panel .panel-content {
         transition: all 0.3s ease;
+    }
+    
+    /* 在中等屏幕上，水平布局变为垂直堆叠 */
+    .task-panel.horizontal-layout {
+        flex-direction: column;
+    }
+    
+    .task-panel.horizontal-layout .panel-section {
+        border-right: none;
+        border-bottom: 1px solid rgba(14, 165, 233, 0.3);
+    }
+    
+    .task-panel.horizontal-layout .panel-section:last-child {
+        border-bottom: none;
     }
 }
 
@@ -3097,8 +3137,7 @@
     }
     
     /* Further mobile optimization for AI panels */
-    .ai-control-panel,
-    .collaboration-panel {
+    .task-panel {
         width: calc(100% - 20px);
         left: 10px;
         right: 10px;
@@ -3106,7 +3145,7 @@
         max-height: 45vh;
     }
     
-    .ai-control-panel {
+    .task-panel {
         right: 10px;
         left: auto;
     }
@@ -3185,6 +3224,20 @@
     
     .result-preview {
         font-size: 0.7em;
+    }
+    
+    /* 在小屏幕上，水平布局变为垂直堆叠 */
+    .task-panel.horizontal-layout {
+        flex-direction: column;
+    }
+    
+    .task-panel.horizontal-layout .panel-section {
+        border-right: none;
+        border-bottom: 1px solid rgba(14, 165, 233, 0.3);
+    }
+    
+    .task-panel.horizontal-layout .panel-section:last-child {
+        border-bottom: none;
     }
 }
 

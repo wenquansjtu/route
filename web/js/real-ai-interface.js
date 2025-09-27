@@ -16,14 +16,8 @@ class RealAIInterface {
     initializeInterface() {
         console.log('🚀 Initializing Real AI Interface...');
         
-        this.createAIControlPanel();
-        console.log('✅ AI Control Panel created');
-        
-        this.createCollaborationInterface();
-        console.log('✅ Collaboration interface created');
-        
-        this.createTaskInterface();
-        console.log('✅ Task interface created');
+        this.createTaskInterface();  // 现在只创建一个合并的面板
+        console.log('✅ Task Results & History Panel created');
         
         this.setupEventListeners();
         console.log('✅ Event listeners setup');
@@ -32,6 +26,11 @@ class RealAIInterface {
         setTimeout(() => {
             this.handleWindowResize();
         }, 100);
+            
+        // Add event listener for window resize to handle responsive layout
+        window.addEventListener('resize', () => {
+            this.handleWindowResize();
+        });
         
         // Verify form elements after creation
         setTimeout(() => {
@@ -56,55 +55,18 @@ class RealAIInterface {
         console.log('✅ Real AI Interface initialization complete');
     }
     
-    createAIControlPanel() {
-        const controlPanel = document.createElement('div');
-        controlPanel.className = 'ai-control-panel';
-        controlPanel.innerHTML = `
-            <div class="panel-toggle" id="ai-control-toggle">
-                <span>▶</span>
-            </div>
-            <div class="panel-content">
-                <div class="panel-header">
-                    <h3>🧠 Real AI Agent Control</h3>
-                    <div class="ai-status">
-                        <span id="ai-status-indicator" class="status-dot offline"></span>
-                        <span id="ai-status-text">Connecting...</span>
-                    </div>
-                </div>
-                
-                <div class="ai-agents-section">
-                    <h4>Active AI Agents</h4>
-                    <div id="ai-agents-list" class="agents-list"></div>
-                    <button id="create-ai-agent-btn" class="btn btn-primary">Create AI Agent</button>
-                </div>
-                
-                <div class="collaboration-section">
-                    <h4>Live Collaborations</h4>
-                    <div id="active-collaborations" class="collaborations-list"></div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(controlPanel);
-        
-        // Add toggle functionality
-        this.setupAIControlPanelToggle();
-    }
-    
-    createCollaborationInterface() {
-        const collaborationPanel = document.createElement('div');
-        collaborationPanel.className = 'collaboration-panel';
-        collaborationPanel.innerHTML = `
-            <div class="panel-toggle" id="collaboration-toggle">
-                <span>◀</span>
-            </div>
-            <div class="panel-content">
+    createTaskInterface() {
+        const taskPanel = document.createElement('div');
+        taskPanel.className = 'task-panel horizontal-layout';
+        taskPanel.innerHTML = `
+            <!-- 合并AI Collaboration Lab功能 -->
+            <div class="panel-section collaboration-lab-section">
                 <div class="panel-header">
                     <h3>🤝 AI Collaboration Lab</h3>
                 </div>
                 
                 <div class="task-submission">
-                    <h4>Submit Task for AI Collaboration</h4>
+                    <h5>Submit Task for AI Collaboration</h5>
                     <form id="ai-task-form">
                         <div class="form-group">
                             <label>Task Description:</label>
@@ -113,7 +75,7 @@ class RealAIInterface {
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Task Type:</label>
+                                <label>Task Type</label>
                                 <select id="task-type">
                                     <option value="strategic_analysis">Strategic Analysis</option>
                                     <option value="creative_problem_solving">Creative Problem Solving</option>
@@ -156,38 +118,52 @@ class RealAIInterface {
                     </form>
                 </div>
             </div>
-        `;
-        
-        document.body.appendChild(collaborationPanel);
-        
-        // Add toggle functionality
-        this.setupCollaborationPanelToggle();
-    }
-
-    createTaskInterface() {
-        const taskPanel = document.createElement('div');
-        taskPanel.className = 'task-panel';
-        taskPanel.innerHTML = `
-            <div class="panel-header">
-                <h3>📋 Task Results & History</h3>
-            </div>
             
-            <div id="active-task-display" class="active-task" style="display: none;">
-                <h4>🔄 Collaboration in Progress</h4>
-                <div class="task-progress">
-                    <div class="progress-bar">
-                        <div id="progress-fill" class="progress-fill"></div>
-                    </div>
-                    <div id="progress-text">Initializing...</div>
+            <!-- 原有的任务结果和历史功能 -->
+            <div class="panel-section task-results-section">
+                <div class="panel-header">
+                    <h3>📋 Task Results & History</h3>
                 </div>
-                <div id="collaboration-phases" class="phases-display"></div>
+                
+                <div id="active-task-display" class="active-task" style="display: none;">
+                    <h4>🔄 Collaboration in Progress</h4>
+                    <div class="task-progress">
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <div id="progress-text">Initializing...</div>
+                    </div>
+                    <div id="collaboration-phases" class="phases-display"></div>
+                </div>
+                
+                <div id="task-results" class="task-results"></div>
+                
+                <div id="task-history" class="task-history">
+                    <h4>Previous Collaborations</h4>
+                    <div id="history-list" class="history-list"></div>
+                </div>
             </div>
             
-            <div id="task-results" class="task-results"></div>
-            
-            <div id="task-history" class="task-history">
-                <h4>Previous Collaborations</h4>
-                <div id="history-list" class="history-list"></div>
+            <!-- 合并AI Agent Control功能 -->
+            <div class="panel-section ai-control-section">
+                <div class="panel-header">
+                    <h3>🧠 Real AI Agent Control</h3>
+                    <div class="ai-status">
+                        <span id="ai-status-indicator" class="status-dot offline"></span>
+                        <span id="ai-status-text">Connecting...</span>
+                    </div>
+                </div>
+                
+                <div class="ai-agents-section">
+                    <h5>Active AI Agents</h5>
+                    <div id="ai-agents-list" class="agents-list"></div>
+                    <button id="create-ai-agent-btn" class="btn btn-primary">Create AI Agent</button>
+                </div>
+                
+                <div class="collaboration-section">
+                    <h5>Live Collaborations</h5>
+                    <div id="active-collaborations" class="collaborations-list"></div>
+                </div>
             </div>
         `;
         
@@ -276,37 +252,14 @@ class RealAIInterface {
     // Handle window resize for mobile responsiveness
     handleWindowResize() {
         const isMobile = window.innerWidth <= 768;
-        const aiControlPanel = document.querySelector('.ai-control-panel');
-        const collaborationPanel = document.querySelector('.collaboration-panel');
         const taskPanel = document.querySelector('.task-panel');
         
         if (isMobile) {
-            // On mobile devices
-            aiControlPanel?.classList.add('mobile-layout');
-            collaborationPanel?.classList.add('mobile-layout');
+            // On mobile devices, use vertical stacking
             taskPanel?.classList.add('mobile-layout');
+            taskPanel?.classList.remove('horizontal-layout');
             
             // Adjust panel positioning for mobile
-            if (aiControlPanel) {
-                aiControlPanel.style.position = 'static';
-                aiControlPanel.style.width = '100%';
-                aiControlPanel.style.maxHeight = '30vh';
-                aiControlPanel.style.marginBottom = '15px';
-                aiControlPanel.style.marginLeft = 'auto';
-                aiControlPanel.style.marginRight = 'auto';
-                aiControlPanel.style.boxSizing = 'border-box';
-            }
-            
-            if (collaborationPanel) {
-                collaborationPanel.style.position = 'static';
-                collaborationPanel.style.width = '100%';
-                collaborationPanel.style.maxHeight = '30vh';
-                collaborationPanel.style.marginBottom = '15px';
-                collaborationPanel.style.marginLeft = 'auto';
-                collaborationPanel.style.marginRight = 'auto';
-                collaborationPanel.style.boxSizing = 'border-box';
-            }
-            
             if (taskPanel) {
                 taskPanel.style.position = 'static';
                 taskPanel.style.height = 'auto';
@@ -318,44 +271,16 @@ class RealAIInterface {
                 taskPanel.style.boxSizing = 'border-box';
             }
         } else {
-            // On desktop, reset to default positioning
-            if (aiControlPanel) {
-                aiControlPanel.style.position = 'fixed';
-                aiControlPanel.style.width = '';
-                aiControlPanel.style.maxHeight = '';
-                aiControlPanel.style.top = '80px';
-                aiControlPanel.style.right = '20px';
-                aiControlPanel.style.left = 'auto';
-                aiControlPanel.style.zIndex = '5000';
-                aiControlPanel.style.marginBottom = '';
-                aiControlPanel.style.marginLeft = '';
-                aiControlPanel.style.marginRight = '';
-                aiControlPanel.style.boxSizing = '';
-                aiControlPanel.classList.remove('mobile-layout');
-            }
-            
-            if (collaborationPanel) {
-                collaborationPanel.style.position = 'fixed';
-                collaborationPanel.style.width = '';
-                collaborationPanel.style.maxHeight = '';
-                collaborationPanel.style.top = '80px';
-                collaborationPanel.style.left = '20px';
-                collaborationPanel.style.right = 'auto';
-                collaborationPanel.style.zIndex = '5000';
-                collaborationPanel.style.marginBottom = '';
-                collaborationPanel.style.marginLeft = '';
-                collaborationPanel.style.marginRight = '';
-                collaborationPanel.style.boxSizing = '';
-                collaborationPanel.classList.remove('mobile-layout');
-            }
-            
+            // On desktop, use horizontal layout
             if (taskPanel) {
                 taskPanel.style.position = 'fixed';
-                taskPanel.style.height = '';
-                taskPanel.style.maxHeight = '';
+                taskPanel.style.height = '400px';
+                taskPanel.style.maxHeight = '400px';
+                taskPanel.style.top = '';
                 taskPanel.style.bottom = '20px';
-                taskPanel.style.left = '20px';
-                taskPanel.style.right = '20px';
+                taskPanel.style.left = '10px';
+                taskPanel.style.right = '30px';
+                taskPanel.style.transform = 'translateY(30px)';
                 taskPanel.style.zIndex = '';
                 taskPanel.style.margin = '';
                 taskPanel.style.marginLeft = '';
@@ -363,6 +288,7 @@ class RealAIInterface {
                 taskPanel.style.width = '';
                 taskPanel.style.boxSizing = '';
                 taskPanel.classList.remove('mobile-layout');
+                taskPanel.classList.add('horizontal-layout');
             }
         }
     }
@@ -681,7 +607,10 @@ class RealAIInterface {
             const resultElement = document.createElement('div');
             resultElement.className = 'task-result';
             resultElement.innerHTML = `
-                <h4>Task Result</h4>
+                <div class="result-header">
+                    <h4>Task Result</h4>
+                    <span class="timestamp">${new Date().toLocaleString()}</span>
+                </div>
                 <div class="result-content">
                     <p><strong>Task ID:</strong> ${taskId.substring(0, 8)}</p>
                     <p><strong>Result:</strong></p>
@@ -709,7 +638,10 @@ class RealAIInterface {
             const errorElement = document.createElement('div');
             errorElement.className = 'task-error';
             errorElement.innerHTML = `
-                <h4>Task Error</h4>
+                <div class="result-header">
+                    <h4>Task Error</h4>
+                    <span class="timestamp">${new Date().toLocaleString()}</span>
+                </div>
                 <div class="error-content">
                     <p>${errorMessage}</p>
                 </div>
@@ -755,7 +687,10 @@ class RealAIInterface {
             const resultElement = document.createElement('div');
             resultElement.className = 'task-result collaboration-result';
             resultElement.innerHTML = `
-                <h4>Collaboration Result</h4>
+                <div class="result-header">
+                    <h4>Collaboration Result</h4>
+                    <span class="timestamp">${new Date().toLocaleString()}</span>
+                </div>
                 <div class="result-content">
                     <p><strong>Collaboration ID:</strong> ${sessionId.substring(0, 8)}</p>
                     <p><strong>Final Result:</strong></p>
@@ -824,7 +759,10 @@ class RealAIInterface {
                 
                 return `
                 <div class="history-item">
-                    <h5>${description}</h5>
+                    <div class="history-header">
+                        <h5>${description}</h5>
+                        <span class="task-type">${task.type || 'Unknown'}</span>
+                    </div>
                     <p class="task-meta">
                         <span>ID: ${taskId.substring(0, 8)}</span>
                         <span>Date: ${new Date().toLocaleDateString()}</span>
@@ -974,182 +912,6 @@ class RealAIInterface {
         }
     }
     
-    setupAIControlPanelToggle() {
-        const toggle = document.getElementById('ai-control-toggle');
-        const panel = toggle?.closest('.ai-control-panel');
-        const content = panel?.querySelector('.panel-content');
-        const arrow = toggle?.querySelector('span');
-        const header = panel?.querySelector('.panel-header h3');
-        
-        if (toggle && content && arrow) {
-            // Initialize panel state
-            let isCollapsed = false;
-            
-            // Add visual feedback for toggle button
-            toggle.addEventListener('mouseenter', () => {
-                toggle.style.background = 'rgba(14, 165, 233, 0.3)';
-            });
-            
-            toggle.addEventListener('mouseleave', () => {
-                toggle.style.background = 'rgba(0, 20, 40, 0.5)';
-            });
-            
-            toggle.addEventListener('click', () => {
-                isCollapsed = !isCollapsed;
-                
-                // Add loading state to prevent rapid clicks
-                toggle.style.pointerEvents = 'none';
-                
-                if (isCollapsed) {
-                    // Collapse panel with animation
-                    panel.classList.add('collapsed');
-                    content.style.opacity = '0';
-                    content.style.pointerEvents = 'none';
-                    content.style.transform = 'scale(0.8)';
-                    arrow.textContent = '▶';
-                    arrow.style.transform = 'rotate(180deg)';
-                    if (header) {
-                        header.style.opacity = '0';
-                    }
-                    
-                    // Update toggle button position for collapsed state
-                    if (window.innerWidth > 768) {
-                        toggle.style.right = '-50px';
-                    } else {
-                        toggle.style.right = '10px';
-                    }
-                } else {
-                    // Expand panel with animation
-                    panel.classList.remove('collapsed');
-                    // 先重置样式，再设置展开样式，确保动画流畅
-                    content.style.transform = 'scale(0.8)';
-                    content.style.opacity = '0';
-                    
-                    // 触发重排
-                    content.offsetHeight;
-                    
-                    // 设置展开样式
-                    content.style.opacity = '1';
-                    content.style.pointerEvents = 'auto';
-                    content.style.transform = 'scale(1)';
-                    arrow.textContent = '▶';
-                    arrow.style.transform = 'rotate(0deg)';
-                    if (header) {
-                        header.style.opacity = '1';
-                    }
-                    
-                    // Update toggle button position for expanded state
-                    if (window.innerWidth > 768) {
-                        toggle.style.right = '-40px';
-                    } else {
-                        toggle.style.right = '10px';
-                    }
-                }
-                
-                // Add smooth transition effect
-                toggle.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                arrow.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                if (header) {
-                    header.style.transition = 'opacity 0.3s ease';
-                }
-                content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                
-                // Re-enable toggle after animation
-                setTimeout(() => {
-                    toggle.style.pointerEvents = 'auto';
-                }, 300);
-            });
-        }
-    }
-    
-    setupCollaborationPanelToggle() {
-        const toggle = document.getElementById('collaboration-toggle');
-        const panel = toggle?.closest('.collaboration-panel');
-        const content = panel?.querySelector('.panel-content');
-        const arrow = toggle?.querySelector('span');
-        const header = panel?.querySelector('.panel-header h3');
-        
-        if (toggle && content && arrow) {
-            // Initialize panel state
-            let isCollapsed = false;
-            
-            // Add visual feedback for toggle button
-            toggle.addEventListener('mouseenter', () => {
-                toggle.style.background = 'rgba(14, 165, 233, 0.3)';
-            });
-            
-            toggle.addEventListener('mouseleave', () => {
-                toggle.style.background = 'rgba(0, 20, 40, 0.5)';
-            });
-            
-            toggle.addEventListener('click', () => {
-                isCollapsed = !isCollapsed;
-                
-                // Add loading state to prevent rapid clicks
-                toggle.style.pointerEvents = 'none';
-                
-                if (isCollapsed) {
-                    // Collapse panel with animation
-                    panel.classList.add('collapsed');
-                    content.style.opacity = '0';
-                    content.style.pointerEvents = 'none';
-                    content.style.transform = 'scale(0.8)';
-                    arrow.textContent = '◀';
-                    arrow.style.transform = 'rotate(180deg)';
-                    if (header) {
-                        header.style.opacity = '0';
-                    }
-                    
-                    // Update toggle button position for collapsed state
-                    if (window.innerWidth > 768) {
-                        toggle.style.left = '-50px';
-                    } else {
-                        toggle.style.right = '10px';
-                    }
-                } else {
-                    // Expand panel with animation
-                    panel.classList.remove('collapsed');
-                    // 先重置样式，再设置展开样式，确保动画流畅
-                    content.style.transform = 'scale(0.8)';
-                    content.style.opacity = '0';
-                    
-                    // 触发重排
-                    content.offsetHeight;
-                    
-                    // 设置展开样式
-                    content.style.opacity = '1';
-                    content.style.pointerEvents = 'auto';
-                    content.style.transform = 'scale(1)';
-                    arrow.textContent = '◀';
-                    arrow.style.transform = 'rotate(0deg)';
-                    if (header) {
-                        header.style.opacity = '1';
-                    }
-                    
-                    // Update toggle button position for expanded state
-                    if (window.innerWidth > 768) {
-                        toggle.style.left = '-40px';
-                    } else {
-                        toggle.style.right = '10px';
-                    }
-                }
-                
-                // Add smooth transition effect
-                toggle.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                arrow.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                if (header) {
-                    header.style.transition = 'opacity 0.3s ease';
-                }
-                content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                
-                // Re-enable toggle after animation
-                setTimeout(() => {
-                    toggle.style.pointerEvents = 'auto';
-                }, 300);
-            });
-        }
-    }
-
     debugFormState() {
         console.log('=== Form Debug Info ===');
         const descriptionElement = document.getElementById('ai-task-description');

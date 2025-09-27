@@ -211,7 +211,7 @@
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Task Type:</label>
+                                <label>Task Type</label>
                                 <select id="task-type">
                                     <option value="strategic_analysis">Strategic Analysis</option>
                                     <option value="creative_problem_solving">Creative Problem Solving</option>
