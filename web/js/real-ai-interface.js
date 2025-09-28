@@ -169,7 +169,7 @@ class RealAIInterface {
         
         document.body.appendChild(taskPanel);
     }
-    
+
     setupEventListeners() {
         console.log('Setting up event listeners...');
         
@@ -236,6 +236,9 @@ class RealAIInterface {
             } else {
                 console.warn('⚠️ Create agent button not found');
             }
+            
+            // Add panel toggle functionality
+            this.setupPanelToggle();
         };
         
         // Try immediately
@@ -248,7 +251,65 @@ class RealAIInterface {
         // Add window resize listener for mobile responsiveness
         window.addEventListener('resize', this.handleWindowResize.bind(this));
     }
-    
+
+    // Setup panel toggle functionality
+    setupPanelToggle() {
+        // Add event listener for the task panel toggle
+        setTimeout(() => {
+            const taskPanel = document.querySelector('.task-panel');
+            
+            // Create toggle button
+            if (taskPanel && !taskPanel.querySelector('.panel-toggle')) {
+                const panelToggle = document.createElement('div');
+                panelToggle.className = 'panel-toggle';
+                panelToggle.title = '折叠/展开面板';
+                panelToggle.innerHTML = '<span>▼</span>';
+                
+                taskPanel.appendChild(panelToggle);
+                
+                // Add event listener
+                panelToggle.addEventListener('click', () => {
+                    this.toggleTaskPanel();
+                });
+                
+                console.log('✅ Panel toggle button added');
+            } else if (taskPanel) {
+                console.warn('⚠️ Panel toggle button already exists');
+            } else {
+                console.warn('⚠️ Task panel not found');
+            }
+        }, 100);
+    }
+
+    // Toggle the entire task panel
+    toggleTaskPanel() {
+        const taskPanel = document.querySelector('.task-panel');
+        const panelToggle = taskPanel?.querySelector('.panel-toggle');
+        
+        if (taskPanel && panelToggle) {
+            // Toggle the collapsed class on the task panel
+            taskPanel.classList.toggle('collapsed');
+            
+            // Update the toggle button icon
+            const toggleSpan = panelToggle.querySelector('span');
+            if (toggleSpan) {
+                if (taskPanel.classList.contains('collapsed')) {
+                    toggleSpan.textContent = '▲';
+                    // Set height to 50px when collapsed
+                    taskPanel.style.height = '50px';
+                    taskPanel.style.maxHeight = '50px';
+                } else {
+                    toggleSpan.textContent = '▼';
+                    // Set height back to 400px when expanded
+                    taskPanel.style.height = '400px';
+                    taskPanel.style.maxHeight = '400px';
+                }
+            }
+            
+            console.log('Toggled task panel');
+        }
+    }
+
     // Handle window resize for mobile responsiveness
     handleWindowResize() {
         const isMobile = window.innerWidth <= 768;

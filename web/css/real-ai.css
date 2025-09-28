@@ -788,6 +788,18 @@
     user-select: none;
 }
 
+.task-panel .panel-toggle {
+    top: 10px;
+    right: 10px;
+    left: auto;
+    border-radius: 8px;
+    transform: rotate(0deg);
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    z-index: 6000;
+}
+
 .panel-toggle:hover {
     background: rgba(14, 165, 233, 0.3);
     transform: scale(1.1);
@@ -848,6 +860,13 @@
     transform: rotate(180deg);
     background: rgba(0, 20, 40, 0.7);
     border: 1px solid #0ea5e9;
+}
+
+.task-panel.horizontal-layout.collapsed .panel-toggle {
+    transform: rotate(180deg);
+    top: 10px;
+    right: 10px;
+    left: auto;
 }
 
 /* 移动端折叠样式优化 */
@@ -1338,7 +1357,30 @@
     right: 30px;
     top: auto;
     padding: 0;
-    transform: translateY(30px);
+    transform: translateY(50px);
+    transition: all 0.3s ease;
+}
+
+/* 折叠状态样式 */
+.task-panel.horizontal-layout.collapsed {
+    height: 50px;
+    min-height: 50px;
+    overflow: hidden;
+}
+
+.task-panel.horizontal-layout.collapsed .panel-section {
+    padding: 0;
+    overflow: hidden;
+}
+
+.task-panel.horizontal-layout.collapsed .panel-header {
+    margin-bottom: 0;
+    padding: 15px 20px;
+    border-bottom: none;
+}
+
+.task-panel.horizontal-layout.collapsed .panel-section > *:not(.panel-header) {
+    display: none;
 }
 
 .task-panel.horizontal-layout .panel-section {
@@ -2505,11 +2547,6 @@
     padding: 4px 8px;
     background: rgba(168, 85, 247, 0.1);
     border-radius: 4px;
-}
-
-/* Task Submission Form */
-.collaboration-lab-section {
-    margin-bottom: 30px;
 }
 
 .task-submission {
