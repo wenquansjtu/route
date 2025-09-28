@@ -2853,6 +2853,124 @@
     font-weight: 500;
 }
 
+/* Agent Creation Modal Styles */
+#agent-creation-modal {
+    display: flex;
+    z-index: 10000;
+}
+
+#agent-creation-modal .modal-content {
+    background: rgba(26, 27, 60, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    z-index: 10001;
+}
+
+#agent-creation-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    z-index: 10002;
+}
+
+#agent-creation-modal .modal-header h3 {
+    color: #64b5f6;
+    margin: 0;
+}
+
+#agent-creation-modal .modal-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 5px;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+}
+
+#agent-creation-modal .modal-close:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+#agent-creation-modal .modal-body {
+    padding: 25px;
+}
+
+#agent-creation-modal .form-group {
+    margin-bottom: 20px;
+}
+
+#agent-creation-modal .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+}
+
+#agent-creation-modal .form-group input,
+#agent-creation-modal .form-group select,
+#agent-creation-modal .form-group textarea {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+    min-height: 44px;
+}
+
+#agent-creation-modal .form-group input:focus,
+#agent-creation-modal .form-group select:focus,
+#agent-creation-modal .form-group textarea:focus {
+    outline: none;
+    border-color: #64b5f6;
+}
+
+#agent-creation-modal .btn {
+    padding: 10px 20px;
+    border-radius: 25px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-block;
+    text-align: center;
+}
+
+#agent-creation-modal .btn-primary {
+    background: linear-gradient(45deg, #2196f3, #21cbf3);
+    color: white;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+}
+
+#agent-creation-modal .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+}
+
 .agent-creation-modal .form-group input:focus,
 .agent-creation-modal .form-group textarea:focus,
 .agent-creation-modal .form-group select:focus {

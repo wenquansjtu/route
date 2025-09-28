@@ -854,13 +854,13 @@ class RealAIInterface {
     showCreateAgentDialog() {
         // Create modal dialog for agent creation
         const modal = document.createElement('div');
-        modal.className = 'agent-creation-modal';
+        modal.className = 'modal';  // 使用已定义的modal类名而不是agent-creation-modal
         modal.id = 'agent-creation-modal';
         modal.innerHTML = `
             <div class="modal-content">
                 <div class="modal-header">
                     <h3>Create New AI Agent</h3>
-                    <button class="close-btn">&times;</button>
+                    <button class="modal-close">&times;</button>
                 </div>
                 <div class="modal-body">
                     <form id="create-agent-form">
@@ -888,7 +888,7 @@ class RealAIInterface {
                         </div>
                         <button type="submit" class="btn btn-primary">Create Agent</button>
                     </form>
-                    <div id="agent-creation-error" class="error-message" style="display: none;"></div>
+                    <div id="agent-creation-error" class="error-message" style="display: none; color: #ef4444; margin-top: 15px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 4px;"></div>
                 </div>
             </div>
         `;
@@ -896,7 +896,7 @@ class RealAIInterface {
         document.body.appendChild(modal);
         
         // Add event listeners
-        const closeBtn = modal.querySelector('.close-btn');
+        const closeBtn = modal.querySelector('.modal-close');
         closeBtn.addEventListener('click', () => {
             this.hideCreateAgentDialog();
         });
@@ -904,9 +904,9 @@ class RealAIInterface {
         const form = document.getElementById('create-agent-form');
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.createAIAGent();
+            this.createAIAgent();
         });
-        
+
         // Close modal when clicking outside
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
@@ -917,7 +917,7 @@ class RealAIInterface {
         // Make modal responsive on mobile
         this.makeModalResponsive(modal);
     }
-    
+
     // Make modal responsive on mobile devices
     makeModalResponsive(modal) {
         const isMobile = window.innerWidth <= 768;
@@ -938,7 +938,7 @@ class RealAIInterface {
         }
     }
     
-    createAIAGent() {
+    createAIAgent() {
         const name = document.getElementById('agent-name').value;
         const type = document.getElementById('agent-type').value;
         const capabilities = document.getElementById('agent-capabilities').value.split(',').map(c => c.trim()).filter(c => c);
