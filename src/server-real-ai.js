@@ -61,6 +61,7 @@ class RealAICosmicServer {
     
     // Check for OpenAI API key
     if (!process.env.OPENAI_API_KEY) {
+      console.warn('⚠️  OpenAI API key not found. AI functionality will be limited.');
     }
     
     // Real AI Collaboration Engine
@@ -150,6 +151,13 @@ class RealAICosmicServer {
     
     // Initialize AI agents with a promise to track completion
     this.agentInitializationPromise = this.initializeAIAgentsAsync();
+    
+    // For Vercel deployments, initialize agents immediately but don't wait for them
+    if (process.env.VERCEL) {
+      this.initializeAIAgentsAsync().catch(error => {
+        console.error('Failed to initialize AI agents:', error);
+      });
+    }
   }
   
   // Asynchronous version of agent initialization that returns a promise
@@ -256,7 +264,12 @@ class RealAICosmicServer {
       try {
         // Wait for agent initialization in Vercel environment
         if (process.env.VERCEL && this.agentInitializationPromise) {
-          await this.agentInitializationPromise;
+          try {
+            await this.agentInitializationPromise;
+          } catch (initError) {
+            console.error('Agent initialization failed:', initError);
+            // Continue anyway as agents might be initialized later
+          }
         }
         
         const taskData = req.body;
@@ -280,6 +293,8 @@ class RealAICosmicServer {
         }
         this.processingTasks.add(taskData.id);
         
+        console.log(`🚀 Starting collaboration for task: ${taskData.id}`);
+        
         const result = await this.aiCollaboration.submitCollaborativeTask(taskData);
         
         this.taskHistory.push({
@@ -290,6 +305,7 @@ class RealAICosmicServer {
         
         // Broadcast result to connected clients
         if (this.broadcastUpdate) this.broadcastUpdate('ai-collaboration-completed', result);
+        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-collaboration-completed', result);
         
         // Remove task from processing set
         this.processingTasks.delete(taskData.id);
@@ -300,6 +316,8 @@ class RealAICosmicServer {
         });
         
       } catch (error) {
+        console.error('❌ Task collaboration failed:', error);
+        
         // Remove task from processing set even on error
         if (this.processingTasks && req.body.id) {
           this.processingTasks.delete(req.body.id);
@@ -498,6 +516,8 @@ class RealAICosmicServer {
   
   async initializeAIAgents() {
     try {
+      console.log('🤖 Initializing AI agents...');
+      
       // Create Prof. Smoot agent (specialized cosmic structure expert)
       const profSmoot = await this.aiCollaboration.createAIAgent({
         name: 'Prof. Smoot',
@@ -587,7 +607,10 @@ You should provide thorough validation reports with clear pass/fail indicators a
       this.synthesizer = synthesizer;
       this.validator = validator;
       
+      console.log('✅ AI agents initialized successfully');
+      
     } catch (error) {
+      console.error('❌ Failed to initialize AI agents:', error);
       throw error;
     }
   }

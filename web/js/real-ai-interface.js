@@ -499,6 +499,48 @@ class RealAIInterface {
                 this.showTaskError('Error processing collaboration result');
             }
         });
+        
+        // Add handler for task chain execution steps (progress updates)
+        this.websocket.on('task-chain-execution-step', (data) => {
+            console.log('🔄 Task chain execution step:', data);
+            try {
+                // Update the collaboration progress display
+                this.updateCollaborationProgress({
+                    message: `Executing: ${data.taskName}`,
+                    phase: data.phase
+                });
+            } catch (e) {
+                console.error('Error processing task chain execution step:', e);
+            }
+        });
+        
+        // Add handler for Prof. Smoot allocation events
+        this.websocket.on('prof-smoot-allocation', (data) => {
+            console.log('🌌 Prof. Smoot allocation:', data);
+            try {
+                // Update the collaboration progress display
+                this.updateCollaborationProgress({
+                    message: `Prof. Smoot allocated task to ${data.allocatedAgents.length} agents`,
+                    phase: 'task_allocation'
+                });
+            } catch (e) {
+                console.error('Error processing Prof. Smoot allocation:', e);
+            }
+        });
+        
+        // Add handler for fallback allocation events
+        this.websocket.on('fallback-allocation', (data) => {
+            console.log('🔄 Fallback allocation:', data);
+            try {
+                // Update the collaboration progress display
+                this.updateCollaborationProgress({
+                    message: `Fallback allocation used for ${data.allocatedAgents.length} agents`,
+                    phase: 'task_allocation'
+                });
+            } catch (e) {
+                console.error('Error processing fallback allocation:', e);
+            }
+        });
     }
     
     requestAIStatus() {
@@ -621,8 +663,10 @@ class RealAIInterface {
             return;
         }
         
-        // Create task data
+        // Create task data with a proper ID
+        const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const taskData = {
+            id: taskId,
             type: taskType,
             description: description,
             priority: priority,
@@ -633,23 +677,13 @@ class RealAIInterface {
         console.log('Task data:', taskData);
         
         // Send task to server
-        if (this.websocket && this.websocket.connected) {
+        if (this.websocket && (this.websocket.connected || this.websocket.isDemoMode)) {
             console.log('📤 Sending task to server via WebSocket');
             const result = this.websocket.send('submit-ai-task', taskData);
             console.log('📤 Task submission result:', result);
             
             // Show task in progress immediately after submission
-            this.showTaskInProgress('pending'); // Show pending status while waiting for server ack
-            
-            // Clear form
-            document.getElementById('ai-task-form').reset();
-            document.getElementById('complexity-value').textContent = '50';
-        } else if (this.websocket && this.websocket.isDemoMode) {
-            console.log('📤 Sending task to server via Demo Mode');
-            this.websocket.send('submit-ai-task', taskData);
-            
-            // Show task in progress immediately after submission
-            this.showTaskInProgress('pending'); // Show pending status while waiting for server ack
+            this.showTaskInProgress(taskId); // Show the actual task ID
             
             // Clear form
             document.getElementById('ai-task-form').reset();
@@ -755,10 +789,18 @@ class RealAIInterface {
         }
         
         if (phasesDisplay && data.phase) {
-            const phaseElement = document.createElement('div');
-            phaseElement.className = 'phase-item';
-            phaseElement.textContent = `${data.phase}: ${data.details || ''}`;
-            phasesDisplay.appendChild(phaseElement);
+            // Check if this phase already exists to avoid duplicates
+            const existingPhase = phasesDisplay.querySelector(`[data-phase="${data.phase}"]`);
+            if (!existingPhase) {
+                const phaseElement = document.createElement('div');
+                phaseElement.className = 'phase-item';
+                phaseElement.setAttribute('data-phase', data.phase);
+                phaseElement.textContent = `${data.phase}: ${data.message || 'In progress'}`;
+                phasesDisplay.appendChild(phaseElement);
+                
+                // Scroll to bottom to show latest phase
+                phasesDisplay.scrollTop = phasesDisplay.scrollHeight;
+            }
         }
     }
     

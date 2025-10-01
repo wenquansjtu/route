@@ -72,6 +72,8 @@ export class RealAICollaborationEngine extends EventEmitter {
    * Submit task for real AI collaboration
    */
   async submitCollaborativeTask(taskData) {
+    console.log(`\n📋 Submitting Collaborative Task: ${taskData.description}`);
+    
     // Check if we're already processing this task
     if (this.activeTasks.has(taskData.id)) {
       const existingSessionId = this.activeTasks.get(taskData.id);
@@ -102,8 +104,6 @@ export class RealAICollaborationEngine extends EventEmitter {
       id: taskData.id || generateId(),
     });
     
-    console.log(`\n📋 Submitting Collaborative Task: ${task.description}`);
-    
     // Select optimal AI agents for this task
     const selectedAgents = await this._selectOptimalAIAgents(task);
     
@@ -129,6 +129,8 @@ export class RealAICollaborationEngine extends EventEmitter {
    * Select optimal AI agents for a task
    */
   async _selectOptimalAIAgents(task) {
+    console.log(`🔍 Selecting optimal agents for task: ${task.description}`);
+    
     // Filter available agents with more flexible criteria
     const availableAgents = Array.from(this.aiAgents.values())
       .filter(agent => {
@@ -149,6 +151,8 @@ export class RealAICollaborationEngine extends EventEmitter {
         
         return isAvailable;
       });
+    
+    console.log(`📊 Found ${availableAgents.length} available agents out of ${this.aiAgents.size} total agents`);
     
     if (availableAgents.length === 0) {
       console.warn('No agents available with standard criteria, trying fallback selection...');
@@ -172,7 +176,9 @@ export class RealAICollaborationEngine extends EventEmitter {
       }
       
       // Return up to 3 fallback agents
-      return fallbackAgents.slice(0, 3);
+      const selectedFallback = fallbackAgents.slice(0, 3);
+      console.log(`🔄 Using fallback selection, returning ${selectedFallback.length} agents`);
+      return selectedFallback;
     }
     
     // Check if Prof. Smoot is available for task allocation
@@ -270,6 +276,7 @@ export class RealAICollaborationEngine extends EventEmitter {
       });
     }
     
+    console.log(`✅ Selected ${selectedAgents.length} agents using fallback method`);
     return selectedAgents;
   }
   

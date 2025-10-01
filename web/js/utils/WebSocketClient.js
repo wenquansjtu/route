@@ -35,6 +35,7 @@ export class WebSocketClient {
         try {
             // Convert WebSocket URL to SSE URL
             const sseUrl = this.convertToSSEUrl(url);
+            console.log('🔄 Connecting to SSE endpoint:', sseUrl);
             
             // If we have an existing connection, close it first
             if (this.eventSource) {
@@ -52,6 +53,7 @@ export class WebSocketClient {
                 const timeout = setTimeout(() => {
                     this.isConnecting = false;
                     if (this.eventSource.readyState !== EventSource.OPEN) {
+                        console.warn('⚠️ Connection timeout, switching to demo mode for Vercel deployments');
                         // If connection fails, switch to demo mode for Vercel deployments
                         if (BackendConfig.isVercelDeployment()) {
                             this.switchToDemoMode();
@@ -68,6 +70,7 @@ export class WebSocketClient {
                     this.isConnecting = false;
                     this.reconnectAttempts = 0;
                     this.connectionFailed = false;
+                    console.log('✅ Connected to SSE endpoint');
                     this.emit('connected');
                     resolve();
                 };
@@ -77,10 +80,12 @@ export class WebSocketClient {
                     this.isConnected = false;
                     this.isConnecting = false;
                     this.connectionFailed = true;
+                    console.error('❌ SSE connection error:', error);
                     this.emit('error', error);
                     
                     // If this is a Vercel deployment, switch to demo mode instead of reconnecting
                     if (BackendConfig.isVercelDeployment()) {
+                        console.log('🔄 Switching to demo mode for Vercel deployment');
                         this.switchToDemoMode();
                         resolve();
                         return;
@@ -95,9 +100,11 @@ export class WebSocketClient {
         } catch (error) {
             this.isConnecting = false;
             this.connectionFailed = true;
+            console.error('❌ Failed to establish SSE connection:', error);
             
             // If this is a Vercel deployment, switch to demo mode instead of reconnecting
             if (BackendConfig.isVercelDeployment()) {
+                console.log('🔄 Switching to demo mode for Vercel deployment');
                 this.switchToDemoMode();
                 return Promise.resolve();
             }
@@ -429,7 +436,7 @@ export class WebSocketClient {
         }
         
         // SSE is unidirectional, so we need to send messages via HTTP POST
-        if (this.isConnected) {
+        if (this.isConnected || this.eventSource) {
             try {
                 // Convert WebSocket URL to API URL for sending messages
                 const apiUrl = this.convertToSSEUrl(BackendConfig.getWebSocketUrl()).replace('/sse', '/api/message');
