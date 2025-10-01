@@ -377,6 +377,17 @@ export class WebSocketClient {
                 const data = JSON.parse(event.data);
                 this.emit('ai-agent-created', data);
             } catch (e) {
+                console.error('Error parsing ai-agent-created event:', e);
+            }
+        });
+        
+        // Add handler for agent-created event (alternative event name)
+        this.eventSource.addEventListener('agent-created', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                this.emit('agent-created', data);
+            } catch (e) {
+                console.error('Error parsing agent-created event:', e);
             }
         });
         

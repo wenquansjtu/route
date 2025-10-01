@@ -1,5 +1,5 @@
 // Simple Service Worker for PWA support
-const CACHE_NAME = 'real-ai-network-v1.0.0';
+const CACHE_NAME = 'real-ai-network-v1.0.1';
 const urlsToCache = [
   '/',
   '/index.html',

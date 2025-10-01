@@ -64,7 +64,7 @@ export class RealAICollaborationEngine extends EventEmitter {
     console.log(`   Capabilities: ${aiAgent.capabilities.join(', ')}`);
     console.log(`   Personality: ${aiAgent.personality.traits.join(', ')}`);
     
-    this.emit('ai-agent-created', { agentId: aiAgent.id, agent: aiAgent });
+    this.emit('ai-agent-created', { agentId: aiAgent.id, agent: aiAgent.getAIStatusSummary() });
     return aiAgent;
   }
   

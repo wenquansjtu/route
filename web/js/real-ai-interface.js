@@ -431,6 +431,18 @@ class RealAIInterface {
             }
         });
         
+        // Add handler for agent-created event (alternative event name)
+        this.websocket.on('agent-created', (data) => {
+            if (data.success) {
+                console.log('✅ AI Agent created successfully:', data.agent);
+                this.addAgentToList(data.agent);
+                this.hideCreateAgentDialog();
+            } else {
+                console.error('❌ Failed to create AI Agent:', data.error);
+                this.showAgentCreationError(data.error);
+            }
+        });
+        
         this.websocket.on('send-error', (data) => {
             console.error('❌ Send error:', data);
             this.showTaskError(`Failed to send task to server: ${data.error || data.statusText || 'Unknown error'}`);
@@ -527,7 +539,10 @@ class RealAIInterface {
     
     updateAgentList(agents) {
         const agentsList = document.getElementById('ai-agents-list');
-        if (!agentsList) return;
+        if (!agentsList) {
+            console.error('Agents list element not found');
+            return;
+        }
         
         // Convert agents object to array if needed
         const agentsArray = Array.isArray(agents) ? agents : Object.values(agents);
@@ -548,7 +563,27 @@ class RealAIInterface {
     
     addAgentToList(agent) {
         const agentsList = document.getElementById('ai-agents-list');
-        if (!agentsList) return;
+        if (!agentsList) {
+            console.error('Agents list element not found');
+            return;
+        }
+        
+        // Check if agent already exists in the list
+        const existingAgent = agentsList.querySelector(`.agent-item[data-agent-id="${agent.id}"]`);
+        if (existingAgent) {
+            // Update existing agent
+            existingAgent.innerHTML = `
+                <div class="agent-info">
+                    <h5>${agent.name}</h5>
+                    <p class="agent-type">${agent.type}</p>
+                </div>
+                <div class="agent-status">
+                    <span class="status-dot ${agent.status || 'active'}"></span>
+                    <span>${agent.status || 'active'}</span>
+                </div>
+            `;
+            return;
+        }
         
         const agentElement = document.createElement('div');
         agentElement.className = 'agent-item';

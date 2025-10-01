@@ -2,15 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Cosmic Agent Network - Real AI Multi-Agent System</title>
+    <meta name="description" content="Real AI Multi-Agent System with collaborative intelligence and network topology visualization">
+    <meta name="theme-color" content="#0a0e27">
     
     
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkNvc21pYyBBZ2VudCBOZXR3b3JrIC0gUmVhbCBBSSBNdWx0aS1BZ2VudCBTeXN0ZW0iLAogICJzaG9ydF9uYW1lIjogIlJlYWwgQUkgTmV0d29yayIsCiAgImRlc2NyaXB0aW9uIjogIlJlYWwgQUkgTXVsdGktQWdlbnQgU3lzdGVtIHdpdGggY29sbGFib3JhdGl2ZSBpbnRlbGxpZ2VuY2UgYW5kIG5ldHdvcmsgdG9wb2xvZ3kgdmlzdWFsaXphdGlvbiIsCiAgInN0YXJ0X3VybCI6ICIvIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGEwZTI3IiwKICAidGhlbWVfY29sb3IiOiAiIzBhMGUyNyIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImljb25zL2ljb24tNzJ4NzIucG5nIiwKICAgICAgInNpemVzIjogIjcyeDcyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJpY29ucy9pY29uLTk2eDk2LnBuZyIsCiAgICAgICJzaXplcyI6ICI5Nng5NiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiaWNvbnMvaWNvbi0xMjh4MTI4LnBuZyIsCiAgICAgICJzaXplcyI6ICIxMjh4MTI4IiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJpY29ucy9pY29uLTE0NHgxNDQucG5nIiwKICAgICAgInNpemVzIjogIjE0NHgxNDQiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9LAogICAgewogICAgICAic3JjIjogImljb25zL2ljb24tMTUyeDE1Mi5wbmciLAogICAgICAic2l6ZXMiOiAiMTUyeDE1MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiaWNvbnMvaWNvbi0xOTJ4MTkyLnBuZyIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJpY29ucy9pY29uLTM4NHgzODQucG5nIiwKICAgICAgInNpemVzIjogIjM4NHgzODQiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9LAogICAgewogICAgICAic3JjIjogImljb25zL2ljb24tNTEyeDUxMi5wbmciLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0KICBdCn0=">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
-  <script type="module" crossorigin src="/assets/index-6d97c1ed.js"></script>
-  <link rel="stylesheet" href="/assets/index-6562194d.css">
+  <script type="module" crossorigin src="/assets/index-95b778cc.js"></script>
+  <link rel="stylesheet" href="/assets/index-ff8cc1db.css">
 </head>
 <body>
     <div id="app">
@@ -211,15 +215,27 @@
                         <div class="dashboard-section">
                             <h2>🗺️ Network Topology</h2>
                             <div class="controls" style="margin-bottom: 20px;">
-                                <button id="layout-force" class="btn">Force Layout</button>
                                 <button id="layout-circular" class="btn">Circular</button>
                                 <button id="layout-hierarchical" class="btn">Hierarchical</button>
                                 <label style="margin-left: 20px; color: #0ea5e9;">Node Size:</label>
                                 <input type="range" id="node-size" min="5" max="20" value="10" style="margin: 0 10px;">
                                 <label style="color: #0ea5e9;">Link Strength:</label>
                                 <input type="range" id="link-strength" min="0.1" max="2" step="0.1" value="1" style="margin: 0 10px;">
+                                <button id="refresh-topology" class="btn" style="margin-left: 10px;">Refresh Topology</button>
                             </div>
-                            <div id="network-graph" style="width: 100%; height: 400px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3);"></div>
+                            <div id="network-graph" style="width: 100%; height: 500px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3); position: relative; display: block !important; visibility: visible !important;">
+                                <!-- Loading indicator -->
+                                <div id="network-viz-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0ea5e9; font-size: 18px; display: block !important; visibility: visible !important;">
+                                    初始化网络拓扑图...
+                                </div>
+                                <!-- Dynamic network visualization will be rendered here by NetworkVisualizer component -->
+                            </div>
+                            <!-- Error message container -->
+                            <div id="network-viz-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ef4444; font-size: 16px; text-align: center; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 8px; z-index: 100;">
+                                <div>❌ 网络拓扑图初始化失败</div>
+                                <div id="network-viz-error-message" style="font-size: 14px; margin-top: 10px;"></div>
+                                <button onclick="window.location.reload()" style="background: #0ea5e9; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 15px;">刷新页面</button>
+                            </div>
                         </div>
 
                         <!-- Network Metrics -->
@@ -555,6 +571,9 @@
                     </div>
                 </div>
             </section>
+            
+            <!-- 空白块 -->
+            <div style="height: 300px;"></div>
         </main>
 
         <!-- 任务创建模态框 -->
@@ -620,5 +639,73 @@
     
     
     
+    
+    <!-- Test script to verify D3 is loaded -->
+    <script>
+        // Check if D3 is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof d3 !== 'undefined') {
+                console.log('✅ D3.js is loaded successfully');
+            } else {
+                console.error('❌ D3.js failed to load');
+                // Try to load D3 dynamically
+                const script = document.createElement('script');
+                script.src = 'https://d3js.org/d3.v7.min.js';
+                script.onload = () => console.log('✅ D3.js loaded dynamically');
+                script.onerror = () => console.error('❌ Failed to load D3.js dynamically');
+                document.head.appendChild(script);
+            }
+        });
+    </script>
+    
+    <!-- Auto-initialize network visualization when the page loads -->
+    <script>
+        // Auto-initialize network visualization after a delay
+        window.addEventListener('load', function() {
+            // Wait for the app to be initialized
+            let retryCount = 0;
+            const maxRetries = 10;
+            
+            // Check if we're on a mobile device
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            function checkAndInitialize() {
+                retryCount++;
+                
+                if (typeof window.cosmicApp !== 'undefined' && window.cosmicApp) {
+                    // Check if we're on the network view or if network visualization is needed
+                    const networkSection = document.getElementById('network');
+                    if (networkSection && (networkSection.style.display !== 'none' || window.cosmicApp.currentView === 'network')) {
+                        // Initialize network visualization
+                        if (!window.cosmicApp.networkViz) {
+                            try {
+                                window.cosmicApp.networkViz = new NetworkVisualizer('#network-graph');
+                            } catch (error) {
+                                console.error('创建网络可视化组件失败:', error);
+                            }
+                        }
+                        
+                        if (window.cosmicApp.networkViz) {
+                            // Adjust initialization parameters based on device type
+                            const maxAttempts = isMobile ? 15 : 20;
+                            const retryDelay = isMobile ? 300 : 200;
+                            
+                            setTimeout(function() {
+                                window.cosmicApp.networkViz.initWhenReady(maxAttempts, retryDelay);
+                            }, 500);
+                        }
+                    }
+                } else {
+                    // Retry after a longer delay
+                    if (retryCount < maxRetries) {
+                        setTimeout(checkAndInitialize, 2000);
+                    }
+                }
+            }
+            
+            // Start checking after a short delay
+            setTimeout(checkAndInitialize, 1000);
+        });
+    </script>
 </body>
 </html>

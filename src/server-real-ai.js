@@ -215,12 +215,36 @@ class RealAICosmicServer {
       try {
         const agentConfig = req.body;
         const aiAgent = await this.aiCollaboration.createAIAgent(agentConfig);
+        
+        // Broadcast agent creation to all clients
+        const agentSummary = aiAgent.getAIStatusSummary();
+        if (this.broadcastUpdate) this.broadcastUpdate('agent-created', { 
+          success: true, 
+          agentId: aiAgent.id,
+          agent: agentSummary
+        });
+        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-agent-created', { 
+          success: true, 
+          agentId: aiAgent.id,
+          agent: agentSummary
+        });
+        
         res.json({ 
           success: true, 
           agentId: aiAgent.id,
-          agent: aiAgent.getAIStatusSummary()
+          agent: agentSummary
         });
       } catch (error) {
+        // Broadcast error to all clients
+        if (this.broadcastUpdate) this.broadcastUpdate('agent-error', { 
+          success: false, 
+          error: error.message 
+        });
+        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-agent-error', { 
+          success: false, 
+          error: error.message 
+        });
+        
         res.status(400).json({ 
           success: false, 
           error: error.message 
@@ -316,8 +340,10 @@ class RealAICosmicServer {
           this.handleAgentCreation(payload);
           break;
         default:
+          return res.status(400).json({ success: false, error: 'Unknown message type' });
       }
       
+      // Send success response for all handled message types
       res.status(200).json({ success: true });
     });
     
@@ -400,19 +426,45 @@ class RealAICosmicServer {
       socket.on('create-agent', async (agentConfig) => {
         try {
           const aiAgent = await this.aiCollaboration.createAIAgent(agentConfig);
+          
+          // Broadcast agent creation to all clients
+          const agentSummary = aiAgent.getAIStatusSummary();
           socket.emit('agent-created', { 
             success: true, 
             agentId: aiAgent.id,
-            agent: aiAgent.getAIStatusSummary()
+            agent: agentSummary
           });
           
           // Broadcast to all clients
           this.broadcastUpdate('agent-created', { 
+            success: true, 
             agentId: aiAgent.id,
-            agent: aiAgent.getAIStatusSummary()
+            agent: agentSummary
+          });
+          
+          // Also broadcast with the alternative event name
+          this.broadcastUpdate('ai-agent-created', { 
+            success: true, 
+            agentId: aiAgent.id,
+            agent: agentSummary
           });
         } catch (error) {
-          socket.emit('agent-error', { error: error.message });
+          socket.emit('agent-error', { 
+            success: false, 
+            error: error.message 
+          });
+          
+          // Broadcast error to all clients
+          this.broadcastUpdate('agent-error', { 
+            success: false, 
+            error: error.message 
+          });
+          
+          // Also broadcast with the alternative event name
+          this.broadcastUpdate('ai-agent-error', { 
+            success: false, 
+            error: error.message 
+          });
         }
       });
       
@@ -434,9 +486,8 @@ class RealAICosmicServer {
     // Send to all SSE clients
     this.sseClients.forEach(client => {
       try {
-        if (event) {
-          client.write(`event: ${event}\n`);
-        }
+        // Add event prefix for proper event handling
+        client.write(`event: ${event}\n`);
         client.write(`data: ${JSON.stringify(data)}\n\n`);
       } catch (error) {
         // Remove client if sending fails
@@ -703,8 +754,14 @@ You should provide thorough validation reports with clear pass/fail indicators a
       })
       .catch(error => {
         // Broadcast error
-        if (this.broadcastUpdate) this.broadcastUpdate('agent-error', { error: error.message });
-        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-agent-error', { error: error.message });
+        if (this.broadcastUpdate) this.broadcastUpdate('agent-error', { 
+          success: false,
+          error: error.message 
+        });
+        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-agent-error', { 
+          success: false,
+          error: error.message 
+        });
       });
   }
   
