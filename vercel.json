@@ -6,7 +6,8 @@
       "src": "api/index.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["src/**", "web/**", "package.json"]
+        "includeFiles": ["src/**", "web/**", "package.json"],
+        "maxDuration": 300
       }
     },
     {

@@ -15,7 +15,7 @@ export class RealAICollaborationEngine extends EventEmitter {
     this.config = {
       openaiApiKey: config.openaiApiKey || process.env.OPENAI_API_KEY,
       maxConcurrentTasks: config.maxConcurrentTasks || 10,
-      collaborationTimeout: config.collaborationTimeout || 60000, // 1 minute
+      collaborationTimeout: config.collaborationTimeout || 300000, // 增加到5分钟 (300000ms)
       convergenceThreshold: config.convergenceThreshold || 0.85,
       maxIterations: config.maxIterations || 5,
     };

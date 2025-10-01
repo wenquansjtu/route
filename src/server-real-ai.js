@@ -37,9 +37,9 @@ class RealAICosmicServer {
         maxHttpBufferSize: 1e8, // 100 MB
         transports: ["websocket", "polling"], // Try websocket first, then polling
         allowEIO3: true,
-        pingTimeout: 60000, // Increase ping timeout to 60 seconds
+        pingTimeout: 300000, // 增加ping超时到5分钟
         pingInterval: 25000, // Ping interval of 25 seconds
-        upgradeTimeout: 30000, // 30 seconds for upgrade
+        upgradeTimeout: 300000, // 增加升级超时到5分钟
         // Add transport stability options
         allowUpgrades: true, // Enable upgrades for better connection stability
         cookie: false, // Disable cookie to avoid issues
@@ -66,7 +66,8 @@ class RealAICosmicServer {
     
     // Real AI Collaboration Engine
     this.aiCollaboration = new RealAICollaborationEngine({
-      openaiApiKey: process.env.OPENAI_API_KEY
+      openaiApiKey: process.env.OPENAI_API_KEY,
+      collaborationTimeout: 300000 // 增加协作超时到5分钟
     });
     
     // Listen for task chain events and forward them to clients
