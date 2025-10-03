@@ -141,7 +141,9 @@ Your approach:
    * Analyze optimal task allocation using cosmic structure theory
    */
   async _analyzeTaskAllocation(task, availableAgents) {
-    // Prepare context for cosmic structure analysis
+    // 优化Prof. Smoot的分配决策过程，使用更快速的启发式方法而不是复杂的LLM分析
+    
+    // 准备简化的上下文用于快速分配
     const analysisContext = {
       task: {
         id: task.id,
@@ -155,52 +157,93 @@ Your approach:
         name: agent.name,
         type: agent.type,
         capabilities: agent.capabilities,
-        position: agent.position,
         mass: agent.mass,
         energy: agent.energy,
         performance: agent.performanceMetrics
-      })),
-      cosmicPrinciples: {
-        gravitationalAnalogy: 'Agent mass and proximity determine collaboration strength',
-        anisotropyPrevention: 'Ensure diverse agent selection to prevent collaboration islands',
-        perturbationMapping: 'Semantic distance affects collaboration effectiveness',
-        taskAllocationOptimization: 'Balance specialization with collaboration diversity for optimal results'
-      }
+      }))
     };
     
-    // Use LLM to analyze optimal allocation
-    const allocationPrompt = this._createAllocationPrompt(analysisContext);
+    // 使用快速启发式方法进行任务分配
+    const allocationDecision = this._fastAllocationHeuristic(analysisContext);
     
-    try {
-      const completion = await this.openai.chat.completions.create({
-        model: this.aiConfig.model,
-        messages: [
-          { role: 'system', content: this.aiConfig.systemPrompt },
-          { role: 'user', content: allocationPrompt }
-        ],
-        temperature: 0.3, // Lower temperature for more precise analysis
-        max_tokens: 800,
-      });
+    // 存储分析结果到内存
+    this._storeInMemory('allocation_analysis', {
+      taskId: task.id,
+      context: analysisContext,
+      decision: allocationDecision,
+      timestamp: Date.now()
+    });
+    
+    return allocationDecision;
+  }
+  
+  /**
+   * 快速启发式任务分配方法，替代复杂的LLM分析
+   */
+  _fastAllocationHeuristic(context) {
+    const task = context.task;
+    const agents = context.agents;
+    
+    // 基于能力和能量的快速评分
+    const scoredAgents = agents.map(agent => {
+      // 能力匹配度评分
+      let capabilityScore = 0;
+      if (task.requiredCapabilities && task.requiredCapabilities.length > 0) {
+        const matchingCapabilities = agent.capabilities.filter(cap => 
+          task.requiredCapabilities.includes(cap)
+        ).length;
+        capabilityScore = matchingCapabilities / task.requiredCapabilities.length;
+      } else {
+        capabilityScore = 0.5; // 如果没有指定能力要求，给予中等评分
+      }
       
-      const response = completion.choices[0].message.content;
-      const allocationDecision = this._parseAllocationResponse(response);
+      // 能量状态评分 (0-1)
+      const energyScore = agent.energy / 100;
       
-      // Store analysis in memory
-      this._storeInMemory('allocation_analysis', {
-        taskId: task.id,
-        context: analysisContext,
-        decision: allocationDecision,
-        timestamp: Date.now()
-      });
+      // 性能评分 (0-1)
+      const performanceScore = agent.performance?.successRate || 0.7;
       
-      return allocationDecision;
+      // 综合评分
+      const totalScore = capabilityScore * 0.6 + energyScore * 0.2 + performanceScore * 0.2;
       
-    } catch (error) {
-      console.error('Allocation analysis error:', error);
+      return {
+        agentId: agent.id,
+        score: totalScore,
+        capabilityMatch: capabilityScore
+      };
+    });
+    
+    // 按评分排序
+    scoredAgents.sort((a, b) => b.score - a.score);
+    
+    // 选择评分最高的1-3个Agent
+    const selectedAgents = [];
+    const minAgents = 1;
+    const maxAgents = Math.min(3, agents.length);
+    
+    for (const scoredAgent of scoredAgents) {
+      // 只选择能力匹配度大于0的Agent
+      if (scoredAgent.capabilityMatch > 0 || selectedAgents.length < minAgents) {
+        selectedAgents.push(scoredAgent.agentId);
+      }
       
-      // Fallback to simple allocation
-      return this._fallbackAllocation(task, availableAgents);
+      // 达到最大数量时停止
+      if (selectedAgents.length >= maxAgents) {
+        break;
+      }
     }
+    
+    // 如果没有选择任何Agent，至少选择一个
+    if (selectedAgents.length === 0 && agents.length > 0) {
+      selectedAgents.push(agents[0].id);
+    }
+    
+    return {
+      selectedAgents: selectedAgents,
+      rationale: `快速启发式分配: 基于能力匹配(${(scoredAgents[0]?.capabilityMatch * 100).toFixed(1)}%)和综合评分(${(scoredAgents[0]?.score * 100).toFixed(1)}%)`,
+      confidence: Math.min(0.95, Math.max(0.7, scoredAgents[0]?.score || 0.7)),
+      optimizationFactors: ['快速启发式分配', '能力匹配', '能量状态', '性能指标']
+    };
   }
   
   /**
@@ -251,47 +294,47 @@ Your approach:
    * Create allocation analysis prompt
    */
   _createAllocationPrompt(context) {
-    return `As Prof. George Smoot, apply your expertise in cosmic structure theory to optimize task allocation:
+    return `作为乔治·斯穆特教授，运用您在宇宙结构理论方面的专业知识来优化任务分配:
 
-TASK ANALYSIS:
+任务分析:
 ID: ${context.task.id}
-Description: ${context.task.description}
-Complexity: ${context.task.complexity}
-Priority: ${context.task.priority}
-Required Capabilities: ${context.task.requiredCapabilities?.join(', ') || 'None specified'}
+描述: ${context.task.description}
+复杂度: ${context.task.complexity}
+优先级: ${context.task.priority}
+所需能力: ${context.task.requiredCapabilities?.join(', ') || '未指定'}
 
-AVAILABLE AGENTS:
+可用代理:
 ${context.agents.map(agent => 
   `- ${agent.name} (${agent.type}): 
-    Mass=${agent.mass}, 
-    Energy=${agent.energy}, 
-    Capabilities=[${agent.capabilities.slice(0, 5).join(', ')}],
-    SuccessRate=${agent.performance?.successRate || 'N/A'}`
+    质量=${agent.mass}, 
+    能量=${agent.energy}, 
+    能力=[${agent.capabilities.slice(0, 3).join(', ')}],
+    成功率=${agent.performance?.successRate || 'N/A'}`
 ).join('\n')}
 
-COSMIC STRUCTURE PRINCIPLES:
+宇宙结构原理:
 ${Object.entries(context.cosmicPrinciples).map(([key, value]) => 
   `${key}: ${value}`
 ).join('\n')}
 
-ANALYSIS INSTRUCTIONS:
-1. Treat agent mass as gravitational influence in the collaboration network
-2. Consider energy levels as agent availability
-3. Match required capabilities with agent specializations
-4. Apply anisotropy principles to ensure diverse agent selection
-5. Prevent collaboration islands by balancing specialization with general capability
-6. Consider performance metrics for reliability
-7. Optimize for task complexity and priority
+分析说明:
+1. 将代理质量视为协作网络中的引力影响
+2. 考虑能量水平作为代理可用性
+3. 匹配所需能力与代理专长
+4. 应用各向异性原理确保代理选择的多样性
+5. 通过平衡专业化与协作多样性来防止协作孤岛
+6. 考虑性能指标以确保可靠性
+7. 为任务复杂度和优先级进行优化
 
-Provide your allocation decision in the following JSON format:
+请以以下JSON格式提供您的分配决策:
 {
   "selectedAgents": ["agentId1", "agentId2"],
-  "rationale": "Your detailed explanation (max 200 chars)",
+  "rationale": "您的详细解释(最多150个字符)",
   "confidence": 0.95,
   "optimizationFactors": ["gravitational_balance", "capability_match", "diversity_ensured", "performance_considered"]
 }
 
-ANALYSIS:`;
+分析:`;
   }
   
   /**

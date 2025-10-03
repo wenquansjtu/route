@@ -18,6 +18,9 @@ export class TaskChainManager extends EventEmitter {
       heatDecayRate: config.heatDecayRate || 0.1,
       perturbationSensitivity: config.perturbationSensitivity || 0.3,
       cosmicStructureModeling: config.cosmicStructureModeling !== false,
+      // 添加配置以优化任务链执行速度
+      maxExecutionParallelism: config.maxExecutionParallelism || 5, // 增加并行执行的任务数
+      taskTimeoutMs: config.taskTimeoutMs || 60000, // 减少任务超时时间到60秒
       ...config
     };
     

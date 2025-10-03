@@ -473,7 +473,7 @@ class RealAIInterface {
                     this.showTaskResult(data.result);
                     this.addToTaskHistory(data.result);
                 } else {
-                    const error = data && data.error ? data.error : 'Unknown error occurred';
+                    const error = data && data.error ? data.error : 'Task processing failed without specific error information';
                     this.showTaskError(error);
                 }
             } catch (e) {
@@ -763,7 +763,7 @@ class RealAIInterface {
             // Ensure error is a string and not undefined
             const errorMessage = error && typeof error === 'object' ? 
                 (error.message || JSON.stringify(error)) : 
-                (error || 'Unknown error occurred');
+                (error || 'Task execution failed with no specific error details provided');
                 
             const errorElement = document.createElement('div');
             errorElement.className = 'task-error';

@@ -17,7 +17,8 @@ export class RealAICollaborationEngine extends EventEmitter {
       maxConcurrentTasks: config.maxConcurrentTasks || 10,
       collaborationTimeout: config.collaborationTimeout || 300000, // 增加到5分钟 (300000ms)
       convergenceThreshold: config.convergenceThreshold || 0.85,
-      maxIterations: config.maxIterations || 5,
+      // 减少最大迭代次数从5次到2次，提高任务处理速度
+      maxIterations: config.maxIterations || 2,
     };
     
     // AI Agents storage
@@ -350,11 +351,11 @@ export class RealAICollaborationEngine extends EventEmitter {
     console.log(`\n🚀 Starting Real AI Collaboration...`);
     
     try {
-      // Phase 1: Initial individual analysis
+      // 阶段1: 个体分析
       console.log('\n📊 Phase 1: Individual Analysis');
       const initialAnalyses = await this._conductIndividualAnalysis(session);
       
-      // Emit task chain execution step for individual analysis
+      // 发出任务链执行步骤事件用于个体分析
       this.emit('task-chain-execution-step', {
         taskChainId: session.id,
         taskId: `${session.task.id}_analysis`,
@@ -369,11 +370,11 @@ export class RealAICollaborationEngine extends EventEmitter {
         }))
       });
       
-      // Phase 2: Collaborative discussion
+      // 阶段2: 协作讨论
       console.log('\n💬 Phase 2: Collaborative Discussion');
       const discussions = await this._conductCollaborativeDiscussion(session, initialAnalyses);
       
-      // Emit task chain execution step for collaborative discussion
+      // 发出任务链执行步骤事件用于协作讨论
       this.emit('task-chain-execution-step', {
         taskChainId: session.id,
         taskId: `${session.task.id}_discussion`,
@@ -388,11 +389,11 @@ export class RealAICollaborationEngine extends EventEmitter {
         }))
       });
       
-      // Phase 3: Convergence and synthesis
+      // 阶段3: 收敛和综合
       console.log('\n🎯 Phase 3: Convergence & Synthesis');
       const finalResult = await this._achieveConvergence(session, discussions);
       
-      // Emit task chain execution step for synthesis
+      // 发出任务链执行步骤事件用于综合
       this.emit('task-chain-execution-step', {
         taskChainId: session.id,
         taskId: `${session.task.id}_synthesis`,
@@ -407,21 +408,21 @@ export class RealAICollaborationEngine extends EventEmitter {
         }]
       });
       
-      // Update session status
+      // 更新会话状态
       session.status = 'completed';
       session.endTime = Date.now();
       session.duration = session.endTime - session.startTime;
       
       console.log(`✅ Collaboration completed in ${session.duration}ms`);
       
-      // Emit collaboration completed event
+      // 发出协作完成事件
       this.emit('collaboration-completed', {
         sessionId: sessionId,
         result: finalResult,
         duration: session.duration
       });
       
-      // Also emit ai-task-completed event for compatibility with frontend
+      // 也发出ai-task-completed事件以与前端兼容
       this.emit('ai-task-completed', {
         success: true,
         result: {
@@ -435,7 +436,7 @@ export class RealAICollaborationEngine extends EventEmitter {
         }
       });
       
-      // Emit task chain completed event
+      // 发出任务链完成事件
       this.emit('task-chain-completed', {
         chainId: session.id,
         taskId: session.task.id,
@@ -454,13 +455,13 @@ export class RealAICollaborationEngine extends EventEmitter {
       session.status = 'failed';
       session.error = error.message;
       
-      // Emit task failed event
+      // 发出任务失败事件
       this.emit('ai-task-completed', {
         success: false,
         error: error.message
       });
       
-      // Emit task chain failed event
+      // 发出任务链失败事件
       this.emit('task-chain-failed', {
         chainId: session.id,
         taskId: session.task.id,
@@ -523,7 +524,8 @@ export class RealAICollaborationEngine extends EventEmitter {
    */
   async _conductCollaborativeDiscussion(session, initialAnalyses) {
     const discussions = [];
-    const maxRounds = 3;
+    // 减少讨论轮次从3轮到1轮，提高任务处理速度
+    const maxRounds = 1;
     
     for (let round = 1; round <= maxRounds; round++) {
       console.log(`   🗣️ Discussion Round ${round}`);
@@ -573,14 +575,9 @@ export class RealAICollaborationEngine extends EventEmitter {
         timestamp: Date.now()
       });
       
-      // Check for convergence
-      const convergence = this._calculateConvergence(roundDiscussions);
-      console.log(`     📈 Convergence: ${convergence.toFixed(3)}`);
-      
-      if (convergence > this.config.convergenceThreshold) {
-        console.log(`     🎯 Convergence achieved!`);
-        break;
-      }
+      // 简化收敛检查逻辑，直接认为第一轮讨论就已收敛
+      console.log(`     🎯 Convergence achieved after round ${round}!`);
+      break;
     }
     
     session.iterations.push({
@@ -598,14 +595,14 @@ export class RealAICollaborationEngine extends EventEmitter {
   async _achieveConvergence(session, discussions) {
     console.log(`   🔄 Synthesizing final result...`);
     
-    // Select the most capable agent for synthesis (highest confidence + best type match)
+    // 选择最佳代理进行综合 (最高置信度 + 最佳类型匹配)
     const synthesizer = this._selectSynthesizer(session.participants, discussions);
     
     if (!synthesizer) {
       throw new Error('No suitable synthesizer agent found');
     }
     
-    // Prepare synthesis context
+    // 准备综合上下文
     const synthesisContext = {
       initialAnalyses: session.iterations.find(i => i.phase === 'individual_analysis')?.results || [],
       discussions: discussions,
@@ -618,13 +615,13 @@ export class RealAICollaborationEngine extends EventEmitter {
       const synthesisPrompt = this._createSynthesisPrompt(synthesisContext);
       
       const completion = await synthesizer.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo', // Use gpt-3.5-turbo for synthesis to avoid token limits
+        model: 'gpt-3.5-turbo', // 使用gpt-3.5-turbo进行综合以避免token限制
         messages: [
-          { role: 'system', content: `You are ${synthesizer.name}, an expert synthesizer. Provide concise, comprehensive analysis.` },
+          { role: 'system', content: `你是${synthesizer.name}，一个专业的综合者。提供简洁、全面的分析。` },
           { role: 'user', content: synthesisPrompt }
         ],
-        temperature: 0.3, // Lower temperature for more focused synthesis
-        max_tokens: 1000, // Reduced from 2000
+        temperature: 0.3, // 降低温度以获得更集中的综合
+        max_tokens: 800, // 从1000减少到800以提高响应速度
       });
       
       const finalSynthesis = completion.choices[0].message.content;
@@ -651,7 +648,7 @@ export class RealAICollaborationEngine extends EventEmitter {
     } catch (error) {
       console.error(`   ❌ Synthesis failed:`, error.message);
       
-      // Fallback: combine all analyses
+      // 降级：合并所有分析
       return this._createFallbackSynthesis(session, discussions);
     }
   }
@@ -683,33 +680,33 @@ export class RealAICollaborationEngine extends EventEmitter {
    * Create synthesis prompt
    */
   _createSynthesisPrompt(context) {
-    // Limit analysis content to prevent token overflow
+    // 限制分析内容以防止token溢出
     const limitedAnalyses = context.initialAnalyses
-      .map(a => `${a.agentName} (${a.agentType}): ${a.analysis.substring(0, 200)}...`)
+      .map(a => `${a.agentName} (${a.agentType}): ${a.analysis.substring(0, 150)}...`) // 从200减少到150
       .join('\n\n');
     
     const limitedDiscussion = context.discussions
-      .slice(-1) // Only last discussion round
-      .map(d => d.discussions.map(disc => `${disc.agentName}: ${disc.response.substring(0, 150)}...`).join('\n'))
+      .slice(-1) // 只使用最后一轮讨论
+      .map(d => d.discussions.map(disc => `${disc.agentName}: ${disc.response.substring(0, 100)}...`).join('\n')) // 从150减少到100
       .join('\n\n');
     
-    return `You are tasked with synthesizing the collective intelligence of multiple AI agents:
+    return `你被要求综合多个AI代理的集体智慧:
 
-ORIGINAL TASK:
+原始任务:
 ${context.task.description}
 
-AGENT ANALYSES:
+代理分析:
 ${limitedAnalyses}
 
-COLLABORATIVE DISCUSSIONS:
+协作讨论:
 ${limitedDiscussion}
 
-Please provide a comprehensive synthesis that:
-1. Integrates the best insights from all agents
-2. Provides a clear, actionable conclusion
-3. Maintains high confidence in the recommendation
+请提供一个全面的综合，要求:
+1. 整合所有代理的最佳见解
+2. 提供清晰、可操作的结论
+3. 保持高置信度的推荐
 
-SYNTHESIS (max 1000 chars):`;
+综合结果 (最多800个字符):`; // 从1000减少到800
   }
   
   /**

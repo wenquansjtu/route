@@ -64,10 +64,12 @@ class RealAICosmicServer {
       console.warn('⚠️  OpenAI API key not found. AI functionality will be limited.');
     }
     
-    // Real AI Collaboration Engine
+    // Real AI Collaboration Engine with optimized configuration for faster task processing
     this.aiCollaboration = new RealAICollaborationEngine({
       openaiApiKey: process.env.OPENAI_API_KEY,
-      collaborationTimeout: 300000 // 增加协作超时到5分钟
+      collaborationTimeout: 300000, // 增加协作超时到5分钟
+      maxIterations: 2, // 减少最大迭代次数以提高速度
+      convergenceThreshold: 0.8 // 稍微降低收敛阈值以更快完成
     });
     
     // Listen for task chain events and forward them to clients

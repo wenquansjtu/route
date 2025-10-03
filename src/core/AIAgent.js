@@ -61,10 +61,10 @@ export class AIAgent extends CosmicAgent {
    * Initialize AI capabilities
    */
   _initializeAI() {
-    // Set up real-time thinking processes (less frequent to reduce API calls)
+    // 减少后台思考过程的频率，从30秒增加到60秒，减少API调用
     this.thinkingInterval = setInterval(() => {
       this._backgroundThinking();
-    }, 30000); // Increased from 5000ms to 30000ms (30 seconds)
+    }, 60000); // 从30000ms增加到60000ms (60秒)
     
     // Monitor AI state
     this.on('task-received', this._onTaskReceived.bind(this));
@@ -347,13 +347,13 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
   async _backgroundThinking() {
     if (this.aiState.isProcessing || this.status !== 'idle') return;
     
-    // Perform background reflection and learning (less frequently)
-    const recentExperiences = this.memory.shortTerm.slice(-2); // Reduced from -3
-    if (recentExperiences.length > 1) { // Only if we have multiple experiences
+    // 进一步简化后台思考过程，减少处理内容
+    const recentExperiences = this.memory.shortTerm.slice(-1); // 从-2减少到-1
+    if (recentExperiences.length > 0) { // 从>1改为>0
       await this._reflectOnExperiences(recentExperiences);
     }
     
-    // Update focus and creativity based on recent activity
+    // 更新AI状态
     this._updateAIState();
   }
   
@@ -362,33 +362,32 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
    */
   async _reflectOnExperiences(experiences) {
     try {
-      // Limit reflection to avoid token overflow
-      const limitedExperiences = experiences.slice(-2); // Only last 2 experiences
+      // 进一步限制反思内容以提高速度
+      const limitedExperiences = experiences.slice(-1); // 从-2减少到-1
       
-      const reflectionPrompt = `Reflect on these recent experiences and extract key learnings:
+      // 简化反思提示以减少token使用
+      const reflectionPrompt = `基于最近的经验进行简要反思:
 
 ${limitedExperiences.map((exp, i) => {
-        const expSummary = JSON.stringify(exp).substring(0, 200) + '...';
-        return `Experience ${i + 1}: ${expSummary}`;
+        const expSummary = JSON.stringify(exp).substring(0, 100) + '...';
+        return `经验 ${i + 1}: ${expSummary}`;
       }).join('\n\n')}
 
-What patterns do you notice? What have you learned? How might this influence your future responses?
+提供非常简短的洞察(最多50个字)。`;
 
-Provide a brief reflection (max 100 words).`;
-      
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
-          { role: 'system', content: 'You are a reflective AI agent. Provide concise insights.' },
+          { role: 'system', content: '你是一个反思型AI代理。提供简洁的洞察。' },
           { role: 'user', content: reflectionPrompt }
         ],
         temperature: 0.6,
-        max_tokens: 150, // Reduced from 300
+        max_tokens: 80, // 从150减少到80
       });
       
       const reflection = completion.choices[0].message.content;
       
-      // Store reflection in long-term memory
+      // 存储反思到长期记忆
       this._storeInMemory('reflection', {
         content: reflection,
         experiences: limitedExperiences.length,
@@ -396,7 +395,7 @@ Provide a brief reflection (max 100 words).`;
       });
       
     } catch (error) {
-      console.error(`Reflection error for ${this.name}:`, error.message);
+      console.error(`反思错误 ${this.name}:`, error.message);
     }
   }
   
@@ -575,36 +574,34 @@ Provide a brief reflection (max 100 words).`;
    */
   async collaborateWith(otherAgent, task, context = {}) {
     try {
-      // Simplified collaboration prompt to reduce tokens
-      const collaborationPrompt = `You are collaborating with ${otherAgent.name} (${otherAgent.type}) on this task:
+      // 简化协作提示以提高速度
+      const collaborationPrompt = `你正在与${otherAgent.name} (${otherAgent.type})协作处理任务:
 
-Task: ${task.description.substring(0, 200)}...
+任务: ${task.description.substring(0, 100)}...
 
-Your capabilities: ${this.capabilities.slice(0, 2).join(', ')}
-Other agent's capabilities: ${otherAgent.capabilities.slice(0, 2).join(', ')}
+你的能力: ${this.capabilities.slice(0, 2).join(', ')}
+其他代理的能力: ${otherAgent.capabilities.slice(0, 2).join(', ')}
 
-How would you contribute to this collaboration? (max 300 chars)
-
-Respond concisely and constructively.`;
+请提供简洁的贡献(最多150个字符)。`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
-          { role: 'system', content: `You are ${this.name}, a ${this.type} AI agent. Be concise.` },
+          { role: 'system', content: `你是${this.name}，一个${this.type} AI代理。请简洁回答。` },
           { role: 'user', content: collaborationPrompt }
         ],
         temperature: this.aiConfig.temperature,
-        max_tokens: 200, // Reduced from 800
+        max_tokens: 100, // 从200减少到100
       });
       
       const response = completion.choices[0].message.content;
       
-      // Store collaboration in memory
+      // 存储协作到内存
       this._storeInMemory('collaboration', {
         type: 'active_collaboration',
         partner: otherAgent.id,
         task: task.id,
-        response: response.substring(0, 200), // Limit stored response
+        response: response.substring(0, 100), // 从200减少到100
         timestamp: Date.now()
       });
       
@@ -616,10 +613,10 @@ Respond concisely and constructively.`;
       };
       
     } catch (error) {
-      console.error(`Collaboration error for ${this.name}:`, error.message);
+      console.error(`协作错误 ${this.name}:`, error.message);
       return {
         agentId: this.id,
-        response: `I'm experiencing difficulties but would like to contribute to this collaboration on ${task.description.substring(0, 50)}...`,
+        response: `我遇到困难，但想为${task.description.substring(0, 30)}...任务做出贡献`,
         confidence: 0.3,
         collaborationType: 'fallback'
       };
