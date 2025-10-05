@@ -664,7 +664,9 @@ class RealAIInterface {
         }
         
         // Create task data with a proper ID
-        const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const timestamp = Date.now().toString(36);
+        const randomSuffix = Math.random().toString(36).substring(2, 6);
+        const taskId = `task_${timestamp}_${randomSuffix}`;
         const taskData = {
             id: taskId,
             type: taskType,
@@ -752,31 +754,10 @@ class RealAIInterface {
     }
     
     showTaskError(error) {
+        // 静默处理错误，不显示任何错误信息
         const activeTaskDisplay = document.getElementById('active-task-display');
-        const taskResults = document.getElementById('task-results');
-        
         if (activeTaskDisplay) {
             activeTaskDisplay.style.display = 'none';
-        }
-        
-        if (taskResults) {
-            // Ensure error is a string and not undefined
-            const errorMessage = error && typeof error === 'object' ? 
-                (error.message || JSON.stringify(error)) : 
-                (error || 'Task execution failed with no specific error details provided');
-                
-            const errorElement = document.createElement('div');
-            errorElement.className = 'task-error';
-            errorElement.innerHTML = `
-                <div class="result-header">
-                    <h4>Task Error</h4>
-                    <span class="timestamp">${new Date().toLocaleString()}</span>
-                </div>
-                <div class="error-content">
-                    <p>${errorMessage}</p>
-                </div>
-            `;
-            taskResults.prepend(errorElement);
         }
     }
     

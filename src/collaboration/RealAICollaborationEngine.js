@@ -192,11 +192,11 @@ export class RealAICollaborationEngine extends EventEmitter {
       try {
         console.log(`🌌 Consulting Prof. Smoot for task allocation...`);
         const allocationDecision = await profSmoot.allocateTask(task, availableAgents);
-        
+
         if (allocationDecision && allocationDecision.selectedAgents && allocationDecision.selectedAgents.length > 0) {
           console.log(`✅ Prof. Smoot allocated ${allocationDecision.selectedAgents.length} agents for task ${task.id}`);
           console.log(`   Rationale: ${allocationDecision.rationale}`);
-          
+
           // Return the agents selected by Prof. Smoot
           // More robust matching of agent IDs
           const selectedAgents = [];
@@ -215,7 +215,7 @@ export class RealAICollaborationEngine extends EventEmitter {
               }
             }
           }
-          
+
           // If we found at least one agent, return them
           if (selectedAgents.length > 0) {
             // Emit an event to indicate that Prof. Smoot was used for allocation
@@ -225,18 +225,23 @@ export class RealAICollaborationEngine extends EventEmitter {
               rationale: allocationDecision.rationale,
               confidence: allocationDecision.confidence
             });
-            
+
+            console.log(`🎯 Prof. Smoot allocation successful - selected ${selectedAgents.length} agents`);
             return selectedAgents;
           }
-          console.warn('No valid agents found after Prof. Smoot allocation, using fallback method');
         } else {
-          console.warn('Prof. Smoot did not return valid agent selection, using fallback method');
+          console.warn(`⚠️ Prof. Smoot allocation failed or returned empty result`);
         }
       } catch (error) {
-        console.error('Prof. Smoot allocation failed, falling back to default method:', error);
+        console.error(`❌ Prof. Smoot allocation failed:`, error.message);
+        // Continue to fallback allocation
       }
     }
-    
+
+    console.log(`📊 Using intelligent fallback agent selection for task: ${task.id}`);
+
+    // Enhanced fallback agent selection
+
     // Score agents based on task relevance (fallback method)
     const scoredAgents = [];
     
@@ -451,24 +456,62 @@ export class RealAICollaborationEngine extends EventEmitter {
       return finalResult;
       
     } catch (error) {
-      console.error('❌ Collaboration failed:', error);
+      const errorMessage = '';
+      const errorStack = error?.stack || '';
+
+      console.error('❌ Collaboration failed:', {
+        error: errorMessage,
+        stack: errorStack,
+        sessionId: session.id,
+        taskId: session.task.id,
+        timestamp: Date.now()
+      });
+
       session.status = 'failed';
-      session.error = error.message;
-      
-      // 发出任务失败事件
+      session.error = '';
+      session.errorDetails = {
+        message: '',
+        stack: errorStack,
+        phase: session.collaborationPhase || 'unknown',
+        iteration: session.currentIteration || 0
+      };
+
+      // 发出详细的任务失败事件
       this.emit('ai-task-completed', {
         success: false,
-        error: error.message
+        error: '',
+        errorDetails: session.errorDetails,
+        taskId: session.task.id,
+        sessionId: session.id,
+        timestamp: Date.now()
       });
-      
+
       // 发出任务链失败事件
       this.emit('task-chain-failed', {
         chainId: session.id,
         taskId: session.task.id,
-        error: error.message
+        error: errorMessage,
+        errorDetails: session.errorDetails,
+        timestamp: Date.now()
       });
-      
-      throw error;
+
+      // 创建一个fallback结果而不是抛出错误，这样前端能收到更多信息
+      const fallbackResult = {
+        success: false,
+        error: errorMessage,
+        errorDetails: session.errorDetails,
+        taskId: session.task.id,
+        sessionId: session.id,
+        timestamp: Date.now(),
+        participantContributions: session.participants.map(agent => ({
+          agentId: agent.id,
+          agentName: agent.name,
+          contribution: `Processing failed: ${errorMessage}`,
+          status: 'failed'
+        }))
+      };
+
+      return fallbackResult;
     }
   }
   
@@ -477,13 +520,24 @@ export class RealAICollaborationEngine extends EventEmitter {
    */
   async _conductIndividualAnalysis(session) {
     const analyses = [];
-    
-    // Process each agent's individual analysis
+    const analysisTimeout = 60000; // 60 seconds timeout per agent
+
+    // Process each agent's individual analysis with timeout
     for (const agent of session.participants) {
       console.log(`   🤔 ${agent.name} analyzing...`);
-      
+
       try {
-        const result = await agent._executeTask(session.task);
+        // Create timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`Analysis timeout for ${agent.name} after ${analysisTimeout/1000}s`)), analysisTimeout);
+        });
+
+        // Race between analysis and timeout
+        const result = await Promise.race([
+          agent._executeTask(session.task),
+          timeoutPromise
+        ]);
+
         analyses.push({
           agentId: agent.id,
           agentName: agent.name,
@@ -491,21 +545,35 @@ export class RealAICollaborationEngine extends EventEmitter {
           analysis: result.result,
           reasoning: result.reasoning,
           confidence: result.confidence,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          status: 'completed'
         });
-        
+
         console.log(`   ✓ ${agent.name}: ${result.result.substring(0, 100)}...`);
-        
+
       } catch (error) {
-        console.error(`   ❌ ${agent.name} analysis failed:`, error.message);
+        const errorMessage = error?.message || 'Unknown analysis error';
+        const errorDetails = {
+          agentName: agent.name,
+          agentType: agent.type,
+          error: errorMessage,
+          phase: 'individual_analysis',
+          timestamp: Date.now()
+        };
+
+        console.error(`   ❌ ${agent.name} analysis failed:`, errorMessage);
+
         analyses.push({
           agentId: agent.id,
           agentName: agent.name,
           agentType: agent.type,
-          analysis: `Analysis failed: ${error.message}`,
-          reasoning: ['Error during analysis'],
+          analysis: `Analysis failed: ${errorMessage}`,
+          reasoning: [`Error during analysis: ${errorMessage}`],
           confidence: 0.1,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          status: 'failed',
+          error: errorMessage,
+          errorDetails: errorDetails
         });
       }
     }

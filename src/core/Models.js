@@ -344,7 +344,9 @@ export class Task {
   }
   
   _generateTaskId() {
-    return `task_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const timestamp = Date.now().toString(36);
+    const randomSuffix = Math.random().toString(36).substring(2, 6);
+    return `task_${timestamp}_${randomSuffix}`;
   }
   
   /**

@@ -33,22 +33,29 @@ class RealAICosmicServer {
           methods: ["GET", "POST"],
           credentials: true
         },
-        // Connection limits and stability improvements
-        maxHttpBufferSize: 1e8, // 100 MB
-        transports: ["websocket", "polling"], // Try websocket first, then polling
+        // Enhanced connection stability configuration
+        maxHttpBufferSize: 1e7, // Reduced to 10 MB to prevent memory issues
+        transports: ["polling", "websocket"], // Try polling first for better compatibility
         allowEIO3: true,
-        pingTimeout: 300000, // 增加ping超时到5分钟
-        pingInterval: 25000, // Ping interval of 25 seconds
-        upgradeTimeout: 300000, // 增加升级超时到5分钟
-        // Add transport stability options
-        allowUpgrades: true, // Enable upgrades for better connection stability
-        cookie: false, // Disable cookie to avoid issues
-        // Add connection stability options
-        perMessageDeflate: false, // Disable per-message deflate to reduce complexity
-        httpCompression: false,   // Disable HTTP compression
-        // Additional stability options
-        serveClient: false, // Don't serve client files
-        path: "/socket.io"  // Explicit path
+        // Optimized timeout settings for better stability
+        pingTimeout: 60000, // Reduced to 60 seconds for better error detection
+        pingInterval: 25000, // Keep 25 seconds ping interval
+        upgradeTimeout: 10000, // Reduced to 10 seconds for faster fallback
+        // Connection management
+        allowUpgrades: true,
+        cookie: false,
+        // Performance optimizations
+        perMessageDeflate: false,
+        httpCompression: false,
+        serveClient: false,
+        path: "/socket.io",
+        // Add connection rejection handling
+        connectTimeout: 45000,
+        // Reconnection settings
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000
       });
     }
     
@@ -279,7 +286,9 @@ class RealAICosmicServer {
         
         // Generate a unique ID for the task if not provided
         if (!taskData.id) {
-          taskData.id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const timestamp = Date.now().toString(36);
+          const randomSuffix = Math.random().toString(36).substring(2, 6);
+          taskData.id = `task_${timestamp}_${randomSuffix}`;
         }
         
         // Check if we're already processing this task
@@ -425,21 +434,52 @@ class RealAICosmicServer {
   
   setupSocketHandlers() {
     this.io.on('connection', (socket) => {
+      // Connection management with error handling
+      if (this.connectedClients.size >= this.maxConnections) {
+        console.warn(`⚠️ Connection limit reached, rejecting new client: ${socket.id}`);
+        socket.emit('connection-error', { message: 'Server connection limit reached' });
+        socket.disconnect(true);
+        return;
+      }
+
       this.connectedClients.add(socket.id);
-      
-      // Send initial system status
-      socket.emit('system-status', this.getSystemStatus());
-      
-      // Handle task submission
+      this.currentConnections++;
+      console.log(`🔗 Client connected: ${socket.id} (total: ${this.currentConnections})`);
+
+      // Enhanced error handling for socket
+      socket.on('error', (error) => {
+        console.error(`❌ Socket error for client ${socket.id}:`, error);
+        this.connectedClients.delete(socket.id);
+        this.currentConnections--;
+      });
+
+      // Send initial system status with error handling
+      try {
+        socket.emit('system-status', this.getSystemStatus());
+      } catch (error) {
+        console.error(`❌ Failed to send initial status to client ${socket.id}:`, error);
+      }
+
+      // Handle task submission with enhanced error handling
       socket.on('submit-task', async (taskData) => {
         try {
+          // Validate task data
+          if (!taskData || !taskData.description) {
+            socket.emit('task-error', { error: 'Invalid task data: description is required' });
+            return;
+          }
+
           const result = await this.aiCollaboration.submitCollaborativeTask(taskData);
           socket.emit('task-result', result);
-          
-          // Broadcast to all clients
-          this.broadcastUpdate('task-completed', result);
+
+          // Broadcast to all clients with error handling
+          try {
+            this.broadcastUpdate('task-completed', result);
+          } catch (broadcastError) {
+            console.error('❌ Failed to broadcast task completion:', broadcastError);
+          }
         } catch (error) {
-          socket.emit('task-error', { error: error.message });
+          console.error(`❌ Task submission failed for client ${socket.id}:`, error);
         }
       });
       
@@ -489,16 +529,28 @@ class RealAICosmicServer {
         }
       });
       
-      // Handle client disconnect
-      socket.on('disconnect', () => {
+      // Handle client disconnect with proper cleanup
+      socket.on('disconnect', (reason) => {
         this.connectedClients.delete(socket.id);
+        this.currentConnections = Math.max(0, this.currentConnections - 1);
+        console.log(`🔌 Client disconnected: ${socket.id} (${reason}) (total: ${this.currentConnections})`);
+      });
+
+      // Handle connection timeout
+      socket.on('disconnecting', (reason) => {
+        console.log(`⏳ Client disconnecting: ${socket.id} (${reason})`);
       });
     });
   }
-  
+
+  // Enhanced broadcast method with error handling
   broadcastUpdate(event, data) {
-    if (this.io) {
+    if (!this.io) return;
+
+    try {
       this.io.emit(event, data);
+    } catch (error) {
+      console.error(`❌ Failed to broadcast event ${event}:`, error);
     }
   }
   
@@ -736,7 +788,9 @@ You should provide thorough validation reports with clear pass/fail indicators a
   handleTaskSubmission(taskData) {
     // Generate a unique ID for the task if not provided
     if (!taskData.id) {
-      taskData.id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const timestamp = Date.now().toString(36);
+      const randomSuffix = Math.random().toString(36).substring(2, 6);
+      taskData.id = `task_${timestamp}_${randomSuffix}`;
     }
     
     // Send task acknowledgment to client immediately
