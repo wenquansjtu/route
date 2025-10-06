@@ -469,9 +469,18 @@ class RealAIInterface {
             }
             
             try {
+                // Handle different data structures from backend
+                let resultData;
                 if (data && data.success) {
-                    this.showTaskResult(data.result);
-                    this.addToTaskHistory(data.result);
+                    // For newer backend versions that send data in result field
+                    if (data.result) {
+                        resultData = data.result;
+                    } else {
+                        // For older backend versions that send data directly
+                        resultData = data;
+                    }
+                    this.showTaskResult(resultData);
+                    this.addToTaskHistory(resultData);
                 } else {
                     const error = data && data.error ? data.error : 'Task processing failed without specific error information';
                     this.showTaskError(error);
@@ -727,9 +736,26 @@ class RealAIInterface {
         }
         
         if (taskResults && result) {
-            // Ensure result has required properties
-            const taskId = (result.taskId || result.id || 'unknown').toString();
-            const taskResult = result.finalResult || result.result || 'No result available';
+            // Handle different data structures
+            let taskId, taskResult, sessionId;
+            
+            // Check if this is the nested structure from the backend
+            if (result.result && result.taskId) {
+                // New structure: { success: true, result: { taskId, finalResult, ... } }
+                taskId = (result.taskId || 'unknown').toString();
+                taskResult = result.finalResult || result.result || 'No result available';
+                sessionId = result.sessionId;
+            } else if (result.finalResult) {
+                // Direct structure with finalResult field
+                taskId = (result.taskId || result.id || 'unknown').toString();
+                taskResult = result.finalResult || result.result || 'No result available';
+                sessionId = result.sessionId;
+            } else {
+                // Simple structure
+                taskId = (result.taskId || result.id || 'unknown').toString();
+                taskResult = result.finalResult || result.result || 'No result available';
+                sessionId = result.sessionId;
+            }
             
             // Ensure taskResult is a string
             const resultText = typeof taskResult === 'object' ? 
@@ -745,6 +771,7 @@ class RealAIInterface {
                 </div>
                 <div class="result-content">
                     <p><strong>Task ID:</strong> ${taskId.substring(0, 8)}</p>
+                    ${sessionId ? `<p><strong>Session ID:</strong> ${sessionId.substring(0, 8)}</p>` : ''}
                     <p><strong>Result:</strong></p>
                     <div class="result-text">${resultText}</div>
                 </div>
@@ -832,22 +859,31 @@ class RealAIInterface {
     
     addToTaskHistory(task) {
         try {
+            // Handle different data structures
+            let taskData = task;
+            
+            // If this is from the ai-task-completed event, it might be nested
+            if (task && task.result && task.taskId) {
+                taskData = task.result;
+                taskData.taskId = task.taskId; // Preserve the taskId from the outer object
+            }
+            
             // Ensure task is an object
-            if (!task || typeof task !== 'object') {
-                console.warn('Invalid task data for history:', task);
+            if (!taskData || typeof taskData !== 'object') {
+                console.warn('Invalid task data for history:', taskData);
                 return;
             }
             
             // Ensure task has required properties for display
-            if (!task.taskId && !task.id) {
-                task.taskId = 'unknown-' + Date.now(); // Generate a temporary ID if missing
+            if (!taskData.taskId && !taskData.id) {
+                taskData.taskId = 'unknown-' + Date.now(); // Generate a temporary ID if missing
             }
             
-            if (!task.description && !task.taskDescription) {
-                task.description = 'Unnamed Task'; // Set a default description if missing
+            if (!taskData.description && !taskData.taskDescription) {
+                taskData.description = 'Unnamed Task'; // Set a default description if missing
             }
             
-            this.taskHistory.unshift(task);
+            this.taskHistory.unshift(taskData);
             this.taskHistory = this.taskHistory.slice(0, 10); // Keep only last 10 items
             this.updateTaskHistoryDisplay();
         } catch (e) {

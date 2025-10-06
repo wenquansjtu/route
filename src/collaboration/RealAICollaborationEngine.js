@@ -430,6 +430,8 @@ export class RealAICollaborationEngine extends EventEmitter {
       // 也发出ai-task-completed事件以与前端兼容
       this.emit('ai-task-completed', {
         success: true,
+        taskId: session.task.id,
+        sessionId: sessionId,
         result: {
           taskId: session.task.id,
           sessionId: sessionId,
