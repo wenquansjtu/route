@@ -17,9 +17,9 @@ export class BackendConfig {
             return window.location.origin;
         }
         
-        // In development, use localhost:8080
+        // In development, use localhost:8081 (where our local server is running)
         if (this.isLocalhost()) {
-            return 'http://localhost:8080';
+            return 'http://localhost:8081';  // 确保使用正确的端口
         }
         
         // In production (non-Vercel), use the same domain as the frontend

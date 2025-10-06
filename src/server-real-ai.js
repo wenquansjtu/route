@@ -127,12 +127,13 @@ class RealAICosmicServer {
       if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('collaboration-completed', data);
     });
     
-    // Forward ai-task-completed events to clients
+    // Forward ai-task-completed events to clients - 修复事件转发逻辑
     this.aiCollaboration.on('ai-task-completed', (data) => {
+      console.log('📡 Broadcasting ai-task-completed event to clients:', data);
       if (this.broadcastUpdate) this.broadcastUpdate('ai-task-completed', data);
       if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', data);
     });
-    
+
     // Listen for Prof. Smoot's task allocation events
     this.aiCollaboration.on('task-allocation-by-prof-smoot', (data) => {
       if (this.broadcastUpdate) this.broadcastUpdate('prof-smoot-allocation', data);
@@ -523,7 +524,7 @@ class RealAICosmicServer {
           
           // Also broadcast with the alternative event name
           this.broadcastUpdate('ai-agent-error', { 
-            success: false, 
+            success: false,
             error: error.message 
           });
         }
@@ -810,8 +811,13 @@ You should provide thorough validation reports with clear pass/fail indicators a
       })
       .catch(error => {
         // Broadcast error
-        if (this.broadcastUpdate) this.broadcastUpdate('task-error', { error: error.message });
-        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-error', { error: error.message });
+        const errorData = {
+          success: false,
+          error: error.message,
+          taskId: taskData.id
+        };
+        if (this.broadcastUpdate) this.broadcastUpdate('task-error', errorData);
+        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', errorData);
       });
   }
   
@@ -845,7 +851,7 @@ You should provide thorough validation reports with clear pass/fail indicators a
       });
   }
   
-  start(port = process.env.PORT || 8080) {
+  start(port = process.env.PORT || 8081) {  // 改为8081端口
     // Only listen if not in Vercel environment
     if (!process.env.VERCEL) {
       this.server.listen(port, '0.0.0.0', () => {

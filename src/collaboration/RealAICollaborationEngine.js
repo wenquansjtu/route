@@ -458,7 +458,7 @@ export class RealAICollaborationEngine extends EventEmitter {
       return finalResult;
       
     } catch (error) {
-      const errorMessage = '';
+      const errorMessage = error?.message || 'Unknown error occurred during collaboration';
       const errorStack = error?.stack || '';
 
       console.error('❌ Collaboration failed:', {
@@ -470,18 +470,18 @@ export class RealAICollaborationEngine extends EventEmitter {
       });
 
       session.status = 'failed';
-      session.error = '';
+      session.error = errorMessage;
       session.errorDetails = {
-        message: '',
+        message: errorMessage,
         stack: errorStack,
         phase: session.collaborationPhase || 'unknown',
         iteration: session.currentIteration || 0
       };
 
-      // 发出详细的任务失败事件
+      // 发出详细的任务失败事件 - 修复数据结构使其与成功情况一致
       this.emit('ai-task-completed', {
         success: false,
-        error: '',
+        error: errorMessage,
         errorDetails: session.errorDetails,
         taskId: session.task.id,
         sessionId: session.id,

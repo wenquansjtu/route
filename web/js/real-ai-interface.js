@@ -459,32 +459,44 @@ class RealAIInterface {
             this.showTaskError(data.error || 'Unknown task error occurred');
         });
         
-        // Add handler for ai-task-completed event
+        // 修复 ai-task-completed 事件处理程序，使其能正确处理不同数据结构
         this.websocket.on('ai-task-completed', (data) => {
             console.log('✅ Task completed:', data);
-            // Hide the active task display when task is completed
-            const activeTaskDisplay = document.getElementById('active-task-display');
-            if (activeTaskDisplay) {
-                activeTaskDisplay.style.display = 'none';
-            }
             
             try {
-                // Handle different data structures from backend
+                // 确保无论数据结构如何都能正确处理
                 let resultData;
-                if (data && data.success) {
-                    // For newer backend versions that send data in result field
-                    if (data.result) {
-                        resultData = data.result;
-                    } else {
-                        // For older backend versions that send data directly
-                        resultData = data;
-                    }
-                    this.showTaskResult(resultData);
-                    this.addToTaskHistory(resultData);
-                } else {
-                    const error = data && data.error ? data.error : 'Task processing failed without specific error information';
-                    this.showTaskError(error);
+                
+                // 情况1: 数据直接在顶层
+                if (data && (data.success !== undefined || data.finalResult || data.result)) {
+                    resultData = data;
                 }
+                // 情况2: 数据在 result 字段中
+                else if (data && data.result) {
+                    resultData = data.result;
+                    // 保留顶层的 taskId 如果有的话
+                    if (data.taskId && !resultData.taskId) {
+                        resultData.taskId = data.taskId;
+                    }
+                }
+                // 情况3: 数据在 data 字段中（SSE事件格式）
+                else if (data && data.data) {
+                    resultData = data.data;
+                }
+                // 情况4: 其他情况
+                else {
+                    resultData = data;
+                }
+                
+                // 隐藏进度显示
+                const activeTaskDisplay = document.getElementById('active-task-display');
+                if (activeTaskDisplay) {
+                    activeTaskDisplay.style.display = 'none';
+                }
+                
+                // 显示任务结果
+                this.showTaskResult(resultData);
+                this.addToTaskHistory(resultData);
             } catch (e) {
                 console.error('Error processing task completion:', e);
                 this.showTaskError('Error processing task result');
@@ -736,28 +748,38 @@ class RealAIInterface {
         }
         
         if (taskResults && result) {
-            // Handle different data structures
+            // 更健壮地处理不同数据结构
             let taskId, taskResult, sessionId;
             
-            // Check if this is the nested structure from the backend
+            // 处理可能的数据结构
             if (result.result && result.taskId) {
-                // New structure: { success: true, result: { taskId, finalResult, ... } }
+                // 结构: { success: true, result: { taskId, finalResult, ... } }
                 taskId = (result.taskId || 'unknown').toString();
                 taskResult = result.finalResult || result.result || 'No result available';
                 sessionId = result.sessionId;
             } else if (result.finalResult) {
-                // Direct structure with finalResult field
+                // 结构: { taskId, finalResult, ... }
                 taskId = (result.taskId || result.id || 'unknown').toString();
                 taskResult = result.finalResult || result.result || 'No result available';
                 sessionId = result.sessionId;
-            } else {
-                // Simple structure
+            } else if (result.result) {
+                // 结构: { taskId, result, ... }
                 taskId = (result.taskId || result.id || 'unknown').toString();
-                taskResult = result.finalResult || result.result || 'No result available';
+                taskResult = result.result;
+                sessionId = result.sessionId;
+            } else if (result.data && result.data.result) {
+                // SSE 事件结构: { data: { taskId, finalResult, ... } }
+                taskId = (result.data.taskId || result.data.id || 'unknown').toString();
+                taskResult = result.data.finalResult || result.data.result || 'No result available';
+                sessionId = result.data.sessionId;
+            } else {
+                // 直接结构或默认情况
+                taskId = (result.taskId || result.id || 'unknown').toString();
+                taskResult = result.finalResult || result.result || result || 'No result available';
                 sessionId = result.sessionId;
             }
             
-            // Ensure taskResult is a string
+            // 确保 taskResult 是字符串
             const resultText = typeof taskResult === 'object' ? 
                 JSON.stringify(taskResult, null, 2) : 
                 (taskResult || 'No result available');
