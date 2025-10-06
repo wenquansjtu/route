@@ -560,7 +560,7 @@ class RealAICosmicServer {
     // Send to all SSE clients
     this.sseClients.forEach(client => {
       try {
-        // Add event prefix for proper event handling
+        // Format according to SSE specification
         client.write(`event: ${event}\n`);
         client.write(`data: ${JSON.stringify(data)}\n\n`);
       } catch (error) {
