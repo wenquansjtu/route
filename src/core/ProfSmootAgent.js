@@ -582,25 +582,37 @@ ANALYSIS:`;
     this.aiState.isProcessing = true;
     
     try {
-      // 为Vercel环境设置更短的超时时间
-      const timeoutPromise = process.env.VERCEL ? 
-        new Promise((_, reject) => setTimeout(() => reject(new Error(`Task processing timeout for ${this.name}`)), 10000)) : 
-        null;
-      
       // Prepare context for the AI
       const context = this._prepareTaskContext(task);
       
       // 生成任务嵌入 - 在Vercel环境中使用更快的处理方式
       let taskEmbedding;
       if (process.env.VERCEL) {
-        // 在Vercel环境中使用超时限制
+        // 在Vercel环境中使用更可靠的超时处理
         console.log(`   📊 ${this.name} 开始生成任务嵌入`);
         try {
-          taskEmbedding = await Promise.race([
-            this._generateEmbedding(task.description),
-            timeoutPromise
-          ]);
-          console.log(`   ✅ ${this.name} 完成任务嵌入生成`);
+          // 使用手动创建Promise和setTimeout来确保超时能正常工作
+          taskEmbedding = await new Promise((resolve, reject) => {
+            // 设置超时计时器 (5秒)
+            const timeoutId = setTimeout(() => {
+              console.log(`   ⏰ ${this.name} 嵌入生成超时`);
+              resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
+            }, 5000);
+            
+            // 执行嵌入生成
+            this._generateEmbedding(task.description).then(result => {
+              // 清除超时计时器
+              clearTimeout(timeoutId);
+              console.log(`   ✅ ${this.name} 完成任务嵌入生成`);
+              resolve(result);
+            }).catch(error => {
+              // 清除超时计时器
+              clearTimeout(timeoutId);
+              // 捕获API调用错误
+              console.error(`   ⚠️ ${this.name} OpenAI API error: ${error.message}`);
+              resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
+            });
+          });
         } catch (embeddingError) {
           // 如果嵌入生成失败，使用默认嵌入
           console.error(`   ⚠️ ${this.name} 嵌入生成失败: ${embeddingError.message}`);
@@ -613,14 +625,40 @@ ANALYSIS:`;
       // Process with LLM
       let aiResponse;
       if (process.env.VERCEL) {
-        // 在Vercel环境中使用超时限制
+        // 在Vercel环境中使用更可靠的超时处理 (10秒)
         console.log(`   🤖 ${this.name} 开始LLM处理`);
         try {
-          aiResponse = await Promise.race([
-            this._processWithLLM(context, task),
-            timeoutPromise
-          ]);
-          console.log(`   ✅ ${this.name} 完成LLM处理`);
+          aiResponse = await new Promise((resolve, reject) => {
+            // 设置超时计时器 (10秒)
+            const timeoutId = setTimeout(() => {
+              console.log(`   ⏰ ${this.name} LLM处理超时`);
+              resolve({
+                content: "LLM处理超时，使用默认响应",
+                reasoning: ['处理超时'],
+                confidence: 0.3,
+                tokens: 0
+              });
+            }, 10000);
+            
+            // 执行LLM处理
+            this._processWithLLM(context, task).then(result => {
+              // 清除超时计时器
+              clearTimeout(timeoutId);
+              console.log(`   ✅ ${this.name} 完成LLM处理`);
+              resolve(result);
+            }).catch(error => {
+              // 清除超时计时器
+              clearTimeout(timeoutId);
+              // 捕获API调用错误
+              console.error(`   ⚠️ ${this.name} LLM处理错误: ${error.message}`);
+              resolve({
+                content: `LLM处理遇到问题: ${error.message}`,
+                reasoning: ['处理错误'],
+                confidence: 0.3,
+                tokens: 0
+              });
+            });
+          });
         } catch (llmError) {
           // 如果LLM处理失败，使用默认响应
           console.error(`   ⚠️ ${this.name} LLM处理失败: ${llmError.message}`);
