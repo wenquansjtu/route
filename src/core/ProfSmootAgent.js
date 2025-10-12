@@ -105,10 +105,26 @@ Your approach:
   /**
    * Direct method for task allocation analysis
    * This method can be called directly and returns the allocation decision
+   * 为Vercel环境优化任务分配处理
    */
   async allocateTask(task, availableAgents) {
     try {
-      const optimalAllocation = await this._analyzeTaskAllocation(task, availableAgents);
+      // 为Vercel环境设置更短的超时时间
+      const timeoutPromise = process.env.VERCEL ? 
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Task allocation timeout for Prof. Smoot')), 10000)) : 
+        null;
+      
+      let optimalAllocation;
+      if (timeoutPromise) {
+        // 在Vercel环境中使用超时限制
+        optimalAllocation = await Promise.race([
+          this._analyzeTaskAllocation(task, availableAgents),
+          timeoutPromise
+        ]);
+      } else {
+        optimalAllocation = await this._analyzeTaskAllocation(task, availableAgents);
+      }
+      
       return optimalAllocation;
     } catch (error) {
       console.error(`Prof. Smoot direct allocation analysis failed:`, error);

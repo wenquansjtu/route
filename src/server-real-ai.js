@@ -786,7 +786,11 @@ You should provide thorough validation reports with clear pass/fail indicators a
     };
   }
   
-  handleTaskSubmission(taskData) {
+  /**
+   * Handle task submission with proper async handling
+   * 为Vercel环境优化任务提交处理
+   */
+  async handleTaskSubmission(taskData) {
     // Generate a unique ID for the task if not provided
     if (!taskData.id) {
       const timestamp = Date.now().toString(36);
@@ -802,23 +806,51 @@ You should provide thorough validation reports with clear pass/fail indicators a
       });
     }
     
-    // Forward task submission to the collaboration engine
-    this.aiCollaboration.submitCollaborativeTask(taskData)
-      .then(result => {
-        // Broadcast successful completion
-        if (this.broadcastUpdate) this.broadcastUpdate('task-completed', result);
-        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', result);
-      })
-      .catch(error => {
-        // Broadcast error
-        const errorData = {
-          success: false,
-          error: error.message,
-          taskId: taskData.id
-        };
-        if (this.broadcastUpdate) this.broadcastUpdate('task-error', errorData);
-        if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', errorData);
+    try {
+      // Forward task submission to the collaboration engine and wait for result
+      // 为Vercel环境设置更短的超时时间
+      const timeoutPromise = process.env.VERCEL ? 
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Task processing timeout')), 90000)) : 
+        null;
+      
+      let result;
+      if (timeoutPromise) {
+        // 在Vercel环境中使用超时限制
+        result = await Promise.race([
+          this.aiCollaboration.submitCollaborativeTask(taskData),
+          timeoutPromise
+        ]);
+      } else {
+        // 在非Vercel环境中正常处理
+        result = await this.aiCollaboration.submitCollaborativeTask(taskData);
+      }
+      
+      // Broadcast successful completion
+      if (this.broadcastUpdate) this.broadcastUpdate('task-completed', result);
+      if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', result);
+      
+      // Add to task history
+      if (!this.taskHistory) {
+        this.taskHistory = [];
+      }
+      this.taskHistory.push({
+        task: taskData,
+        result: result,
+        timestamp: Date.now()
       });
+      
+    } catch (error) {
+      // Broadcast error
+      const errorData = {
+        success: false,
+        error: error.message,
+        taskId: taskData.id
+      };
+      if (this.broadcastUpdate) this.broadcastUpdate('task-error', errorData);
+      if (this.broadcastSSEUpdate) this.broadcastSSEUpdate('ai-task-completed', errorData);
+      
+      console.error('❌ Task submission failed:', error);
+    }
   }
   
   handleAgentCreation(agentConfig) {

@@ -108,22 +108,54 @@ Always respond with clear, structured thinking and limit responses to essential 
   
   /**
    * Real task processing using LLM
+   * 为Vercel环境优化任务处理
    */
   async _executeTask(task) {
     this.aiState.isProcessing = true;
     
     try {
+      // 为Vercel环境设置更短的超时时间
+      const timeoutPromise = process.env.VERCEL ? 
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`Task processing timeout for ${this.name}`)), 15000)) : 
+        null;
+      
       // Prepare context for the AI
       const context = this._prepareTaskContext(task);
       
       // Generate real semantic embedding for the task
-      const taskEmbedding = await this._generateEmbedding(task.description);
+      let taskEmbedding;
+      if (timeoutPromise) {
+        // 在Vercel环境中使用超时限制
+        taskEmbedding = await Promise.race([
+          this._generateEmbedding(task.description),
+          timeoutPromise
+        ]);
+      } else {
+        taskEmbedding = await this._generateEmbedding(task.description);
+      }
       
       // Process with LLM
-      const aiResponse = await this._processWithLLM(context, task);
+      let aiResponse;
+      if (timeoutPromise) {
+        // 在Vercel环境中使用超时限制
+        aiResponse = await Promise.race([
+          this._processWithLLM(context, task),
+          timeoutPromise
+        ]);
+      } else {
+        aiResponse = await this._processWithLLM(context, task);
+      }
       
       // Update agent's semantic state based on task
-      await this._updateSemanticState(task, aiResponse);
+      if (timeoutPromise) {
+        // 在Vercel环境中使用超时限制
+        await Promise.race([
+          this._updateSemanticState(task, aiResponse),
+          timeoutPromise
+        ]);
+      } else {
+        await this._updateSemanticState(task, aiResponse);
+      }
       
       // Create structured result
       const result = {
