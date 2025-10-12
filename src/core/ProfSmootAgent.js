@@ -592,7 +592,7 @@ ANALYSIS:`;
       
       // 生成任务嵌入 - 在Vercel环境中使用更快的处理方式
       let taskEmbedding;
-      if (timeoutPromise) {
+      if (process.env.VERCEL) {
         // 在Vercel环境中使用超时限制
         console.log(`   📊 ${this.name} 开始生成任务嵌入`);
         try {
@@ -612,7 +612,7 @@ ANALYSIS:`;
       
       // Process with LLM
       let aiResponse;
-      if (timeoutPromise) {
+      if (process.env.VERCEL) {
         // 在Vercel环境中使用超时限制
         console.log(`   🤖 ${this.name} 开始LLM处理`);
         try {
@@ -637,17 +637,8 @@ ANALYSIS:`;
       
       // Update agent's semantic state based on task - 在Vercel环境中跳过这一步以提高速度
       if (!process.env.VERCEL) {
-        if (timeoutPromise) {
-          // 在Vercel环境中使用超时限制
-          console.log(`   🔄 ${this.name} 开始更新语义状态`);
-          await Promise.race([
-            this._updateSemanticState(task, aiResponse),
-            timeoutPromise
-          ]);
-          console.log(`   ✅ ${this.name} 完成语义状态更新`);
-        } else {
-          await this._updateSemanticState(task, aiResponse);
-        }
+        await this._updateSemanticState(task, aiResponse);
+        console.log(`   ✅ ${this.name} 完成语义状态更新`);
       } else {
         console.log(`   ⏭️ ${this.name} 跳过语义状态更新以提高Vercel环境中的处理速度`);
       }

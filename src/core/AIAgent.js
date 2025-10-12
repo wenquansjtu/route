@@ -448,31 +448,34 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
       if (process.env.VERCEL) {
         console.log(`   ⏱️ 设置5秒超时限制`);
         
-        // 创建一个带超时的Promise
-        return new Promise((resolve, reject) => {
-          // 设置超时计时器
-          const timeoutId = setTimeout(() => {
-            console.log(`   ⏰ 嵌入生成超时`);
-            resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
-          }, 5000);
-          
-          // 执行嵌入生成
-          this.openai.embeddings.create({
-            model: 'text-embedding-ada-002',
-            input: processedText,
-          }).then(response => {
-            // 清除超时计时器
-            clearTimeout(timeoutId);
-            console.log(`   ✅ 嵌入生成完成`);
-            resolve(response.data[0].embedding);
-          }).catch(error => {
-            // 清除超时计时器
-            clearTimeout(timeoutId);
-            // 捕获API调用错误
-            console.error(`   ⚠️ OpenAI API error: ${error.message}`);
-            resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
-          });
+        // 使用Promise.race实现更可靠的超时处理
+        const embeddingPromise = this.openai.embeddings.create({
+          model: 'text-embedding-ada-002',
+          input: processedText,
+        }).then(response => {
+          console.log(`   ✅ 嵌入生成完成`);
+          return response.data[0].embedding;
+        }).catch(error => {
+          // 捕获API调用错误
+          console.error(`   ⚠️ OpenAI API error: ${error.message}`);
+          throw error;
         });
+        
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            console.log(`   ⏰ 嵌入生成超时`);
+            reject(new Error('Embedding generation timeout'));
+          }, 5000);
+        });
+        
+        try {
+          const result = await Promise.race([embeddingPromise, timeoutPromise]);
+          return result;
+        } catch (raceError) {
+          // 如果是超时或API错误，返回默认嵌入
+          console.error(`   ⚠️ 嵌入生成失败: ${raceError.message}`);
+          return new Array(1536).fill(0).map(() => Math.random() - 0.5);
+        }
       } else {
         // 非Vercel环境的正常处理
         const response = await this.openai.embeddings.create({

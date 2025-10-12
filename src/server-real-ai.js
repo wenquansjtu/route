@@ -308,7 +308,35 @@ class RealAICosmicServer {
         
         console.log(`🚀 Starting collaboration for task: ${taskData.id}`);
         
-        const result = await this.aiCollaboration.submitCollaborativeTask(taskData);
+        // 为Vercel环境添加超时处理
+        let result;
+        if (process.env.VERCEL) {
+          // 在Vercel环境中使用85秒超时限制（略小于Vercel的90秒限制）
+          console.log(`⏱️ Setting 85 second timeout for task processing in Vercel environment`);
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+              console.log(`⏰ Task processing timeout for task ${taskData.id}`);
+              reject(new Error('Task processing timeout - Vercel limit approaching'));
+            }, 85000);
+          });
+          
+          try {
+            result = await Promise.race([
+              this.aiCollaboration.submitCollaborativeTask(taskData),
+              timeoutPromise
+            ]);
+            console.log(`✅ Task processing completed for task ${taskData.id}`);
+          } catch (raceError) {
+            // 如果超时，返回错误结果
+            console.error(`❌ Task processing timed out for task ${taskData.id}:`, raceError.message);
+            throw new Error(`Task processing timed out: ${raceError.message}`);
+          }
+        } else {
+          // 在非Vercel环境中正常处理
+          console.log(`🚀 Starting task processing for task ${taskData.id} (non-Vercel environment)`);
+          result = await this.aiCollaboration.submitCollaborativeTask(taskData);
+          console.log(`✅ Task processing completed for task ${taskData.id}`);
+        }
         
         this.taskHistory.push({
           task: taskData,
@@ -809,25 +837,33 @@ You should provide thorough validation reports with clear pass/fail indicators a
     try {
       // Forward task submission to the collaboration engine and wait for result
       // 为Vercel环境设置更短的超时时间
-      const timeoutPromise = process.env.VERCEL ? 
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Task processing timeout')), 85000)) : 
-        null;
-    
       let result;
-      if (timeoutPromise) {
-        // 在Vercel环境中使用超时限制
+      if (process.env.VERCEL) {
+        // 在Vercel环境中使用85秒超时限制（略小于Vercel的90秒限制）
+        console.log(`⏱️ Setting 85 second timeout for task processing in Vercel environment`);
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            console.log(`⏰ Task processing timeout for task ${taskData.id}`);
+            reject(new Error('Task processing timeout - Vercel limit approaching'));
+          }, 85000);
+        });
+        
         try {
           result = await Promise.race([
             this.aiCollaboration.submitCollaborativeTask(taskData),
             timeoutPromise
           ]);
+          console.log(`✅ Task processing completed for task ${taskData.id}`);
         } catch (raceError) {
           // 如果超时，返回错误结果
+          console.error(`❌ Task processing timed out for task ${taskData.id}:`, raceError.message);
           throw new Error(`Task processing timed out: ${raceError.message}`);
         }
       } else {
         // 在非Vercel环境中正常处理
+        console.log(`🚀 Starting task processing for task ${taskData.id} (non-Vercel environment)`);
         result = await this.aiCollaboration.submitCollaborativeTask(taskData);
+        console.log(`✅ Task processing completed for task ${taskData.id}`);
       }
       
       // Broadcast successful completion
