@@ -117,7 +117,7 @@ Always respond with clear, structured thinking and limit responses to essential 
     try {
       // 为Vercel环境设置更短的超时时间
       const timeoutPromise = process.env.VERCEL ? 
-        new Promise((_, reject) => setTimeout(() => reject(new Error(`Task processing timeout for ${this.name}`)), 15000)) : 
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`Task processing timeout for ${this.name}`)), 12000)) : 
         null;
       
       // Prepare context for the AI
@@ -128,11 +128,17 @@ Always respond with clear, structured thinking and limit responses to essential 
       if (timeoutPromise) {
         // 在Vercel环境中使用超时限制
         console.log(`   📊 ${this.name} 开始生成任务嵌入`);
-        taskEmbedding = await Promise.race([
-          this._generateEmbedding(task.description),
-          timeoutPromise
-        ]);
-        console.log(`   ✅ ${this.name} 完成任务嵌入生成`);
+        try {
+          taskEmbedding = await Promise.race([
+            this._generateEmbedding(task.description),
+            timeoutPromise
+          ]);
+          console.log(`   ✅ ${this.name} 完成任务嵌入生成`);
+        } catch (embeddingError) {
+          // 如果嵌入生成失败，使用默认嵌入
+          console.error(`   ⚠️ ${this.name} 嵌入生成失败: ${embeddingError.message}`);
+          taskEmbedding = new Array(1536).fill(0).map(() => Math.random() - 0.5);
+        }
       } else {
         taskEmbedding = await this._generateEmbedding(task.description);
       }
@@ -142,26 +148,41 @@ Always respond with clear, structured thinking and limit responses to essential 
       if (timeoutPromise) {
         // 在Vercel环境中使用超时限制
         console.log(`   🤖 ${this.name} 开始LLM处理`);
-        aiResponse = await Promise.race([
-          this._processWithLLM(context, task),
-          timeoutPromise
-        ]);
-        console.log(`   ✅ ${this.name} 完成LLM处理`);
+        try {
+          aiResponse = await Promise.race([
+            this._processWithLLM(context, task),
+            timeoutPromise
+          ]);
+          console.log(`   ✅ ${this.name} 完成LLM处理`);
+        } catch (llmError) {
+          // 如果LLM处理失败，使用默认响应
+          console.error(`   ⚠️ ${this.name} LLM处理失败: ${llmError.message}`);
+          aiResponse = {
+            content: `任务处理遇到问题: ${llmError.message}`,
+            reasoning: ['使用默认响应'],
+            confidence: 0.3,
+            tokens: 0
+          };
+        }
       } else {
         aiResponse = await this._processWithLLM(context, task);
       }
       
-      // Update agent's semantic state based on task
-      if (timeoutPromise) {
-        // 在Vercel环境中使用超时限制
-        console.log(`   🔄 ${this.name} 开始更新语义状态`);
-        await Promise.race([
-          this._updateSemanticState(task, aiResponse),
-          timeoutPromise
-        ]);
-        console.log(`   ✅ ${this.name} 完成语义状态更新`);
+      // Update agent's semantic state based on task - 在Vercel环境中跳过这一步以提高速度
+      if (!process.env.VERCEL) {
+        if (timeoutPromise) {
+          // 在Vercel环境中使用超时限制
+          console.log(`   🔄 ${this.name} 开始更新语义状态`);
+          await Promise.race([
+            this._updateSemanticState(task, aiResponse),
+            timeoutPromise
+          ]);
+          console.log(`   ✅ ${this.name} 完成语义状态更新`);
+        } else {
+          await this._updateSemanticState(task, aiResponse);
+        }
       } else {
-        await this._updateSemanticState(task, aiResponse);
+        console.log(`   ⏭️ ${this.name} 跳过语义状态更新以提高Vercel环境中的处理速度`);
       }
       
       // Create structured result
@@ -183,12 +204,14 @@ Always respond with clear, structured thinking and limit responses to essential 
       
       console.log(`   📦 ${this.name} 任务执行完成，结果长度: ${aiResponse.content.length} 字符`);
       
-      // Store in memory
-      this._storeInMemory('task_result', {
-        task: task,
-        result: result,
-        timestamp: Date.now()
-      });
+      // Store in memory - 在Vercel环境中简化存储以提高速度
+      if (!process.env.VERCEL) {
+        this._storeInMemory('task_result', {
+          task: task,
+          result: result,
+          timestamp: Date.now()
+        });
+      }
       
       return result;
       
@@ -250,32 +273,83 @@ Always respond with clear, structured thinking and limit responses to essential 
     const prompt = this._constructPrompt(context, task);
     
     try {
-      // 为Vercel环境使用更快速的模型
       // 为Vercel环境使用更快速的模型和更少的token
       const model = process.env.VERCEL ? 'gpt-3.5-turbo' : this.aiConfig.model;
-      const maxTokens = process.env.VERCEL ? 600 : this.aiConfig.maxTokens; // Vercel环境下减少到600 token
+      const maxTokens = process.env.VERCEL ? 500 : this.aiConfig.maxTokens; // Vercel环境下进一步减少到500 token
       
-      const completion = await this.openai.chat.completions.create({
-        model: model,
-        messages: [
-          { role: 'system', content: this.aiConfig.systemPrompt },
-          { role: 'user', content: prompt }
-        ],
-        temperature: this.aiConfig.temperature,
-        max_tokens: maxTokens,
-      });
-      
-      const response = completion.choices[0].message.content;
-      
-      // Parse structured response
-      const parsedResponse = this._parseAIResponse(response);
-      
-      return {
-        content: parsedResponse.content,
-        reasoning: parsedResponse.reasoning,
-        confidence: parsedResponse.confidence,
-        tokens: completion.usage?.total_tokens || 0
-      };
+      // 为Vercel环境添加超时处理
+      if (process.env.VERCEL) {
+        // 创建LLM调用Promise
+        const llmPromise = this.openai.chat.completions.create({
+          model: model,
+          messages: [
+            { role: 'system', content: this.aiConfig.systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          temperature: this.aiConfig.temperature,
+          max_tokens: maxTokens,
+        }).catch(error => {
+          // 捕获API调用错误
+          throw new Error(`OpenAI API error: ${error.message}`);
+        });
+        
+        // 创建超时Promise (8秒超时)
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('LLM processing timeout'));
+          }, 8000);
+        });
+        
+        // 使用Promise.race确保超时能正常工作
+        try {
+          const completion = await Promise.race([llmPromise, timeoutPromise]);
+          const response = completion.choices[0].message.content;
+          
+          // Parse structured response
+          const parsedResponse = this._parseAIResponse(response);
+          
+          return {
+            content: parsedResponse.content,
+            reasoning: parsedResponse.reasoning,
+            confidence: parsedResponse.confidence,
+            tokens: completion.usage?.total_tokens || 0
+          };
+        } catch (raceError) {
+          // 如果是超时或API错误，记录日志并使用默认响应
+          console.error(`LLM processing error for ${this.name}:`, raceError.message);
+          
+          // Fallback response
+          return {
+            content: `Error processing task: ${raceError.message}. Falling back to basic processing.`,
+            reasoning: ['Error occurred during AI processing', 'Using fallback logic'],
+            confidence: 0.3,
+            tokens: 0
+          };
+        }
+      } else {
+        // 非Vercel环境的正常处理
+        const completion = await this.openai.chat.completions.create({
+          model: model,
+          messages: [
+            { role: 'system', content: this.aiConfig.systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          temperature: this.aiConfig.temperature,
+          max_tokens: maxTokens,
+        });
+        
+        const response = completion.choices[0].message.content;
+        
+        // Parse structured response
+        const parsedResponse = this._parseAIResponse(response);
+        
+        return {
+          content: parsedResponse.content,
+          reasoning: parsedResponse.reasoning,
+          confidence: parsedResponse.confidence,
+          tokens: completion.usage?.total_tokens || 0
+        };
+      }
       
     } catch (error) {
       console.error(`AI processing error for ${this.name}:`, error);
@@ -367,30 +441,35 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
   async _generateEmbedding(text) {
     console.log(`   📊 开始生成嵌入，文本长度: ${text.length}`);
     try {
-      // 为Vercel环境添加更完善的超时处理
-      const timeoutPromise = process.env.VERCEL ? 
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Embedding generation timeout')), 5000)) : 
-        null;
-      
       // 限制文本长度以提高速度
       const processedText = text.substring(0, 1000);
       
-      let response;
-      if (timeoutPromise) {
-        // 在Vercel环境中使用超时限制
+      // 为Vercel环境添加更完善的超时处理
+      if (process.env.VERCEL) {
         console.log(`   ⏱️ 设置5秒超时限制`);
+        
+        // 创建一个带超时的Promise
+        const embeddingPromise = this.openai.embeddings.create({
+          model: 'text-embedding-ada-002',
+          input: processedText,
+        }).catch(error => {
+          // 捕获API调用错误
+          throw new Error(`OpenAI API error: ${error.message}`);
+        });
+        
+        // 创建超时Promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            console.log(`   ⏰ 嵌入生成超时`);
+            reject(new Error('Embedding generation timeout'));
+          }, 5000);
+        });
+        
+        // 使用Promise.race确保超时能正常工作
         try {
-          // 使用Promise.race确保超时能正常工作
-          response = await Promise.race([
-            this.openai.embeddings.create({
-              model: 'text-embedding-ada-002',
-              input: processedText,
-            }).catch(error => {
-              // 捕获API调用错误
-              throw new Error(`OpenAI API error: ${error.message}`);
-            }),
-            timeoutPromise
-          ]);
+          const response = await Promise.race([embeddingPromise, timeoutPromise]);
+          console.log(`   ✅ 嵌入生成完成`);
+          return response.data[0].embedding;
         } catch (raceError) {
           // 如果是超时或API错误，记录日志并使用默认值
           console.error(`   ⚠️ 嵌入生成失败: ${raceError.message}`);
@@ -399,14 +478,13 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
         }
       } else {
         // 非Vercel环境的正常处理
-        response = await this.openai.embeddings.create({
+        const response = await this.openai.embeddings.create({
           model: 'text-embedding-ada-002',
           input: processedText,
         });
+        console.log(`   ✅ 嵌入生成完成`);
+        return response.data[0].embedding;
       }
-      
-      console.log(`   ✅ 嵌入生成完成`);
-      return response.data[0].embedding;
     } catch (error) {
       console.error('Embedding generation error:', error.message);
       // Fallback to random embedding

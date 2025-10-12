@@ -574,6 +574,140 @@ ANALYSIS:`;
   }
   
   /**
+   * Real task processing using LLM
+   * 为Vercel环境优化任务处理
+   */
+  async _executeTask(task) {
+    console.log(`   🚀 ${this.name} 开始执行任务: ${task.description.substring(0, 50)}...`);
+    this.aiState.isProcessing = true;
+    
+    try {
+      // 为Vercel环境设置更短的超时时间
+      const timeoutPromise = process.env.VERCEL ? 
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`Task processing timeout for ${this.name}`)), 10000)) : 
+        null;
+      
+      // Prepare context for the AI
+      const context = this._prepareTaskContext(task);
+      
+      // 生成任务嵌入 - 在Vercel环境中使用更快的处理方式
+      let taskEmbedding;
+      if (timeoutPromise) {
+        // 在Vercel环境中使用超时限制
+        console.log(`   📊 ${this.name} 开始生成任务嵌入`);
+        try {
+          taskEmbedding = await Promise.race([
+            this._generateEmbedding(task.description),
+            timeoutPromise
+          ]);
+          console.log(`   ✅ ${this.name} 完成任务嵌入生成`);
+        } catch (embeddingError) {
+          // 如果嵌入生成失败，使用默认嵌入
+          console.error(`   ⚠️ ${this.name} 嵌入生成失败: ${embeddingError.message}`);
+          taskEmbedding = new Array(1536).fill(0).map(() => Math.random() - 0.5);
+        }
+      } else {
+        taskEmbedding = await this._generateEmbedding(task.description);
+      }
+      
+      // Process with LLM
+      let aiResponse;
+      if (timeoutPromise) {
+        // 在Vercel环境中使用超时限制
+        console.log(`   🤖 ${this.name} 开始LLM处理`);
+        try {
+          aiResponse = await Promise.race([
+            this._processWithLLM(context, task),
+            timeoutPromise
+          ]);
+          console.log(`   ✅ ${this.name} 完成LLM处理`);
+        } catch (llmError) {
+          // 如果LLM处理失败，使用默认响应
+          console.error(`   ⚠️ ${this.name} LLM处理失败: ${llmError.message}`);
+          aiResponse = {
+            content: `任务处理遇到问题: ${llmError.message}`,
+            reasoning: ['使用默认响应'],
+            confidence: 0.3,
+            tokens: 0
+          };
+        }
+      } else {
+        aiResponse = await this._processWithLLM(context, task);
+      }
+      
+      // Update agent's semantic state based on task - 在Vercel环境中跳过这一步以提高速度
+      if (!process.env.VERCEL) {
+        if (timeoutPromise) {
+          // 在Vercel环境中使用超时限制
+          console.log(`   🔄 ${this.name} 开始更新语义状态`);
+          await Promise.race([
+            this._updateSemanticState(task, aiResponse),
+            timeoutPromise
+          ]);
+          console.log(`   ✅ ${this.name} 完成语义状态更新`);
+        } else {
+          await this._updateSemanticState(task, aiResponse);
+        }
+      } else {
+        console.log(`   ⏭️ ${this.name} 跳过语义状态更新以提高Vercel环境中的处理速度`);
+      }
+      
+      // Create structured result
+      const result = {
+        taskId: task.id,
+        agentId: this.id,
+        result: aiResponse.content,
+        reasoning: aiResponse.reasoning,
+        confidence: aiResponse.confidence,
+        semanticEmbedding: taskEmbedding,
+        metadata: {
+          processingTime: Date.now(),
+          model: this.aiConfig.model,
+          tokens: aiResponse.tokens,
+          agentCapabilities: this.capabilities,
+          collaborationContext: this._getCollaborationContext()
+        }
+      };
+      
+      console.log(`   📦 ${this.name} 任务执行完成，结果长度: ${aiResponse.content.length} 字符`);
+      
+      // Store in memory - 在Vercel环境中简化存储以提高速度
+      if (!process.env.VERCEL) {
+        this._storeInMemory('task_result', {
+          task: task,
+          result: result,
+          timestamp: Date.now()
+        });
+      }
+      
+      return result;
+      
+    } catch (error) {
+      console.error(`   ❌ ${this.name} 任务执行失败:`, error.message);
+      // 提供一个默认的响应以防出错
+      return {
+        taskId: task.id,
+        agentId: this.id,
+        result: `任务执行遇到问题: ${error.message}`,
+        reasoning: ['使用默认响应'],
+        confidence: 0.3,
+        semanticEmbedding: new Array(1536).fill(0).map(() => Math.random() - 0.5),
+        metadata: {
+          processingTime: Date.now(),
+          model: this.aiConfig.model,
+          tokens: 0,
+          agentCapabilities: this.capabilities,
+          collaborationContext: this._getCollaborationContext()
+        }
+      };
+    } finally {
+      this.aiState.isProcessing = false;
+      this.aiState.lastThought = Date.now();
+      console.log(`   🛑 ${this.name} 任务执行结束`);
+    }
+  }
+  
+  /**
    * Get Prof. Smoot's specialized status
    */
   getSpecializedStatus() {

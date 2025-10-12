@@ -568,7 +568,7 @@ export class RealAICollaborationEngine extends EventEmitter {
     console.log(`📊 开始个体分析阶段，共有 ${session.participants.length} 个代理`);
     const analyses = [];
     // 为Vercel环境设置更短的超时时间
-    const analysisTimeout = process.env.VERCEL ? 15000 : 60000; // Vercel环境下15秒，其他环境60秒
+    const analysisTimeout = process.env.VERCEL ? 12000 : 60000; // Vercel环境下12秒，其他环境60秒
 
     // Process each agent's individual analysis with timeout
     for (const agent of session.participants) {
