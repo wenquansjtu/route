@@ -357,127 +357,28 @@ export class RealAICollaborationEngine extends EventEmitter {
     console.log(`\n🚀 Starting Real AI Collaboration...`);
     
     try {
+      // 为Vercel环境添加整体超时处理
+      const timeoutPromise = process.env.VERCEL ? 
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Collaboration timeout')), this.config.collaborationTimeout)) : 
+        null;
+      
       // 检查会话是否已经超时
       if (session.status === 'timeout') {
         throw new Error('Collaboration session timed out before processing started');
       }
       
-      // 阶段1: 个体分析
-      console.log('\n📊 Phase 1: Individual Analysis');
-      const initialAnalyses = await this._conductIndividualAnalysis(session);
-      
-      // 检查会话是否在分析阶段超时
-      if (session.status === 'timeout') {
-        throw new Error('Collaboration session timed out during individual analysis');
+      let results;
+      if (timeoutPromise) {
+        // 在Vercel环境中使用超时限制
+        results = await Promise.race([
+          this._executeCollaborativeTaskInternal(session),
+          timeoutPromise
+        ]);
+      } else {
+        results = await this._executeCollaborativeTaskInternal(session);
       }
       
-      // 发出任务链执行步骤事件用于个体分析
-      this.emit('task-chain-execution-step', {
-        taskChainId: session.id,
-        taskId: `${session.task.id}_analysis`,
-        agentId: 'multiple',
-        timestamp: Date.now(),
-        taskName: 'Individual Analysis',
-        phase: 'individual_analysis',
-        agentDetails: session.participants.map(agent => ({
-          id: agent.id,
-          name: agent.name,
-          type: agent.type
-        }))
-      });
-      
-      // 阶段2: 协作讨论
-      console.log('\n💬 Phase 2: Collaborative Discussion');
-      const discussions = await this._conductCollaborativeDiscussion(session, initialAnalyses);
-      
-      // 检查会话是否在讨论阶段超时
-      if (session.status === 'timeout') {
-        throw new Error('Collaboration session timed out during collaborative discussion');
-      }
-      
-      // 发出任务链执行步骤事件用于协作讨论
-      this.emit('task-chain-execution-step', {
-        taskChainId: session.id,
-        taskId: `${session.task.id}_discussion`,
-        agentId: 'multiple',
-        timestamp: Date.now(),
-        taskName: 'Collaborative Discussion',
-        phase: 'collaborative_discussion',
-        agentDetails: session.participants.map(agent => ({
-          id: agent.id,
-          name: agent.name,
-          type: agent.type
-        }))
-      });
-      
-      // 阶段3: 收敛和综合
-      console.log('\n🎯 Phase 3: Convergence & Synthesis');
-      const finalResult = await this._achieveConvergence(session, discussions);
-      
-      // 检查会话是否在综合阶段超时
-      if (session.status === 'timeout') {
-        throw new Error('Collaboration session timed out during convergence and synthesis');
-      }
-      
-      // 发出任务链执行步骤事件用于综合
-      this.emit('task-chain-execution-step', {
-        taskChainId: session.id,
-        taskId: `${session.task.id}_synthesis`,
-        agentId: 'synthesizer',
-        timestamp: Date.now(),
-        taskName: 'Result Synthesis',
-        phase: 'result_synthesis',
-        agentDetails: [{
-          id: 'synthesizer',
-          name: 'Synthesizer Agent',
-          type: 'synthesizer'
-        }]
-      });
-      
-      // 更新会话状态
-      session.status = 'completed';
-      session.endTime = Date.now();
-      session.duration = session.endTime - session.startTime;
-      
-      console.log(`✅ Collaboration completed in ${session.duration}ms`);
-      
-      // 发出协作完成事件
-      this.emit('collaboration-completed', {
-        sessionId: sessionId,
-        result: finalResult,
-        duration: session.duration
-      });
-      
-      // 也发出ai-task-completed事件以与前端兼容
-      this.emit('ai-task-completed', {
-        success: true,
-        taskId: session.task.id,
-        sessionId: sessionId,
-        result: {
-          taskId: session.task.id,
-          sessionId: sessionId,
-          finalResult: finalResult.finalResult,
-          synthesizedBy: finalResult.synthesizedBy,
-          participantContributions: finalResult.participantContributions,
-          convergenceMetrics: finalResult.convergenceMetrics,
-          timestamp: finalResult.timestamp
-        }
-      });
-      
-      // 发出任务链完成事件
-      this.emit('task-chain-completed', {
-        chainId: session.id,
-        taskId: session.task.id,
-        result: finalResult,
-        metrics: {
-          executionTime: session.duration,
-          successRate: 1.0,
-          totalSteps: 3
-        }
-      });
-      
-      return finalResult;
-      
+      return results;
     } catch (error) {
       const errorMessage = error?.message || 'Unknown error occurred during collaboration';
       const errorStack = error?.stack || '';
@@ -536,6 +437,127 @@ export class RealAICollaborationEngine extends EventEmitter {
 
       return fallbackResult;
     }
+  }
+  
+  /**
+   * Internal method to execute collaborative task
+   */
+  async _executeCollaborativeTaskInternal(session) {
+    // 阶段1: 个体分析
+    console.log('\n📊 Phase 1: Individual Analysis');
+    const initialAnalyses = await this._conductIndividualAnalysis(session);
+    
+    // 检查会话是否在分析阶段超时
+    if (session.status === 'timeout') {
+      throw new Error('Collaboration session timed out during individual analysis');
+    }
+    
+    // 发出任务链执行步骤事件用于个体分析
+    this.emit('task-chain-execution-step', {
+      taskChainId: session.id,
+      taskId: `${session.task.id}_analysis`,
+      agentId: 'multiple',
+      timestamp: Date.now(),
+      taskName: 'Individual Analysis',
+      phase: 'individual_analysis',
+      agentDetails: session.participants.map(agent => ({
+        id: agent.id,
+        name: agent.name,
+        type: agent.type
+      }))
+    });
+    
+    // 阶段2: 协作讨论
+    console.log('\n💬 Phase 2: Collaborative Discussion');
+    const discussions = await this._conductCollaborativeDiscussion(session, initialAnalyses);
+    
+    // 检查会话是否在讨论阶段超时
+    if (session.status === 'timeout') {
+      throw new Error('Collaboration session timed out during collaborative discussion');
+    }
+    
+    // 发出任务链执行步骤事件用于协作讨论
+    this.emit('task-chain-execution-step', {
+      taskChainId: session.id,
+      taskId: `${session.task.id}_discussion`,
+      agentId: 'multiple',
+      timestamp: Date.now(),
+      taskName: 'Collaborative Discussion',
+      phase: 'collaborative_discussion',
+      agentDetails: session.participants.map(agent => ({
+        id: agent.id,
+        name: agent.name,
+        type: agent.type
+      }))
+    });
+    
+    // 阶段3: 收敛和综合
+    console.log('\n🎯 Phase 3: Convergence & Synthesis');
+    const finalResult = await this._achieveConvergence(session, discussions);
+    
+    // 检查会话是否在综合阶段超时
+    if (session.status === 'timeout') {
+      throw new Error('Collaboration session timed out during convergence and synthesis');
+    }
+    
+    // 发出任务链执行步骤事件用于综合
+    this.emit('task-chain-execution-step', {
+      taskChainId: session.id,
+      taskId: `${session.task.id}_synthesis`,
+      agentId: 'synthesizer',
+      timestamp: Date.now(),
+      taskName: 'Result Synthesis',
+      phase: 'result_synthesis',
+      agentDetails: [{
+        id: 'synthesizer',
+        name: 'Synthesizer Agent',
+        type: 'synthesizer'
+      }]
+    });
+    
+    // 更新会话状态
+    session.status = 'completed';
+    session.endTime = Date.now();
+    session.duration = session.endTime - session.startTime;
+    
+    console.log(`✅ Collaboration completed in ${session.duration}ms`);
+    
+    // 发出协作完成事件
+    this.emit('collaboration-completed', {
+      sessionId: session.id,
+      result: finalResult,
+      duration: session.duration
+    });
+    
+    // 也发出ai-task-completed事件以与前端兼容
+    this.emit('ai-task-completed', {
+      success: true,
+      taskId: session.task.id,
+      sessionId: session.id,
+      result: {
+        taskId: session.task.id,
+        sessionId: session.id,
+        finalResult: finalResult.finalResult,
+        synthesizedBy: finalResult.synthesizedBy,
+        participantContributions: finalResult.participantContributions,
+        convergenceMetrics: finalResult.convergenceMetrics,
+        timestamp: finalResult.timestamp
+      }
+    });
+    
+    // 发出任务链完成事件
+    this.emit('task-chain-completed', {
+      chainId: session.id,
+      taskId: session.task.id,
+      result: finalResult,
+      metrics: {
+        executionTime: session.duration,
+        successRate: 1.0,
+        totalSteps: 3
+      }
+    });
+    
+    return finalResult;
   }
   
   /**
