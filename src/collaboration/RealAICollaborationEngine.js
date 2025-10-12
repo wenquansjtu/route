@@ -523,7 +523,8 @@ export class RealAICollaborationEngine extends EventEmitter {
    */
   async _conductIndividualAnalysis(session) {
     const analyses = [];
-    const analysisTimeout = 60000; // 60 seconds timeout per agent
+    // 为Vercel环境设置更短的超时时间
+    const analysisTimeout = process.env.VERCEL ? 30000 : 60000; // Vercel环境下30秒，其他环境60秒
 
     // Process each agent's individual analysis with timeout
     for (const agent of session.participants) {
@@ -685,14 +686,18 @@ export class RealAICollaborationEngine extends EventEmitter {
       
       const synthesisPrompt = this._createSynthesisPrompt(synthesisContext);
       
+      // 为Vercel环境进一步优化综合阶段
+      const model = process.env.VERCEL ? 'gpt-3.5-turbo' : 'gpt-3.5-turbo';
+      const maxTokens = process.env.VERCEL ? 500 : 800; // Vercel环境下进一步减少token
+      
       const completion = await synthesizer.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo', // 使用gpt-3.5-turbo进行综合以避免token限制
+        model: model,
         messages: [
           { role: 'system', content: `你是${synthesizer.name}，一个专业的综合者。提供简洁、全面的分析。` },
           { role: 'user', content: synthesisPrompt }
         ],
         temperature: 0.3, // 降低温度以获得更集中的综合
-        max_tokens: 800, // 从1000减少到800以提高响应速度
+        max_tokens: maxTokens
       });
       
       const finalSynthesis = completion.choices[0].message.content;

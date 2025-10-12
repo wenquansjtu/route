@@ -61,10 +61,11 @@ export class AIAgent extends CosmicAgent {
    * Initialize AI capabilities
    */
   _initializeAI() {
-    // 减少后台思考过程的频率，从30秒增加到60秒，减少API调用
+    // 为Vercel环境进一步减少后台思考过程的频率
+    const thinkingInterval = process.env.VERCEL ? 120000 : 60000; // Vercel环境下120秒，其他环境60秒
     this.thinkingInterval = setInterval(() => {
       this._backgroundThinking();
-    }, 60000); // 从30000ms增加到60000ms (60秒)
+    }, thinkingInterval);
     
     // Monitor AI state
     this.on('task-received', this._onTaskReceived.bind(this));
@@ -190,8 +191,9 @@ Always respond with clear, structured thinking and limit responses to essential 
     
     try {
       // 为Vercel环境使用更快速的模型
+      // 为Vercel环境使用更快速的模型和更少的token
       const model = process.env.VERCEL ? 'gpt-3.5-turbo' : this.aiConfig.model;
-      const maxTokens = process.env.VERCEL ? 800 : this.aiConfig.maxTokens;
+      const maxTokens = process.env.VERCEL ? 600 : this.aiConfig.maxTokens; // Vercel环境下减少到600 token
       
       const completion = await this.openai.chat.completions.create({
         model: model,

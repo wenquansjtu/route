@@ -270,8 +270,9 @@ Your approach:
     
     try {
       // 为Vercel环境使用更快速的模型和更少的token
-      const model = process.env.VERCEL ? 'gpt-3.5-turbo' : 'gpt-3.5-turbo';
-      const maxTokens = process.env.VERCEL ? 400 : 600;
+      // 为Vercel环境使用更快速的模型和更少的token
+      const model = process.env.VERCEL ? 'gpt-3.5-turbo' : 'gpt-4';
+      const maxTokens = process.env.VERCEL ? 300 : 600; // Vercel环境下进一步减少token
       
       const completion = await this.openai.chat.completions.create({
         model: model,

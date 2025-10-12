@@ -72,10 +72,11 @@ class RealAICosmicServer {
     }
     
     // Real AI Collaboration Engine with optimized configuration for faster task processing
+    // 为Vercel环境设置更短的超时时间，避免超过Vercel的限制
     this.aiCollaboration = new RealAICollaborationEngine({
       openaiApiKey: process.env.OPENAI_API_KEY,
-      collaborationTimeout: 300000, // 增加协作超时到5分钟
-      maxIterations: 2, // 减少最大迭代次数以提高速度
+      collaborationTimeout: process.env.VERCEL ? 120000 : 300000, // Vercel环境下2分钟，其他环境5分钟
+      maxIterations: process.env.VERCEL ? 1 : 2, // Vercel环境下减少迭代次数
       convergenceThreshold: 0.8 // 稍微降低收敛阈值以更快完成
     });
     
