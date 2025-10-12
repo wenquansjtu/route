@@ -14,11 +14,12 @@ export class RealAICollaborationEngine extends EventEmitter {
     
     this.config = {
       openaiApiKey: config.openaiApiKey || process.env.OPENAI_API_KEY,
-      maxConcurrentTasks: config.maxConcurrentTasks || 10,
-      collaborationTimeout: config.collaborationTimeout || 300000, // 增加到5分钟 (300000ms)
+      // 为Vercel环境设置更短的超时时间，避免超过Vercel的限制
+      maxConcurrentTasks: config.maxConcurrentTasks || (process.env.VERCEL ? 5 : 10),
+      collaborationTimeout: config.collaborationTimeout || (process.env.VERCEL ? 120000 : 300000), // Vercel环境下2分钟，其他环境5分钟
       convergenceThreshold: config.convergenceThreshold || 0.85,
       // 减少最大迭代次数从5次到2次，提高任务处理速度
-      maxIterations: config.maxIterations || 2,
+      maxIterations: config.maxIterations || (process.env.VERCEL ? 1 : 2),
     };
     
     // AI Agents storage

@@ -269,14 +269,18 @@ Your approach:
     const optimizationPrompt = this._createOptimizationPrompt(optimizationContext);
     
     try {
+      // 为Vercel环境使用更快速的模型和更少的token
+      const model = process.env.VERCEL ? 'gpt-3.5-turbo' : 'gpt-3.5-turbo';
+      const maxTokens = process.env.VERCEL ? 400 : 600;
+      
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo', // Use gpt-3.5-turbo for efficiency
+        model: model,
         messages: [
           { role: 'system', content: this.aiConfig.systemPrompt },
           { role: 'user', content: optimizationPrompt }
         ],
         temperature: 0.4,
-        max_tokens: 600,
+        max_tokens: maxTokens,
       });
       
       const response = completion.choices[0].message.content;

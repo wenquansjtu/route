@@ -189,14 +189,18 @@ Always respond with clear, structured thinking and limit responses to essential 
     const prompt = this._constructPrompt(context, task);
     
     try {
+      // 为Vercel环境使用更快速的模型
+      const model = process.env.VERCEL ? 'gpt-3.5-turbo' : this.aiConfig.model;
+      const maxTokens = process.env.VERCEL ? 800 : this.aiConfig.maxTokens;
+      
       const completion = await this.openai.chat.completions.create({
-        model: this.aiConfig.model,
+        model: model,
         messages: [
           { role: 'system', content: this.aiConfig.systemPrompt },
           { role: 'user', content: prompt }
         ],
         temperature: this.aiConfig.temperature,
-        max_tokens: this.aiConfig.maxTokens,
+        max_tokens: maxTokens,
       });
       
       const response = completion.choices[0].message.content;

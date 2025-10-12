@@ -174,10 +174,13 @@ class RealAICosmicServer {
       // Use a delayed initialization to avoid cold start issues
       if (process.env.VERCEL) {
         // In Vercel, delay initialization to allow for faster cold starts
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 减少延迟时间以更快初始化
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
       await this.initializeAIAgents();
     } catch (error) {
+      console.error('Failed to initialize AI agents:', error);
+      throw error;
     }
   }
   
