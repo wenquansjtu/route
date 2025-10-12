@@ -449,33 +449,30 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
         console.log(`   ⏱️ 设置5秒超时限制`);
         
         // 创建一个带超时的Promise
-        const embeddingPromise = this.openai.embeddings.create({
-          model: 'text-embedding-ada-002',
-          input: processedText,
-        }).catch(error => {
-          // 捕获API调用错误
-          throw new Error(`OpenAI API error: ${error.message}`);
-        });
-        
-        // 创建超时Promise
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => {
+        return new Promise((resolve, reject) => {
+          // 设置超时计时器
+          const timeoutId = setTimeout(() => {
             console.log(`   ⏰ 嵌入生成超时`);
-            reject(new Error('Embedding generation timeout'));
+            resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
           }, 5000);
+          
+          // 执行嵌入生成
+          this.openai.embeddings.create({
+            model: 'text-embedding-ada-002',
+            input: processedText,
+          }).then(response => {
+            // 清除超时计时器
+            clearTimeout(timeoutId);
+            console.log(`   ✅ 嵌入生成完成`);
+            resolve(response.data[0].embedding);
+          }).catch(error => {
+            // 清除超时计时器
+            clearTimeout(timeoutId);
+            // 捕获API调用错误
+            console.error(`   ⚠️ OpenAI API error: ${error.message}`);
+            resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
+          });
         });
-        
-        // 使用Promise.race确保超时能正常工作
-        try {
-          const response = await Promise.race([embeddingPromise, timeoutPromise]);
-          console.log(`   ✅ 嵌入生成完成`);
-          return response.data[0].embedding;
-        } catch (raceError) {
-          // 如果是超时或API错误，记录日志并使用默认值
-          console.error(`   ⚠️ 嵌入生成失败: ${raceError.message}`);
-          // 返回默认嵌入而不是抛出错误
-          return new Array(1536).fill(0).map(() => Math.random() - 0.5);
-        }
       } else {
         // 非Vercel环境的正常处理
         const response = await this.openai.embeddings.create({
@@ -496,28 +493,74 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
    * Update semantic state after task processing
    */
   async _updateSemanticState(task, response) {
-    // Generate new embedding based on task and response
-    const combinedText = `${task.description} ${response.content}`;
-    const newEmbedding = await this._generateEmbedding(combinedText);
-    
-    // Update agent's semantic embedding (weighted average)
-    const weight = 0.1; // How much new information affects overall state
-    for (let i = 0; i < this.semanticEmbedding.length && i < newEmbedding.length; i++) {
-      this.semanticEmbedding[i] = this.semanticEmbedding[i] * (1 - weight) + newEmbedding[i] * weight;
-    }
-    
-    // Update reasoning state
-    this.reasoning.currentThought = response.content.substring(0, 200) + '...';
-    this.reasoning.confidenceLevel = response.confidence;
-    this.reasoning.reasoningChain.push({
-      task: task.id,
-      reasoning: response.reasoning,
-      timestamp: Date.now()
-    });
-    
-    // Limit reasoning chain size
-    if (this.reasoning.reasoningChain.length > 10) {
-      this.reasoning.reasoningChain.shift();
+    try {
+      // 为Vercel环境添加超时处理
+      if (process.env.VERCEL) {
+        // 创建超时Promise (3秒超时)
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Semantic state update timeout'));
+          }, 3000);
+        });
+        
+        // 创建语义状态更新Promise
+        const updatePromise = (async () => {
+          // Generate new embedding based on task and response
+          const combinedText = `${task.description} ${response.content}`;
+          const newEmbedding = await this._generateEmbedding(combinedText);
+          
+          // Update agent's semantic embedding (weighted average)
+          const weight = 0.1; // How much new information affects overall state
+          for (let i = 0; i < this.semanticEmbedding.length && i < newEmbedding.length; i++) {
+            this.semanticEmbedding[i] = this.semanticEmbedding[i] * (1 - weight) + newEmbedding[i] * weight;
+          }
+          
+          // Update reasoning state
+          this.reasoning.currentThought = response.content.substring(0, 200) + '...';
+          this.reasoning.confidenceLevel = response.confidence;
+          this.reasoning.reasoningChain.push({
+            task: task.id,
+            reasoning: response.reasoning,
+            timestamp: Date.now()
+          });
+          
+          // Limit reasoning chain size
+          if (this.reasoning.reasoningChain.length > 10) {
+            this.reasoning.reasoningChain.shift();
+          }
+        })();
+        
+        // 使用Promise.race确保超时能正常工作
+        await Promise.race([updatePromise, timeoutPromise]);
+      } else {
+        // 非Vercel环境的正常处理
+        // Generate new embedding based on task and response
+        const combinedText = `${task.description} ${response.content}`;
+        const newEmbedding = await this._generateEmbedding(combinedText);
+        
+        // Update agent's semantic embedding (weighted average)
+        const weight = 0.1; // How much new information affects overall state
+        for (let i = 0; i < this.semanticEmbedding.length && i < newEmbedding.length; i++) {
+          this.semanticEmbedding[i] = this.semanticEmbedding[i] * (1 - weight) + newEmbedding[i] * weight;
+        }
+        
+        // Update reasoning state
+        this.reasoning.currentThought = response.content.substring(0, 200) + '...';
+        this.reasoning.confidenceLevel = response.confidence;
+        this.reasoning.reasoningChain.push({
+          task: task.id,
+          reasoning: response.reasoning,
+          timestamp: Date.now()
+        });
+        
+        // Limit reasoning chain size
+        if (this.reasoning.reasoningChain.length > 10) {
+          this.reasoning.reasoningChain.shift();
+        }
+      }
+    } catch (error) {
+      console.error(`Semantic state update error for ${this.name}:`, error.message);
+      // 忽略语义状态更新错误，继续执行
     }
   }
   
