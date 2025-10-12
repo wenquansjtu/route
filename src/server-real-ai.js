@@ -163,12 +163,8 @@ class RealAICosmicServer {
     // Initialize AI agents with a promise to track completion
     this.agentInitializationPromise = this.initializeAIAgentsAsync();
     
-    // For Vercel deployments, initialize agents immediately but don't wait for them
-    if (process.env.VERCEL) {
-      this.initializeAIAgentsAsync().catch(error => {
-        console.error('Failed to initialize AI agents:', error);
-      });
-    }
+    // For Vercel deployments, we don't need to call initializeAIAgentsAsync() again
+    // as it's already called above. The condition was causing double initialization.
   }
   
   // Asynchronous version of agent initialization that returns a promise
