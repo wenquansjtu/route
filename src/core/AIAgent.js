@@ -367,32 +367,48 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
   async _generateEmbedding(text) {
     console.log(`   📊 开始生成嵌入，文本长度: ${text.length}`);
     try {
-      // 为Vercel环境添加超时处理
+      // 为Vercel环境添加更完善的超时处理
       const timeoutPromise = process.env.VERCEL ? 
         new Promise((_, reject) => setTimeout(() => reject(new Error('Embedding generation timeout')), 5000)) : 
         null;
       
+      // 限制文本长度以提高速度
+      const processedText = text.substring(0, 1000);
+      
       let response;
       if (timeoutPromise) {
         // 在Vercel环境中使用超时限制
-        response = await Promise.race([
-          this.openai.embeddings.create({
-            model: 'text-embedding-ada-002',
-            input: text.substring(0, 1000), // 限制文本长度以提高速度
-          }),
-          timeoutPromise
-        ]);
+        console.log(`   ⏱️ 设置5秒超时限制`);
+        try {
+          // 使用Promise.race确保超时能正常工作
+          response = await Promise.race([
+            this.openai.embeddings.create({
+              model: 'text-embedding-ada-002',
+              input: processedText,
+            }).catch(error => {
+              // 捕获API调用错误
+              throw new Error(`OpenAI API error: ${error.message}`);
+            }),
+            timeoutPromise
+          ]);
+        } catch (raceError) {
+          // 如果是超时或API错误，记录日志并使用默认值
+          console.error(`   ⚠️ 嵌入生成失败: ${raceError.message}`);
+          // 返回默认嵌入而不是抛出错误
+          return new Array(1536).fill(0).map(() => Math.random() - 0.5);
+        }
       } else {
+        // 非Vercel环境的正常处理
         response = await this.openai.embeddings.create({
           model: 'text-embedding-ada-002',
-          input: text,
+          input: processedText,
         });
       }
       
       console.log(`   ✅ 嵌入生成完成`);
       return response.data[0].embedding;
     } catch (error) {
-      console.error('Embedding generation error:', error);
+      console.error('Embedding generation error:', error.message);
       // Fallback to random embedding
       return new Array(1536).fill(0).map(() => Math.random() - 0.5);
     }

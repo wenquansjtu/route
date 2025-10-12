@@ -112,17 +112,25 @@ Your approach:
     try {
       // 为Vercel环境设置更短的超时时间
       const timeoutPromise = process.env.VERCEL ? 
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Task allocation timeout for Prof. Smoot')), 10000)) : 
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Task allocation timeout for Prof. Smoot')), 8000)) : 
         null;
       
       let optimalAllocation;
       if (timeoutPromise) {
         // 在Vercel环境中使用超时限制
-        console.log(`   ⏱️ Prof. Smoot设置10秒超时限制`);
-        optimalAllocation = await Promise.race([
-          this._analyzeTaskAllocation(task, availableAgents),
-          timeoutPromise
-        ]);
+        console.log(`   ⏱️ Prof. Smoot设置8秒超时限制`);
+        try {
+          optimalAllocation = await Promise.race([
+            this._analyzeTaskAllocation(task, availableAgents),
+            timeoutPromise
+          ]);
+        } catch (raceError) {
+          // 如果超时，使用备用分配方法
+          console.error(`   ⚠️ Prof. Smoot分配分析超时: ${raceError.message}`);
+          const fallbackAllocation = this._fallbackAllocation(task, availableAgents);
+          console.log(`   ⚠️ Prof. Smoot使用备用分配方案`);
+          return fallbackAllocation;
+        }
       } else {
         optimalAllocation = await this._analyzeTaskAllocation(task, availableAgents);
       }
@@ -244,7 +252,7 @@ Your approach:
     }
     
     try {
-      // 为Vercel环境进一步简化评分逻辑
+      // 为Vercel环境进一步简化评分逻辑并提高处理速度
       const scoredAgents = agents.map(agent => {
         // 安全检查
         if (!agent) {
@@ -255,7 +263,7 @@ Your approach:
           };
         }
         
-        // 简化的能力匹配度评分
+        // 简化的能力匹配度评分 - 在Vercel环境中进一步优化
         let capabilityScore = 0;
         if (task.requiredCapabilities && task.requiredCapabilities.length > 0) {
           // 安全检查
@@ -271,60 +279,58 @@ Your approach:
         // 简化的综合评分
         const totalScore = capabilityScore; // 只基于能力匹配度评分
         
-        console.log(`     📈 ${agent.name || 'Unknown'} 评分: ${totalScore.toFixed(2)}`);
-        
         return {
           agentId: agent.id,
           score: totalScore,
           capabilityMatch: capabilityScore
         };
       }).filter(scoredAgent => scoredAgent.agentId !== null); // 过滤掉无效代理
-      
-      // 按评分排序
-      scoredAgents.sort((a, b) => b.score - a.score);
-      
-      console.log(`   📊 评分完成，最高分: ${scoredAgents[0]?.score.toFixed(2)}`);
-      
-      // 选择评分最高的1-2个Agent（减少选择数量以提高速度）
-      const selectedAgents = [];
-      const maxAgents = process.env.VERCEL ? Math.min(2, scoredAgents.length) : Math.min(3, scoredAgents.length);
-      
-      for (const scoredAgent of scoredAgents) {
-        // 只选择能力匹配度大于0的Agent
-        if (scoredAgent.capabilityMatch > 0) {
-          selectedAgents.push(scoredAgent.agentId);
-        }
-        
-        // 达到最大数量时停止
-        if (selectedAgents.length >= maxAgents) {
-          break;
-        }
+    
+    // 按评分排序
+    scoredAgents.sort((a, b) => b.score - a.score);
+    
+    // 选择评分最高的1-2个Agent（减少选择数量以提高速度）
+    const selectedAgents = [];
+    // 在Vercel环境中进一步减少选择的代理数量以提高速度
+    const maxAgents = process.env.VERCEL ? Math.min(1, scoredAgents.length) : Math.min(2, scoredAgents.length);
+    
+    for (const scoredAgent of scoredAgents) {
+      // 只选择能力匹配度大于0的Agent
+      if (scoredAgent.capabilityMatch > 0) {
+        selectedAgents.push(scoredAgent.agentId);
       }
       
-      // 如果没有选择任何Agent，至少选择一个
-      if (selectedAgents.length === 0 && scoredAgents.length > 0) {
-        selectedAgents.push(scoredAgents[0].agentId);
+      // 达到最大数量时停止
+      if (selectedAgents.length >= maxAgents) {
+        break;
       }
-      
-      console.log(`   🎯 最终选择 ${selectedAgents.length} 个代理: ${selectedAgents.join(', ')}`);
-      
-      return {
-        selectedAgents: selectedAgents,
-        rationale: `快速启发式分配: 基于能力匹配(${(scoredAgents[0]?.capabilityMatch * 100).toFixed(1)}%)`,
-        confidence: Math.min(0.9, Math.max(0.7, scoredAgents[0]?.score || 0.7)), // 稍微降低置信度
-        optimizationFactors: ['快速启发式分配', '能力匹配']
-      };
-    } catch (error) {
-      console.error(`   ❌ 快速启发式分配失败:`, error);
-      // 返回一个安全的默认值
-      return {
-        selectedAgents: scoredAgents && scoredAgents.length > 0 ? [scoredAgents[0].agentId] : [],
-        rationale: "默认分配: 使用评分最高的代理",
-        confidence: 0.5,
-        optimizationFactors: ['默认分配']
-      };
     }
+    
+    // 如果没有选择任何Agent，至少选择一个
+    if (selectedAgents.length === 0 && scoredAgents.length > 0) {
+      selectedAgents.push(scoredAgents[0].agentId);
+    }
+    
+    console.log(`   🎯 最终选择 ${selectedAgents.length} 个代理: ${selectedAgents.join(', ')}`);
+    
+    return {
+      selectedAgents: selectedAgents,
+      rationale: `快速启发式分配: 基于能力匹配(${(scoredAgents[0]?.capabilityMatch * 100).toFixed(1)}%)`,
+      confidence: Math.min(0.9, Math.max(0.7, scoredAgents[0]?.score || 0.7)), // 稍微降低置信度
+      optimizationFactors: ['快速启发式分配', '能力匹配']
+    };
+  } catch (error) {
+    console.error(`   ❌ 快速启发式分配失败:`, error);
+    // 返回一个安全的默认值
+    const firstAgentId = scoredAgents && scoredAgents.length > 0 ? scoredAgents[0].agentId : null;
+    return {
+      selectedAgents: firstAgentId ? [firstAgentId] : [],
+      rationale: "默认分配: 使用评分最高的代理",
+      confidence: 0.5,
+      optimizationFactors: ['默认分配']
+    };
   }
+}
   
   /**
    * Analyze network optimization using cosmic structure principles

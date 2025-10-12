@@ -810,16 +810,21 @@ You should provide thorough validation reports with clear pass/fail indicators a
       // Forward task submission to the collaboration engine and wait for result
       // 为Vercel环境设置更短的超时时间
       const timeoutPromise = process.env.VERCEL ? 
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Task processing timeout')), 90000)) : 
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Task processing timeout')), 85000)) : 
         null;
-      
+    
       let result;
       if (timeoutPromise) {
         // 在Vercel环境中使用超时限制
-        result = await Promise.race([
-          this.aiCollaboration.submitCollaborativeTask(taskData),
-          timeoutPromise
-        ]);
+        try {
+          result = await Promise.race([
+            this.aiCollaboration.submitCollaborativeTask(taskData),
+            timeoutPromise
+          ]);
+        } catch (raceError) {
+          // 如果超时，返回错误结果
+          throw new Error(`Task processing timed out: ${raceError.message}`);
+        }
       } else {
         // 在非Vercel环境中正常处理
         result = await this.aiCollaboration.submitCollaborativeTask(taskData);
