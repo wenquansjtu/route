@@ -108,6 +108,7 @@ Your approach:
    * 为Vercel环境优化任务分配处理
    */
   async allocateTask(task, availableAgents) {
+    console.log(`🧠 Prof. Smoot开始直接任务分配`);
     try {
       // 为Vercel环境设置更短的超时时间
       const timeoutPromise = process.env.VERCEL ? 
@@ -117,6 +118,7 @@ Your approach:
       let optimalAllocation;
       if (timeoutPromise) {
         // 在Vercel环境中使用超时限制
+        console.log(`   ⏱️ Prof. Smoot设置10秒超时限制`);
         optimalAllocation = await Promise.race([
           this._analyzeTaskAllocation(task, availableAgents),
           timeoutPromise
@@ -125,10 +127,14 @@ Your approach:
         optimalAllocation = await this._analyzeTaskAllocation(task, availableAgents);
       }
       
+      console.log(`   ✅ Prof. Smoot任务分配完成`);
       return optimalAllocation;
     } catch (error) {
-      console.error(`Prof. Smoot direct allocation analysis failed:`, error);
-      return null;
+      console.error(`   ❌ Prof. Smoot直接分配分析失败:`, error.message);
+      // 使用备用分配方法
+      const fallbackAllocation = this._fallbackAllocation(task, availableAgents);
+      console.log(`   ⚠️ Prof. Smoot使用备用分配方案`);
+      return fallbackAllocation;
     }
   }
   
@@ -157,106 +163,169 @@ Your approach:
    * Analyze optimal task allocation using cosmic structure theory
    */
   async _analyzeTaskAllocation(task, availableAgents) {
-    // 优化Prof. Smoot的分配决策过程，使用更快速的启发式方法而不是复杂的LLM分析
+    console.log(`   🧠 Prof. Smoot开始分析任务分配: ${task.description}`);
     
-    // 准备简化的上下文用于快速分配
-    const analysisContext = {
-      task: {
-        id: task.id,
-        description: task.description,
-        complexity: task.complexity,
-        priority: task.priority,
-        requiredCapabilities: task.requiredCapabilities
-      },
-      agents: availableAgents.map(agent => ({
-        id: agent.id,
-        name: agent.name,
-        type: agent.type,
-        capabilities: agent.capabilities,
-        mass: agent.mass,
-        energy: agent.energy,
-        performance: agent.performanceMetrics
-      }))
-    };
-    
-    // 使用快速启发式方法进行任务分配
-    const allocationDecision = this._fastAllocationHeuristic(analysisContext);
-    
-    // 存储分析结果到内存
-    this._storeInMemory('allocation_analysis', {
-      taskId: task.id,
-      context: analysisContext,
-      decision: allocationDecision,
-      timestamp: Date.now()
-    });
-    
-    return allocationDecision;
+    try {
+      // 优化Prof. Smoot的分配决策过程，使用更快速的启发式方法而不是复杂的LLM分析
+      
+      // 准备简化的上下文用于快速分配
+      const analysisContext = {
+        task: {
+          id: task.id,
+          description: task.description,
+          complexity: task.complexity,
+          priority: task.priority,
+          requiredCapabilities: task.requiredCapabilities
+        },
+        agents: availableAgents.map(agent => ({
+          id: agent.id,
+          name: agent.name,
+          type: agent.type,
+          capabilities: agent.capabilities,
+          mass: agent.mass,
+          energy: agent.energy,
+          performance: agent.performanceMetrics
+        }))
+      };
+      
+      console.log(`   📊 Prof. Smoot准备上下文，包含${availableAgents.length}个可用代理`);
+      
+      // 使用快速启发式方法进行任务分配
+      const allocationDecision = this._fastAllocationHeuristic(analysisContext);
+      
+      console.log(`   ✅ Prof. Smoot完成任务分配分析，选择了${allocationDecision.selectedAgents.length}个代理`);
+      
+      // 存储分析结果到内存
+      this._storeInMemory('allocation_analysis', {
+        taskId: task.id,
+        context: analysisContext,
+        decision: allocationDecision,
+        timestamp: Date.now()
+      });
+      
+      return allocationDecision;
+    } catch (error) {
+      console.error(`   ❌ Prof. Smoot任务分配分析失败:`, error);
+      // 提供一个默认的分配决策以防出错
+      const fallbackAllocation = this._fallbackAllocation(task, availableAgents);
+      console.log(`   ⚠️ Prof. Smoot使用备用分配方案，选择了${fallbackAllocation.selectedAgents.length}个代理`);
+      return fallbackAllocation;
+    }
   }
   
-  /**
-   * 快速启发式任务分配方法，替代复杂的LLM分析
-   */
   /**
    * 快速启发式任务分配方法，替代复杂的LLM分析
    * 为Vercel环境进一步优化处理速度
    */
   _fastAllocationHeuristic(context) {
+    console.log(`   🚀 Prof. Smoot开始快速启发式分配`);
+    
+    // 安全检查
+    if (!context || !context.task || !context.agents) {
+      console.warn(`   ⚠️ Prof. Smoot上下文不完整，使用默认分配`);
+      return {
+        selectedAgents: [],
+        rationale: "上下文不完整",
+        confidence: 0.1,
+        optimizationFactors: ['安全默认']
+      };
+    }
+    
     const task = context.task;
     const agents = context.agents;
     
-    // 为Vercel环境进一步简化评分逻辑
-    const scoredAgents = agents.map(agent => {
-      // 简化的能力匹配度评分
-      let capabilityScore = 0;
-      if (task.requiredCapabilities && task.requiredCapabilities.length > 0) {
-        const matchingCapabilities = agent.capabilities.filter(cap => 
-          task.requiredCapabilities.includes(cap)
-        ).length;
-        capabilityScore = matchingCapabilities / task.requiredCapabilities.length;
-      } else {
-        capabilityScore = 0.5; // 如果没有指定能力要求，给予中等评分
+    // 如果没有代理，直接返回
+    if (!agents || agents.length === 0) {
+      console.warn(`   ⚠️ Prof. Smoot没有可用代理`);
+      return {
+        selectedAgents: [],
+        rationale: "没有可用代理",
+        confidence: 0.1,
+        optimizationFactors: ['无代理']
+      };
+    }
+    
+    try {
+      // 为Vercel环境进一步简化评分逻辑
+      const scoredAgents = agents.map(agent => {
+        // 安全检查
+        if (!agent) {
+          return {
+            agentId: null,
+            score: 0,
+            capabilityMatch: 0
+          };
+        }
+        
+        // 简化的能力匹配度评分
+        let capabilityScore = 0;
+        if (task.requiredCapabilities && task.requiredCapabilities.length > 0) {
+          // 安全检查
+          const agentCapabilities = Array.isArray(agent.capabilities) ? agent.capabilities : [];
+          const matchingCapabilities = agentCapabilities.filter(cap => 
+            task.requiredCapabilities.includes(cap)
+          ).length;
+          capabilityScore = matchingCapabilities / task.requiredCapabilities.length;
+        } else {
+          capabilityScore = 0.5; // 如果没有指定能力要求，给予中等评分
+        }
+        
+        // 简化的综合评分
+        const totalScore = capabilityScore; // 只基于能力匹配度评分
+        
+        console.log(`     📈 ${agent.name || 'Unknown'} 评分: ${totalScore.toFixed(2)}`);
+        
+        return {
+          agentId: agent.id,
+          score: totalScore,
+          capabilityMatch: capabilityScore
+        };
+      }).filter(scoredAgent => scoredAgent.agentId !== null); // 过滤掉无效代理
+      
+      // 按评分排序
+      scoredAgents.sort((a, b) => b.score - a.score);
+      
+      console.log(`   📊 评分完成，最高分: ${scoredAgents[0]?.score.toFixed(2)}`);
+      
+      // 选择评分最高的1-2个Agent（减少选择数量以提高速度）
+      const selectedAgents = [];
+      const maxAgents = process.env.VERCEL ? Math.min(2, scoredAgents.length) : Math.min(3, scoredAgents.length);
+      
+      for (const scoredAgent of scoredAgents) {
+        // 只选择能力匹配度大于0的Agent
+        if (scoredAgent.capabilityMatch > 0) {
+          selectedAgents.push(scoredAgent.agentId);
+        }
+        
+        // 达到最大数量时停止
+        if (selectedAgents.length >= maxAgents) {
+          break;
+        }
       }
       
-      // 简化的综合评分
-      const totalScore = capabilityScore; // 只基于能力匹配度评分
+      // 如果没有选择任何Agent，至少选择一个
+      if (selectedAgents.length === 0 && scoredAgents.length > 0) {
+        selectedAgents.push(scoredAgents[0].agentId);
+      }
+      
+      console.log(`   🎯 最终选择 ${selectedAgents.length} 个代理: ${selectedAgents.join(', ')}`);
       
       return {
-        agentId: agent.id,
-        score: totalScore,
-        capabilityMatch: capabilityScore
+        selectedAgents: selectedAgents,
+        rationale: `快速启发式分配: 基于能力匹配(${(scoredAgents[0]?.capabilityMatch * 100).toFixed(1)}%)`,
+        confidence: Math.min(0.9, Math.max(0.7, scoredAgents[0]?.score || 0.7)), // 稍微降低置信度
+        optimizationFactors: ['快速启发式分配', '能力匹配']
       };
-    });
-    
-    // 按评分排序
-    scoredAgents.sort((a, b) => b.score - a.score);
-    
-    // 选择评分最高的1-2个Agent（减少选择数量以提高速度）
-    const selectedAgents = [];
-    const maxAgents = process.env.VERCEL ? Math.min(2, agents.length) : Math.min(3, agents.length);
-    
-    for (const scoredAgent of scoredAgents) {
-      // 只选择能力匹配度大于0的Agent
-      if (scoredAgent.capabilityMatch > 0) {
-        selectedAgents.push(scoredAgent.agentId);
-      }
-      
-      // 达到最大数量时停止
-      if (selectedAgents.length >= maxAgents) {
-        break;
-      }
+    } catch (error) {
+      console.error(`   ❌ 快速启发式分配失败:`, error);
+      // 返回一个安全的默认值
+      return {
+        selectedAgents: scoredAgents && scoredAgents.length > 0 ? [scoredAgents[0].agentId] : [],
+        rationale: "默认分配: 使用评分最高的代理",
+        confidence: 0.5,
+        optimizationFactors: ['默认分配']
+      };
     }
-    
-    // 如果没有选择任何Agent，至少选择一个
-    if (selectedAgents.length === 0 && agents.length > 0) {
-      selectedAgents.push(agents[0].id);
-    }
-    
-    return {
-      selectedAgents: selectedAgents,
-      rationale: `快速启发式分配: 基于能力匹配(${(scoredAgents[0]?.capabilityMatch * 100).toFixed(1)}%)`,
-      confidence: Math.min(0.9, Math.max(0.7, scoredAgents[0]?.score || 0.7)), // 稍微降低置信度
-      optimizationFactors: ['快速启发式分配', '能力匹配']
-    };
   }
   
   /**

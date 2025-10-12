@@ -540,12 +540,10 @@ export class RealAICollaborationEngine extends EventEmitter {
   
   /**
    * Conduct individual analysis phase
-   */
-  /**
-   * Conduct individual analysis phase
    * 为Vercel环境进一步优化超时处理
    */
   async _conductIndividualAnalysis(session) {
+    console.log(`📊 开始个体分析阶段，共有 ${session.participants.length} 个代理`);
     const analyses = [];
     // 为Vercel环境设置更短的超时时间
     const analysisTimeout = process.env.VERCEL ? 20000 : 60000; // Vercel环境下20秒，其他环境60秒
@@ -565,11 +563,13 @@ export class RealAICollaborationEngine extends EventEmitter {
           setTimeout(() => reject(new Error(`Analysis timeout for ${agent.name} after ${analysisTimeout/1000}s`)), analysisTimeout);
         });
 
+        console.log(`   🚀 开始执行 ${agent.name} 的任务分析`);
         // Race between analysis and timeout
         const result = await Promise.race([
           agent._executeTask(session.task),
           timeoutPromise
         ]);
+        console.log(`   ✅ ${agent.name} 任务分析完成`);
 
         // 再次检查会话是否超时
         if (session.status === 'timeout') {
@@ -627,6 +627,7 @@ export class RealAICollaborationEngine extends EventEmitter {
       timestamp: Date.now()
     });
     
+    console.log(`📊 个体分析阶段完成，共处理 ${analyses.length} 个代理`);
     return analyses;
   }
   

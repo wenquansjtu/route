@@ -111,6 +111,7 @@ Always respond with clear, structured thinking and limit responses to essential 
    * 为Vercel环境优化任务处理
    */
   async _executeTask(task) {
+    console.log(`   🚀 ${this.name} 开始执行任务: ${task.description.substring(0, 50)}...`);
     this.aiState.isProcessing = true;
     
     try {
@@ -126,10 +127,12 @@ Always respond with clear, structured thinking and limit responses to essential 
       let taskEmbedding;
       if (timeoutPromise) {
         // 在Vercel环境中使用超时限制
+        console.log(`   📊 ${this.name} 开始生成任务嵌入`);
         taskEmbedding = await Promise.race([
           this._generateEmbedding(task.description),
           timeoutPromise
         ]);
+        console.log(`   ✅ ${this.name} 完成任务嵌入生成`);
       } else {
         taskEmbedding = await this._generateEmbedding(task.description);
       }
@@ -138,10 +141,12 @@ Always respond with clear, structured thinking and limit responses to essential 
       let aiResponse;
       if (timeoutPromise) {
         // 在Vercel环境中使用超时限制
+        console.log(`   🤖 ${this.name} 开始LLM处理`);
         aiResponse = await Promise.race([
           this._processWithLLM(context, task),
           timeoutPromise
         ]);
+        console.log(`   ✅ ${this.name} 完成LLM处理`);
       } else {
         aiResponse = await this._processWithLLM(context, task);
       }
@@ -149,10 +154,12 @@ Always respond with clear, structured thinking and limit responses to essential 
       // Update agent's semantic state based on task
       if (timeoutPromise) {
         // 在Vercel环境中使用超时限制
+        console.log(`   🔄 ${this.name} 开始更新语义状态`);
         await Promise.race([
           this._updateSemanticState(task, aiResponse),
           timeoutPromise
         ]);
+        console.log(`   ✅ ${this.name} 完成语义状态更新`);
       } else {
         await this._updateSemanticState(task, aiResponse);
       }
@@ -174,6 +181,8 @@ Always respond with clear, structured thinking and limit responses to essential 
         }
       };
       
+      console.log(`   📦 ${this.name} 任务执行完成，结果长度: ${aiResponse.content.length} 字符`);
+      
       // Store in memory
       this._storeInMemory('task_result', {
         task: task,
@@ -183,9 +192,28 @@ Always respond with clear, structured thinking and limit responses to essential 
       
       return result;
       
+    } catch (error) {
+      console.error(`   ❌ ${this.name} 任务执行失败:`, error.message);
+      // 提供一个默认的响应以防出错
+      return {
+        taskId: task.id,
+        agentId: this.id,
+        result: `任务执行遇到问题: ${error.message}`,
+        reasoning: ['使用默认响应'],
+        confidence: 0.3,
+        semanticEmbedding: new Array(1536).fill(0).map(() => Math.random() - 0.5),
+        metadata: {
+          processingTime: Date.now(),
+          model: this.aiConfig.model,
+          tokens: 0,
+          agentCapabilities: this.capabilities,
+          collaborationContext: this._getCollaborationContext()
+        }
+      };
     } finally {
       this.aiState.isProcessing = false;
       this.aiState.lastThought = Date.now();
+      console.log(`   🛑 ${this.name} 任务执行结束`);
     }
   }
   
