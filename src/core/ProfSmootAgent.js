@@ -180,13 +180,17 @@ Your approach:
   /**
    * 快速启发式任务分配方法，替代复杂的LLM分析
    */
+  /**
+   * 快速启发式任务分配方法，替代复杂的LLM分析
+   * 为Vercel环境进一步优化处理速度
+   */
   _fastAllocationHeuristic(context) {
     const task = context.task;
     const agents = context.agents;
     
-    // 基于能力和能量的快速评分
+    // 为Vercel环境进一步简化评分逻辑
     const scoredAgents = agents.map(agent => {
-      // 能力匹配度评分
+      // 简化的能力匹配度评分
       let capabilityScore = 0;
       if (task.requiredCapabilities && task.requiredCapabilities.length > 0) {
         const matchingCapabilities = agent.capabilities.filter(cap => 
@@ -197,14 +201,8 @@ Your approach:
         capabilityScore = 0.5; // 如果没有指定能力要求，给予中等评分
       }
       
-      // 能量状态评分 (0-1)
-      const energyScore = agent.energy / 100;
-      
-      // 性能评分 (0-1)
-      const performanceScore = agent.performance?.successRate || 0.7;
-      
-      // 综合评分
-      const totalScore = capabilityScore * 0.6 + energyScore * 0.2 + performanceScore * 0.2;
+      // 简化的综合评分
+      const totalScore = capabilityScore; // 只基于能力匹配度评分
       
       return {
         agentId: agent.id,
@@ -216,14 +214,13 @@ Your approach:
     // 按评分排序
     scoredAgents.sort((a, b) => b.score - a.score);
     
-    // 选择评分最高的1-3个Agent
+    // 选择评分最高的1-2个Agent（减少选择数量以提高速度）
     const selectedAgents = [];
-    const minAgents = 1;
-    const maxAgents = Math.min(3, agents.length);
+    const maxAgents = process.env.VERCEL ? Math.min(2, agents.length) : Math.min(3, agents.length);
     
     for (const scoredAgent of scoredAgents) {
       // 只选择能力匹配度大于0的Agent
-      if (scoredAgent.capabilityMatch > 0 || selectedAgents.length < minAgents) {
+      if (scoredAgent.capabilityMatch > 0) {
         selectedAgents.push(scoredAgent.agentId);
       }
       
@@ -240,9 +237,9 @@ Your approach:
     
     return {
       selectedAgents: selectedAgents,
-      rationale: `快速启发式分配: 基于能力匹配(${(scoredAgents[0]?.capabilityMatch * 100).toFixed(1)}%)和综合评分(${(scoredAgents[0]?.score * 100).toFixed(1)}%)`,
-      confidence: Math.min(0.95, Math.max(0.7, scoredAgents[0]?.score || 0.7)),
-      optimizationFactors: ['快速启发式分配', '能力匹配', '能量状态', '性能指标']
+      rationale: `快速启发式分配: 基于能力匹配(${(scoredAgents[0]?.capabilityMatch * 100).toFixed(1)}%)`,
+      confidence: Math.min(0.9, Math.max(0.7, scoredAgents[0]?.score || 0.7)), // 稍微降低置信度
+      optimizationFactors: ['快速启发式分配', '能力匹配']
     };
   }
   

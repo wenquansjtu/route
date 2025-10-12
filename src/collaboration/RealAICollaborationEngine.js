@@ -15,8 +15,8 @@ export class RealAICollaborationEngine extends EventEmitter {
     this.config = {
       openaiApiKey: config.openaiApiKey || process.env.OPENAI_API_KEY,
       // 为Vercel环境设置更短的超时时间，避免超过Vercel的限制
-      maxConcurrentTasks: config.maxConcurrentTasks || (process.env.VERCEL ? 5 : 10),
-      collaborationTimeout: config.collaborationTimeout || (process.env.VERCEL ? 120000 : 300000), // Vercel环境下2分钟，其他环境5分钟
+      maxConcurrentTasks: config.maxConcurrentTasks || (process.env.VERCEL ? 3 : 10), // Vercel环境下减少到3个并发任务
+      collaborationTimeout: config.collaborationTimeout || (process.env.VERCEL ? 90000 : 300000), // Vercel环境下进一步减少到1.5分钟
       convergenceThreshold: config.convergenceThreshold || 0.85,
       // 减少最大迭代次数从5次到2次，提高任务处理速度
       maxIterations: config.maxIterations || (process.env.VERCEL ? 1 : 2),
@@ -357,9 +357,19 @@ export class RealAICollaborationEngine extends EventEmitter {
     console.log(`\n🚀 Starting Real AI Collaboration...`);
     
     try {
+      // 检查会话是否已经超时
+      if (session.status === 'timeout') {
+        throw new Error('Collaboration session timed out before processing started');
+      }
+      
       // 阶段1: 个体分析
       console.log('\n📊 Phase 1: Individual Analysis');
       const initialAnalyses = await this._conductIndividualAnalysis(session);
+      
+      // 检查会话是否在分析阶段超时
+      if (session.status === 'timeout') {
+        throw new Error('Collaboration session timed out during individual analysis');
+      }
       
       // 发出任务链执行步骤事件用于个体分析
       this.emit('task-chain-execution-step', {
@@ -380,6 +390,11 @@ export class RealAICollaborationEngine extends EventEmitter {
       console.log('\n💬 Phase 2: Collaborative Discussion');
       const discussions = await this._conductCollaborativeDiscussion(session, initialAnalyses);
       
+      // 检查会话是否在讨论阶段超时
+      if (session.status === 'timeout') {
+        throw new Error('Collaboration session timed out during collaborative discussion');
+      }
+      
       // 发出任务链执行步骤事件用于协作讨论
       this.emit('task-chain-execution-step', {
         taskChainId: session.id,
@@ -398,6 +413,11 @@ export class RealAICollaborationEngine extends EventEmitter {
       // 阶段3: 收敛和综合
       console.log('\n🎯 Phase 3: Convergence & Synthesis');
       const finalResult = await this._achieveConvergence(session, discussions);
+      
+      // 检查会话是否在综合阶段超时
+      if (session.status === 'timeout') {
+        throw new Error('Collaboration session timed out during convergence and synthesis');
+      }
       
       // 发出任务链执行步骤事件用于综合
       this.emit('task-chain-execution-step', {
@@ -521,14 +541,23 @@ export class RealAICollaborationEngine extends EventEmitter {
   /**
    * Conduct individual analysis phase
    */
+  /**
+   * Conduct individual analysis phase
+   * 为Vercel环境进一步优化超时处理
+   */
   async _conductIndividualAnalysis(session) {
     const analyses = [];
     // 为Vercel环境设置更短的超时时间
-    const analysisTimeout = process.env.VERCEL ? 30000 : 60000; // Vercel环境下30秒，其他环境60秒
+    const analysisTimeout = process.env.VERCEL ? 20000 : 60000; // Vercel环境下20秒，其他环境60秒
 
     // Process each agent's individual analysis with timeout
     for (const agent of session.participants) {
       console.log(`   🤔 ${agent.name} analyzing...`);
+      
+      // 检查会话是否已经超时
+      if (session.status === 'timeout') {
+        throw new Error('Collaboration session timed out before agent analysis');
+      }
 
       try {
         // Create timeout promise
@@ -541,6 +570,11 @@ export class RealAICollaborationEngine extends EventEmitter {
           agent._executeTask(session.task),
           timeoutPromise
         ]);
+
+        // 再次检查会话是否超时
+        if (session.status === 'timeout') {
+          throw new Error('Collaboration session timed out during agent analysis');
+        }
 
         analyses.push({
           agentId: agent.id,
@@ -579,6 +613,11 @@ export class RealAICollaborationEngine extends EventEmitter {
           error: errorMessage,
           errorDetails: errorDetails
         });
+        
+        // 如果是会话超时错误，直接抛出
+        if (errorMessage.includes('timed out')) {
+          throw error;
+        }
       }
     }
     
@@ -593,6 +632,7 @@ export class RealAICollaborationEngine extends EventEmitter {
   
   /**
    * Conduct collaborative discussion phase
+   * 为Vercel环境进一步优化处理
    */
   async _conductCollaborativeDiscussion(session, initialAnalyses) {
     const discussions = [];
@@ -602,10 +642,20 @@ export class RealAICollaborationEngine extends EventEmitter {
     for (let round = 1; round <= maxRounds; round++) {
       console.log(`   🗣️ Discussion Round ${round}`);
       
+      // 检查会话是否已经超时
+      if (session.status === 'timeout') {
+        throw new Error('Collaboration session timed out before discussion round');
+      }
+      
       const roundDiscussions = [];
       
       // Each agent responds to others' analyses
       for (const agent of session.participants) {
+        // 再次检查会话是否超时
+        if (session.status === 'timeout') {
+          throw new Error('Collaboration session timed out during discussion');
+        }
+        
         const otherAnalyses = initialAnalyses.filter(a => a.agentId !== agent.id);
         
         if (otherAnalyses.length > 0) {
@@ -623,6 +673,11 @@ export class RealAICollaborationEngine extends EventEmitter {
             if (otherAgent) {
               const response = await agent.collaborateWith(otherAgent, session.task, collaborationContext);
               
+              // 检查会话是否在协作过程中超时
+              if (session.status === 'timeout') {
+                throw new Error('Collaboration session timed out during agent collaboration');
+              }
+              
               roundDiscussions.push({
                 agentId: agent.id,
                 agentName: agent.name,
@@ -637,6 +692,11 @@ export class RealAICollaborationEngine extends EventEmitter {
             
           } catch (error) {
             console.error(`     ❌ ${agent.name} discussion failed:`, error.message);
+            
+            // 如果是会话超时错误，直接抛出
+            if (error.message.includes('timed out')) {
+              throw error;
+            }
           }
         }
       }
@@ -663,9 +723,15 @@ export class RealAICollaborationEngine extends EventEmitter {
   
   /**
    * Achieve convergence and synthesis
+   * 为Vercel环境进一步优化处理
    */
   async _achieveConvergence(session, discussions) {
     console.log(`   🔄 Synthesizing final result...`);
+    
+    // 检查会话是否已经超时
+    if (session.status === 'timeout') {
+      throw new Error('Collaboration session timed out before convergence');
+    }
     
     // 选择最佳代理进行综合 (最高置信度 + 最佳类型匹配)
     const synthesizer = this._selectSynthesizer(session.participants, discussions);
@@ -684,11 +750,16 @@ export class RealAICollaborationEngine extends EventEmitter {
     try {
       console.log(`   🧠 ${synthesizer.name} synthesizing...`);
       
+      // 再次检查会话是否超时
+      if (session.status === 'timeout') {
+        throw new Error('Collaboration session timed out before synthesis');
+      }
+      
       const synthesisPrompt = this._createSynthesisPrompt(synthesisContext);
       
       // 为Vercel环境进一步优化综合阶段
       const model = process.env.VERCEL ? 'gpt-3.5-turbo' : 'gpt-3.5-turbo';
-      const maxTokens = process.env.VERCEL ? 500 : 800; // Vercel环境下进一步减少token
+      const maxTokens = process.env.VERCEL ? 400 : 800; // Vercel环境下进一步减少token
       
       const completion = await synthesizer.openai.chat.completions.create({
         model: model,
@@ -699,6 +770,11 @@ export class RealAICollaborationEngine extends EventEmitter {
         temperature: 0.3, // 降低温度以获得更集中的综合
         max_tokens: maxTokens
       });
+      
+      // 检查会话是否在综合过程中超时
+      if (session.status === 'timeout') {
+        throw new Error('Collaboration session timed out during synthesis');
+      }
       
       const finalSynthesis = completion.choices[0].message.content;
       
@@ -723,6 +799,11 @@ export class RealAICollaborationEngine extends EventEmitter {
       
     } catch (error) {
       console.error(`   ❌ Synthesis failed:`, error.message);
+      
+      // 如果是会话超时错误，直接抛出
+      if (error.message.includes('timed out')) {
+        throw error;
+      }
       
       // 降级：合并所有分析
       return this._createFallbackSynthesis(session, discussions);
@@ -870,6 +951,13 @@ ${limitedDiscussion}
       if (now - session.startTime > this.config.collaborationTimeout) {
         console.log(`⏰ Collaboration session ${session.id} timed out`);
         session.status = 'timeout';
+        
+        // 发出超时事件
+        this.emit('collaboration-timeout', {
+          sessionId: session.id,
+          taskId: session.task.id,
+          duration: now - session.startTime
+        });
       }
     });
   }
