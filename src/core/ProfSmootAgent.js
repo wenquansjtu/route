@@ -166,7 +166,10 @@ Your approach:
     console.log(`   🧠 Prof. Smoot开始分析任务分配: ${task.description}`);
     
     try {
-      // 优化Prof. Smoot的分配决策过程，使用更快速的启发式方法而不是复杂的LLM分析
+      // 为Vercel环境添加超时处理
+      const timeoutPromise = process.env.VERCEL ? 
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Task allocation analysis timeout for Prof. Smoot')), 8000)) : 
+        null;
       
       // 准备简化的上下文用于快速分配
       const analysisContext = {
@@ -191,7 +194,16 @@ Your approach:
       console.log(`   📊 Prof. Smoot准备上下文，包含${availableAgents.length}个可用代理`);
       
       // 使用快速启发式方法进行任务分配
-      const allocationDecision = this._fastAllocationHeuristic(analysisContext);
+      let allocationDecision;
+      if (timeoutPromise) {
+        // 在Vercel环境中使用超时限制
+        allocationDecision = await Promise.race([
+          this._fastAllocationHeuristic(analysisContext),
+          timeoutPromise
+        ]);
+      } else {
+        allocationDecision = this._fastAllocationHeuristic(analysisContext);
+      }
       
       console.log(`   ✅ Prof. Smoot完成任务分配分析，选择了${allocationDecision.selectedAgents.length}个代理`);
       

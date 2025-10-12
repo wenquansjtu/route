@@ -362,14 +362,34 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
   
   /**
    * Generate real embeddings using OpenAI
+   * 为Vercel环境优化嵌入生成
    */
   async _generateEmbedding(text) {
+    console.log(`   📊 开始生成嵌入，文本长度: ${text.length}`);
     try {
-      const response = await this.openai.embeddings.create({
-        model: 'text-embedding-ada-002',
-        input: text,
-      });
+      // 为Vercel环境添加超时处理
+      const timeoutPromise = process.env.VERCEL ? 
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Embedding generation timeout')), 5000)) : 
+        null;
       
+      let response;
+      if (timeoutPromise) {
+        // 在Vercel环境中使用超时限制
+        response = await Promise.race([
+          this.openai.embeddings.create({
+            model: 'text-embedding-ada-002',
+            input: text.substring(0, 1000), // 限制文本长度以提高速度
+          }),
+          timeoutPromise
+        ]);
+      } else {
+        response = await this.openai.embeddings.create({
+          model: 'text-embedding-ada-002',
+          input: text,
+        });
+      }
+      
+      console.log(`   ✅ 嵌入生成完成`);
       return response.data[0].embedding;
     } catch (error) {
       console.error('Embedding generation error:', error);
