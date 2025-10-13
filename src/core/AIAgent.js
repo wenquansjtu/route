@@ -495,10 +495,14 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
           }, 6000); // 比主超时多1秒
           
           // 执行嵌入生成，并添加额外的错误处理
-          this.openai.embeddings.create({
-            model: 'text-embedding-ada-002',
-            input: processedText,
-          }).then(response => {
+          // 添加一个包装器来确保API调用不会挂起
+          Promise.race([
+            this.openai.embeddings.create({
+              model: 'text-embedding-ada-002',
+              input: processedText,
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('API call race timeout')), 4500))
+          ]).then(response => {
             // 清除所有超时计时器
             clearTimeout(timeoutId);
             clearTimeout(safetyTimeoutId);
