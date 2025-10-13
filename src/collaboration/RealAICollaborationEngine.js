@@ -831,41 +831,125 @@ export class RealAICollaborationEngine extends EventEmitter {
       const model = process.env.VERCEL ? 'gpt-3.5-turbo' : 'gpt-3.5-turbo';
       const maxTokens = process.env.VERCEL ? 400 : 800; // Vercel环境下进一步减少token
       
-      const completion = await synthesizer.openai.chat.completions.create({
-        model: model,
-        messages: [
-          { role: 'system', content: `你是${synthesizer.name}，一个专业的综合者。提供简洁、全面的分析。` },
-          { role: 'user', content: synthesisPrompt }
-        ],
-        temperature: 0.3, // 降低温度以获得更集中的综合
-        max_tokens: maxTokens
-      });
-      
-      // 检查会话是否在综合过程中超时
-      if (session.status === 'timeout') {
-        throw new Error('Collaboration session timed out during synthesis');
+      // 为Vercel环境添加更可靠的超时处理
+      if (process.env.VERCEL) {
+        // 使用手动创建Promise和setTimeout来确保超时能正常工作 (8秒超时)
+        console.log(`   ⏱️ 设置8秒超时限制用于LLM处理`);
+        const completion = await new Promise((resolve, reject) => {
+          // 设置超时计时器
+          const timeoutId = setTimeout(() => {
+            console.log(`   ⏰ LLM处理超时`);
+            resolve({
+              choices: [{ message: { content: "LLM处理超时，使用默认响应" } }],
+              usage: { total_tokens: 0 }
+            });
+          }, 8000);
+          
+          // 使用fetch直接调用OpenAI API而不是SDK
+          fetch('https://jolly-boat-0a57.wenquansjtu.workers.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${synthesizer.openai.apiKey}`
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                { role: 'system', content: `你是${synthesizer.name}，一个专业的综合者。提供简洁、全面的分析。` },
+                { role: 'user', content: synthesisPrompt }
+              ],
+              temperature: 0.3, // 降低温度以获得更集中的综合
+              max_tokens: maxTokens
+            })
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(completion => {
+            // 清除超时计时器
+            clearTimeout(timeoutId);
+            resolve(completion);
+          })
+          .catch(error => {
+            // 清除超时计时器
+            clearTimeout(timeoutId);
+            // 捕获API调用错误
+            console.error(`   ⚠️ OpenAI API error: ${error.message}`);
+            resolve({
+              choices: [{ message: { content: `LLM处理遇到问题: ${error.message}` } }],
+              usage: { total_tokens: 0 }
+            });
+          });
+        });
+        
+        const finalSynthesis = completion.choices[0].message.content;
+        
+        const result = {
+          sessionId: session.id,
+          task: session.task,
+          finalResult: finalSynthesis,
+          synthesizedBy: synthesizer.name,
+          participantContributions: this._extractContributions(session),
+          convergenceMetrics: this._calculateFinalMetrics(session),
+          timestamp: Date.now(),
+          metadata: {
+            totalAgents: session.participants.length,
+            iterations: session.iterations.length,
+            tokensUsed: completion.usage?.total_tokens || 0
+          }
+        };
+        
+        console.log(`   ✅ Final synthesis completed by ${synthesizer.name}`);
+        
+        return result;
+      } else {
+        const completion = await fetch('https://jolly-boat-0a57.wenquansjtu.workers.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${synthesizer.openai.apiKey}`
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: 'system', content: `你是${synthesizer.name}，一个专业的综合者。提供简洁、全面的分析。` },
+              { role: 'user', content: synthesisPrompt }
+            ],
+            temperature: 0.3, // 降低温度以获得更集中的综合
+            max_tokens: maxTokens
+          })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        });
+        
+        const finalSynthesis = completion.choices[0].message.content;
+        
+        const result = {
+          sessionId: session.id,
+          task: session.task,
+          finalResult: finalSynthesis,
+          synthesizedBy: synthesizer.name,
+          participantContributions: this._extractContributions(session),
+          convergenceMetrics: this._calculateFinalMetrics(session),
+          timestamp: Date.now(),
+          metadata: {
+            totalAgents: session.participants.length,
+            iterations: session.iterations.length,
+            tokensUsed: completion.usage?.total_tokens || 0
+          }
+        };
+        
+        console.log(`   ✅ Final synthesis completed by ${synthesizer.name}`);
+        
+        return result;
       }
-      
-      const finalSynthesis = completion.choices[0].message.content;
-      
-      const result = {
-        sessionId: session.id,
-        task: session.task,
-        finalResult: finalSynthesis,
-        synthesizedBy: synthesizer.name,
-        participantContributions: this._extractContributions(session),
-        convergenceMetrics: this._calculateFinalMetrics(session),
-        timestamp: Date.now(),
-        metadata: {
-          totalAgents: session.participants.length,
-          iterations: session.iterations.length,
-          tokensUsed: completion.usage?.total_tokens || 0
-        }
-      };
-      
-      console.log(`   ✅ Final synthesis completed by ${synthesizer.name}`);
-      
-      return result;
       
     } catch (error) {
       console.error(`   ❌ Synthesis failed:`, error.message);

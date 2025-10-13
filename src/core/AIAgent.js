@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import { CosmicAgent } from './Agent.js';
 import { EventEmitter } from 'events';
 
@@ -18,11 +17,10 @@ export class AIAgent extends CosmicAgent {
       systemPrompt: config.systemPrompt || this._generateSystemPrompt(),
     };
     
-    // OpenAI Client
-    this.openai = new OpenAI({
-      apiKey: config.openaiApiKey || process.env.OPENAI_API_KEY,
-      baseURL: 'https://jolly-boat-0a57.wenquansjtu.workers.dev/'
-    });
+    // Store API key for direct fetch calls
+    this.openai = {
+      apiKey: config.openaiApiKey || process.env.OPENAI_API_KEY
+    };
     
     // AI-specific properties
     this.reasoning = {
@@ -322,16 +320,30 @@ Always respond with clear, structured thinking and limit responses to essential 
             });
           }, 8000);
           
-          // 执行LLM处理
-          this.openai.chat.completions.create({
-            model: model,
-            messages: [
-              { role: 'system', content: this.aiConfig.systemPrompt },
-              { role: 'user', content: prompt }
-            ],
-            temperature: this.aiConfig.temperature,
-            max_tokens: maxTokens,
-          }).then(completion => {
+          // 使用fetch直接调用OpenAI API而不是SDK
+          fetch('https://jolly-boat-0a57.wenquansjtu.workers.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.openai.apiKey}`
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                { role: 'system', content: this.aiConfig.systemPrompt },
+                { role: 'user', content: prompt }
+              ],
+              temperature: this.aiConfig.temperature,
+              max_tokens: maxTokens,
+            })
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(completion => {
             // 清除超时计时器
             clearTimeout(timeoutId);
             const response = completion.choices[0].message.content;
@@ -345,7 +357,8 @@ Always respond with clear, structured thinking and limit responses to essential 
               confidence: parsedResponse.confidence,
               tokens: completion.usage?.total_tokens || 0
             });
-          }).catch(error => {
+          })
+          .catch(error => {
             // 清除超时计时器
             clearTimeout(timeoutId);
             // 捕获API调用错误
@@ -359,15 +372,28 @@ Always respond with clear, structured thinking and limit responses to essential 
           });
         });
       } else {
-        // 非Vercel环境的正常处理
-        const completion = await this.openai.chat.completions.create({
-          model: model,
-          messages: [
-            { role: 'system', content: this.aiConfig.systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          temperature: this.aiConfig.temperature,
-          max_tokens: maxTokens,
+        // 使用fetch直接调用OpenAI API而不是SDK
+        const completion = await fetch('https://jolly-boat-0a57.wenquansjtu.workers.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.openai.apiKey}`
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: 'system', content: this.aiConfig.systemPrompt },
+              { role: 'user', content: prompt }
+            ],
+            temperature: this.aiConfig.temperature,
+            max_tokens: maxTokens,
+          })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
         });
         
         const response = completion.choices[0].message.content;
@@ -557,7 +583,6 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
               resolve(); // 错误时也直接resolve，不抛出错误
             }
           })();
-        });
       } else {
         // 非Vercel环境的正常处理
         // Generate new embedding based on task and response
@@ -624,14 +649,28 @@ ${limitedExperiences.map((exp, i) => {
 
 提供非常简短的洞察(最多50个字)。`;
 
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: '你是一个反思型AI代理。提供简洁的洞察。' },
-          { role: 'user', content: reflectionPrompt }
-        ],
-        temperature: 0.6,
-        max_tokens: 80, // 从150减少到80
+      // 使用fetch直接调用OpenAI API而不是SDK
+      const completion = await fetch('https://jolly-boat-0a57.wenquansjtu.workers.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openai.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            { role: 'system', content: '你是一个反思型AI代理。提供简洁的洞察。' },
+            { role: 'user', content: reflectionPrompt }
+          ],
+          temperature: 0.6,
+          max_tokens: 80, // 从150减少到80
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
       });
       
       const reflection = completion.choices[0].message.content;
@@ -833,14 +872,28 @@ ${limitedExperiences.map((exp, i) => {
 
 请提供简洁的贡献(最多150个字符)。`;
 
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: `你是${this.name}，一个${this.type} AI代理。请简洁回答。` },
-          { role: 'user', content: collaborationPrompt }
-        ],
-        temperature: this.aiConfig.temperature,
-        max_tokens: 100, // 从200减少到100
+      // 使用fetch直接调用OpenAI API而不是SDK
+      const completion = await fetch('https://jolly-boat-0a57.wenquansjtu.workers.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openai.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            { role: 'system', content: `你是${this.name}，一个${this.type} AI代理。请简洁回答。` },
+            { role: 'user', content: collaborationPrompt }
+          ],
+          temperature: this.aiConfig.temperature,
+          max_tokens: 100, // 从200减少到100
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
       });
       
       const response = completion.choices[0].message.content;

@@ -360,20 +360,93 @@ Your approach:
       const model = process.env.VERCEL ? 'gpt-3.5-turbo' : 'gpt-4';
       const maxTokens = process.env.VERCEL ? 300 : 600; // Vercel环境下进一步减少token
       
-      const completion = await this.openai.chat.completions.create({
-        model: model,
-        messages: [
-          { role: 'system', content: this.aiConfig.systemPrompt },
-          { role: 'user', content: optimizationPrompt }
-        ],
-        temperature: 0.4,
-        max_tokens: maxTokens,
-      });
-      
-      const response = completion.choices[0].message.content;
-      const optimizationPlan = this._parseOptimizationResponse(response);
-      
-      return optimizationPlan;
+      // 为Vercel环境添加更可靠的超时处理
+      if (process.env.VERCEL) {
+        // 使用手动创建Promise和setTimeout来确保超时能正常工作 (8秒超时)
+        console.log(`   ⏱️ 设置8秒超时限制用于LLM处理`);
+        const completion = await new Promise((resolve, reject) => {
+          // 设置超时计时器
+          const timeoutId = setTimeout(() => {
+            console.log(`   ⏰ LLM处理超时`);
+            resolve({
+              choices: [{ message: { content: "LLM处理超时，使用默认响应" } }],
+              usage: { total_tokens: 0 }
+            });
+          }, 8000);
+          
+          // 使用fetch直接调用OpenAI API而不是SDK
+          fetch('https://jolly-boat-0a57.wenquansjtu.workers.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.openai.apiKey}`
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                { role: 'system', content: this.aiConfig.systemPrompt },
+                { role: 'user', content: optimizationPrompt }
+              ],
+              temperature: 0.4,
+              max_tokens: maxTokens,
+            })
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(completion => {
+            // 清除超时计时器
+            clearTimeout(timeoutId);
+            resolve(completion);
+          })
+          .catch(error => {
+            // 清除超时计时器
+            clearTimeout(timeoutId);
+            // 捕获API调用错误
+            console.error(`   ⚠️ OpenAI API error: ${error.message}`);
+            resolve({
+              choices: [{ message: { content: `LLM处理遇到问题: ${error.message}` } }],
+              usage: { total_tokens: 0 }
+            });
+          });
+        });
+        
+        const response = completion.choices[0].message.content;
+        const optimizationPlan = this._parseOptimizationResponse(response);
+        
+        return optimizationPlan;
+      } else {
+        const completion = await fetch('https://jolly-boat-0a57.wenquansjtu.workers.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.openai.apiKey}`
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: 'system', content: this.aiConfig.systemPrompt },
+              { role: 'user', content: optimizationPrompt }
+            ],
+            temperature: 0.4,
+            max_tokens: maxTokens,
+          })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        });
+        
+        const response = completion.choices[0].message.content;
+        const optimizationPlan = this._parseOptimizationResponse(response);
+        
+        return optimizationPlan;
+      }
       
     } catch (error) {
       console.error('Network optimization error:', error);
