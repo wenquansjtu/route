@@ -580,18 +580,50 @@ export class RealAICollaborationEngine extends EventEmitter {
       }
 
       try {
-        // Create timeout promise
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error(`Analysis timeout for ${agent.name} after ${analysisTimeout/1000}s`)), analysisTimeout);
-        });
-
-        console.log(`   🚀 开始执行 ${agent.name} 的任务分析`);
-        // Race between analysis and timeout
-        const result = await Promise.race([
-          agent._executeTask(session.task),
-          timeoutPromise
-        ]);
-        console.log(`   ✅ ${agent.name} 任务分析完成`);
+        // 为Vercel环境使用更可靠的超时处理机制
+        let result;
+        if (process.env.VERCEL) {
+          console.log(`   🚀 开始执行 ${agent.name} 的任务分析`);
+          // 使用手动创建Promise和setTimeout来确保超时能正常工作
+          result = await new Promise((resolve, reject) => {
+            // 设置超时计时器
+            const timeoutId = setTimeout(() => {
+              console.log(`   ⏰ ${agent.name} 任务分析超时`);
+              resolve({
+                result: "任务分析超时，使用默认响应",
+                reasoning: ['分析超时'],
+                confidence: 0.1,
+                timestamp: Date.now(),
+                status: 'timeout'
+              });
+            }, analysisTimeout);
+            
+            // 执行任务分析
+            agent._executeTask(session.task).then(taskResult => {
+              // 清除超时计时器
+              clearTimeout(timeoutId);
+              console.log(`   ✅ ${agent.name} 任务分析完成`);
+              resolve(taskResult);
+            }).catch(error => {
+              // 清除超时计时器
+              clearTimeout(timeoutId);
+              // 捕获任务执行错误
+              console.error(`   ⚠️ ${agent.name} 任务执行错误: ${error.message}`);
+              resolve({
+                result: `任务执行遇到问题: ${error.message}`,
+                reasoning: ['执行错误'],
+                confidence: 0.1,
+                timestamp: Date.now(),
+                status: 'error'
+              });
+            });
+          });
+        } else {
+          // 非Vercel环境的正常处理
+          console.log(`   🚀 开始执行 ${agent.name} 的任务分析`);
+          result = await agent._executeTask(session.task);
+          console.log(`   ✅ ${agent.name} 任务分析完成`);
+        }
 
         // 再次检查会话是否超时
         if (session.status === 'timeout') {
@@ -606,7 +638,7 @@ export class RealAICollaborationEngine extends EventEmitter {
           reasoning: result.reasoning,
           confidence: result.confidence,
           timestamp: Date.now(),
-          status: 'completed'
+          status: result.status || 'completed'
         });
 
         console.log(`   ✓ ${agent.name}: ${result.result.substring(0, 100)}...`);
