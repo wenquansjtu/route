@@ -11,6 +11,6 @@ export const maxDuration = 90;
 
 // Export a config object for Vercel
 export const config = {
-  runtime: 'nodejs',
-  regions: ['hnd1'],
+  runtime: 'nodejs20',
+  maxDuration: 90,
 };
