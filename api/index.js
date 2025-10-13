@@ -11,6 +11,6 @@ export const maxDuration = 90;
 
 // Export a config object for Vercel
 export const config = {
-  runtime: 'nodejs',
-  regions: ['iad1']
+  runtime: 'edge', // ✅ 改成 edge
+  regions: ['hnd1'],
 };
