@@ -21,6 +21,7 @@ export class AIAgent extends CosmicAgent {
     // OpenAI Client
     this.openai = new OpenAI({
       apiKey: config.openaiApiKey || process.env.OPENAI_API_KEY,
+      baseURL: 'https://jolly-boat-0a57.wenquansjtu.workers.dev/'
     });
     
     // AI-specific properties
