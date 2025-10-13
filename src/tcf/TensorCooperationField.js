@@ -646,6 +646,11 @@ export class TensorCooperationField extends EventEmitter {
     
     return (cognitiveOverload + goalConflict) * this.fieldParameters.repulsionStrength;
   }
+  
+  /**
+   * 计算两个Agent之间的总力
+   */
+  _calculateTotalForce(agent1, agent2) {
     const distance = calculateDistance3D(agent1.position, agent2.position);
     if (distance === 0) return { x: 0, y: 0, z: 0 };
     

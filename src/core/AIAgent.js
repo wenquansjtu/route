@@ -583,6 +583,7 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
               resolve(); // 错误时也直接resolve，不抛出错误
             }
           })();
+        });
       } else {
         // 非Vercel环境的正常处理
         // Generate new embedding based on task and response

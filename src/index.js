@@ -39,7 +39,7 @@ export function createCosmicSystem(config = {}) {
   } = config;
   
   // 创建核心组件
-  const spm = new SemanticPerturbationMap(smpConfig);
+  const spm = new SemanticPerturbationMap(spmConfig);
   const tcf = new TensorCooperationField(tcfConfig);
   const topology = new TopologyManager(topologyConfig);
   const collaboration = new CollaborationEngine(collaborationConfig);

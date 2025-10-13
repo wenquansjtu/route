@@ -492,4 +492,4 @@ export async function runAllExamples() {
   } catch (error) {
     console.error('❌ 示例执行出错:', error);
   }
-}", "original_text": "", "replace_all": false}]
+}

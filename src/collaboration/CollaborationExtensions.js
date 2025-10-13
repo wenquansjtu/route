@@ -573,4 +573,4 @@ export class TaskChainProcessor {
     const maxConcurrent = this.engine.maxConcurrentTasks;
     return activeTasks / maxConcurrent;
   }
-}", "original_text": "", "replace_all": false}]
+}

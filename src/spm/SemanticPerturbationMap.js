@@ -293,267 +293,44 @@ export class SemanticPerturbationMap extends EventEmitter {
   }
   
   /**
-   * 更新协作趋势 - 基于CMB张量扰动建模
+   * 更新协作趋势
    */
   _updateCollaborationTrends() {
-    const currentTime = Date.now();
-    
-    for (const [agentId, agent] of this.agents) {
-      // 计算基于CMB理论的扰动强度
-      const perturbationIntensity = this._calculateCMBPerturbationIntensity(agent);
-      
-      // 分析各向异性分布（类似Smoot的发现）
-      const anisotropyLevel = this._calculateAnisotropyLevel(agent);
-      
-      // 识别稳定协作路径
-      const stablePaths = this._identifyStableCollaborationPaths(agent);
-      
-      const trend = {
-        agentId,
-        timestamp: currentTime,
-        perturbationIntensity,
-        anisotropyLevel,
-        stablePaths,
-        gravitationalPull: this._calculateGravitationalPull(agentId),
-        stabilityIndex: this._calculateStabilityIndex(agent.trendHistory || [])
+    for (const [agentId, agentInfo] of this.agents) {
+      const trend = this.collaborationTrends.get(agentId) || {
+        collaborationScore: 0,
+        trendHistory: [],
+        gravitationalPull: 0,
+        stabilityIndex: 0
       };
       
-      // 更新趋势历史
-      if (!this.collaborationTrends.has(agentId)) {
-        this.collaborationTrends.set(agentId, []);
-      }
+      // 计算协作分数
+      const currentScore = this._calculateCollaborationScore(agentInfo);
+      trend.collaborationScore = currentScore;
       
-      const trendHistory = this.collaborationTrends.get(agentId);
-      trendHistory.push(trend);
+      // 更新历史趋势
+      trend.trendHistory.push({
+        timestamp: Date.now(),
+        score: currentScore
+      });
       
       // 保持历史长度
-      if (trendHistory.length > 100) {
-        trendHistory.shift();
+      if (trend.trendHistory.length > 100) {
+        trend.trendHistory.shift();
       }
       
-      // 预测未来协作趋势
-      trend.futurePrediction = this._predictCollaborationTrend(trendHistory);
+      // 计算引力拉力
+      trend.gravitationalPull = this._calculateGravitationalPull(agentId);
       
-      // 更新Agent的趋势历史
-      agent.trendHistory = trendHistory;
-    }
-    
-    // 更新系统级别统计
-    this._updateSystemTrendStatistics();
-  }
-  
-  /**
-   * 计算CMB扰动强度（类似宇宙微波背景辐射的温度扰动）
-   */
-  _calculateCMBPerturbationIntensity(agent) {
-    if (!agent.perturbationHistory || agent.perturbationHistory.length === 0) {
-      return 0.0;
-    }
-    
-    // 计算各向同性分量（类似CMB的平均温度）
-    const isotropicComponent = this._calculateIsotropicPerturbation(agent);
-    
-    // 计算各向异性分量（类似CMB温度涨落）
-    const anisotropicComponent = this._calculateAnisotropicPerturbation(agent);
-    
-    // 综合扰动强度（类似总的温度涨落）
-    const totalIntensity = Math.sqrt(
-      isotropicComponent * isotropicComponent + 
-      anisotropicComponent * anisotropicComponent
-    );
-    
-    // 归一化到 0-1 范围
-    return Math.min(1.0, totalIntensity / 0.1); // 0.1 是典型的CMB扰动阈值
-  }
-  
-  /**
-   * 计算各向同性扰动分量
-   */
-  _calculateIsotropicPerturbation(agent) {
-    const recentPerturbations = agent.perturbationHistory.slice(-10);
-    
-    let totalMagnitude = 0;
-    for (const history of recentPerturbations) {
-      const pert = this.perturbations.get(history.perturbationId);
-      if (pert) {
-        totalMagnitude += pert.magnitude;
-      }
-    }
-    
-    return recentPerturbations.length > 0 ? totalMagnitude / recentPerturbations.length : 0;
-  }
-  
-  /**
-   * 计算各向异性扰动分量（类似Smoot发现的温度涨落模式）
-   */
-  _calculateAnisotropicPerturbation(agent) {
-    const connections = this._getAgentConnections(agent.id);
-    if (connections.length < 3) return 0;
-    
-    // 计算方向性偏差
-    const directions = connections.map(conn => {
-      const targetAgent = this.agents.get(conn.targetId);
-      if (!targetAgent) return null;
+      // 计算稳定性指数
+      trend.stabilityIndex = this._calculateStabilityIndex(trend.trendHistory);
       
-      return {
-        x: targetAgent.position.x - agent.position.x,
-        y: targetAgent.position.y - agent.position.y,
-        z: targetAgent.position.z - agent.position.z
-      };
-    }).filter(dir => dir !== null);
-    
-    // 计算平均方向
-    const avgDirection = {
-      x: directions.reduce((sum, dir) => sum + dir.x, 0) / directions.length,
-      y: directions.reduce((sum, dir) => sum + dir.y, 0) / directions.length,
-      z: directions.reduce((sum, dir) => sum + dir.z, 0) / directions.length
-    };
-    
-    // 计算各向异性强度（偏差的标准差）
-    const deviations = directions.map(dir => {
-      const dx = dir.x - avgDirection.x;
-      const dy = dir.y - avgDirection.y;
-      const dz = dir.z - avgDirection.z;
-      return Math.sqrt(dx*dx + dy*dy + dz*dz);
-    });
-    
-    const variance = deviations.reduce((sum, dev) => sum + dev*dev, 0) / deviations.length;
-    return Math.sqrt(variance);
-  }
-  
-  /**
-   * 预测协作趋势
-   */
-  _predictCollaborationTrend(trendHistory) {
-    if (trendHistory.length < 3) {
-      return { confidence: 0.1, trend: 'stable', timeHorizon: 0 };
-    }
-    
-    // 简单的线性回归预测扰动强度趋势
-    const intensities = trendHistory.slice(-5).map(t => t.perturbationIntensity);
-    const timeStamps = trendHistory.slice(-5).map(t => t.timestamp);
-    
-    const { slope, confidence } = this._calculateLinearTrend(timeStamps, intensities);
-    
-    let trendDirection = 'stable';
-    if (slope > 0.01) trendDirection = 'increasing';
-    else if (slope < -0.01) trendDirection = 'decreasing';
-    
-    return {
-      confidence: Math.max(0.1, confidence),
-      trend: trendDirection,
-      timeHorizon: 300000, // 5分钟预测窗口
-      expectedIntensity: intensities[intensities.length - 1] + slope * 300000
-    };
-  }
-  
-  /**
-   * 计算线性趋势
-   */
-  _calculateLinearTrend(x, y) {
-    const n = x.length;
-    if (n < 2) return { slope: 0, confidence: 0 };
-    
-    const sumX = x.reduce((a, b) => a + b, 0);
-    const sumY = y.reduce((a, b) => a + b, 0);
-    const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
-    const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
-    
-    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-    
-    // 计算R²作为置信度
-    const meanY = sumY / n;
-    const ssTotal = y.reduce((sum, yi) => sum + (yi - meanY) ** 2, 0);
-    const ssRes = y.reduce((sum, yi, i) => {
-      const predicted = (slope * x[i]) + (sumY - slope * sumX) / n;
-      return sum + (yi - predicted) ** 2;
-    }, 0);
-    
-    const confidence = ssTotal > 0 ? 1 - (ssRes / ssTotal) : 0;
-    
-    return { slope, confidence: Math.max(0, confidence) };
-  }
-  
-  /**
-   * 更新系统趋势统计
-   */
-  _updateSystemTrendStatistics() {
-    const allTrends = Array.from(this.collaborationTrends.values()).flat();
-    
-    if (allTrends.length === 0) return;
-    
-    // 计算系统级别的协作指标
-    const avgPerturbationIntensity = allTrends.reduce((sum, t) => sum + t.perturbationIntensity, 0) / allTrends.length;
-    const avgAnisotropy = allTrends.reduce((sum, t) => sum + t.anisotropyLevel, 0) / allTrends.length;
-    const avgStability = allTrends.reduce((sum, t) => sum + t.stabilityIndex, 0) / allTrends.length;
-    
-    this.statistics.averageCoherence = avgStability;
-    this.statistics.networkEntropy = 1 - avgStability; // 熵与稳定性反相关
-    this.statistics.systemAnisotropy = avgAnisotropy;
-    this.statistics.globalPerturbationLevel = avgPerturbationIntensity;
-    this.statistics.lastUpdate = Date.now();
-    
-    // 识别系统级别的协作模式
-    this._identifyGlobalCollaborationPatterns();
-  }
-  
-  /**
-   * 识别全局协作模式
-   */
-  _identifyGlobalCollaborationPatterns() {
-    const highIntensityAgents = [];
-    const stableAgents = [];
-    const volatileAgents = [];
-    
-    for (const [agentId, trends] of this.collaborationTrends) {
-      if (trends.length === 0) continue;
-      
-      const latestTrend = trends[trends.length - 1];
-      
-      if (latestTrend.perturbationIntensity > 0.7) {
-        highIntensityAgents.push(agentId);
-      }
-      
-      if (latestTrend.stabilityIndex > 0.8) {
-        stableAgents.push(agentId);
-      }
-      
-      if (latestTrend.anisotropyLevel > 0.6) {
-        volatileAgents.push(agentId);
-      }
-    }
-    
-    // 存储协作模式
-    this.collaborationPatterns = {
-      highIntensityAgents,
-      stableAgents,
-      volatileAgents,
-      dominantPattern: this._determineDominantPattern(highIntensityAgents, stableAgents, volatileAgents),
-      lastAnalysis: Date.now()
-    };
-  }
-  
-  /**
-   * 确定主导协作模式
-   */
-  _determineDominantPattern(highIntensity, stable, volatile) {
-    const total = this.agents.size;
-    if (total === 0) return 'unknown';
-    
-    const highRatio = highIntensity.length / total;
-    const stableRatio = stable.length / total;
-    const volatileRatio = volatile.length / total;
-    
-    if (stableRatio > 0.6) return 'stable-convergence';
-    if (volatileRatio > 0.5) return 'chaotic-divergence';
-    if (highRatio > 0.4) return 'high-activity';
-    
-    return 'mixed-dynamics';
-  }
+      // 预测协作趋势
+      const trendHistory = trend.trendHistory;
       const predictedTrend = this._predictCollaborationTrend(trendHistory);
       trend.prediction = predictedTrend;
       
-      this.collaborationTrends.set(agentId, trendHistory);
+      this.collaborationTrends.set(agentId, trend);
     }
     
     // 更新全局网络熵
@@ -710,39 +487,6 @@ export class SemanticPerturbationMap extends EventEmitter {
     
     // 归一化
     this.statistics.networkEntropy = totalEntropy / Math.log2(agentList.length);
-  }
-  _updateCollaborationTrends() {
-    for (const [agentId, agentInfo] of this.agents) {
-      const trend = this.collaborationTrends.get(agentId) || {
-        collaborationScore: 0,
-        trendHistory: [],
-        gravitationalPull: 0,
-        stabilityIndex: 0
-      };
-      
-      // 计算协作分数
-      const currentScore = this._calculateCollaborationScore(agentInfo);
-      trend.collaborationScore = currentScore;
-      
-      // 更新历史趋势
-      trend.trendHistory.push({
-        timestamp: Date.now(),
-        score: currentScore
-      });
-      
-      // 保持历史长度
-      if (trend.trendHistory.length > 100) {
-        trend.trendHistory.shift();
-      }
-      
-      // 计算引力拉力
-      trend.gravitationalPull = this._calculateGravitationalPull(agentId);
-      
-      // 计算稳定性指数
-      trend.stabilityIndex = this._calculateStabilityIndex(trend.trendHistory);
-      
-      this.collaborationTrends.set(agentId, trend);
-    }
   }
   
   /**
