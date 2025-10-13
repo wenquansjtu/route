@@ -475,13 +475,27 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
     try {
       // 限制文本长度以提高速度
       const processedText = text.substring(0, 1000);
-      // 非Vercel环境的正常处理
-      const response = await this.openai.embeddings.create({
-        model: 'text-embedding-ada-002',
-        input: processedText,
+      
+      // 使用fetch直接调用OpenAI API而不是SDK
+      const response = await fetch('https://jolly-boat-0a57.wenquansjtu.workers.dev/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openai.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'text-embedding-ada-002',
+          input: processedText,
+        })
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
       console.log(`   ✅ 嵌入生成完成`);
-      return response.data[0].embedding;
+      return data.data[0].embedding;
     } catch (error) {
       console.error('Embedding generation error:', error.message);
       // Fallback to random embedding
