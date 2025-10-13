@@ -487,18 +487,27 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
             resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
           }, 5000);
           
-          // 执行嵌入生成
+          // 添加一个额外的安全超时，确保Promise一定会resolve
+          const safetyTimeoutId = setTimeout(() => {
+            console.log(`   ⏰ 安全超时触发`);
+            clearTimeout(timeoutId);
+            resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
+          }, 6000); // 比主超时多1秒
+          
+          // 执行嵌入生成，并添加额外的错误处理
           this.openai.embeddings.create({
             model: 'text-embedding-ada-002',
             input: processedText,
           }).then(response => {
-            // 清除超时计时器
+            // 清除所有超时计时器
             clearTimeout(timeoutId);
+            clearTimeout(safetyTimeoutId);
             console.log(`   ✅ 嵌入生成完成`);
             resolve(response.data[0].embedding);
           }).catch(error => {
-            // 清除超时计时器
+            // 清除所有超时计时器
             clearTimeout(timeoutId);
+            clearTimeout(safetyTimeoutId);
             // 捕获API调用错误
             console.error(`   ⚠️ OpenAI API error: ${error.message}`);
             resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
