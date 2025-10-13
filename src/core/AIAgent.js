@@ -503,16 +503,16 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
       const processedText = text.substring(0, 1000);
       
       // 使用fetch直接调用OpenAI API而不是SDK
-      const response = await fetch('https://jolly-boat-0a57.wenquansjtu.workers.dev/v1/embeddings', {
+      const response = await fetch('https://silent-salad-73b3.wenquansjtu.workers.dev/v1/embeddings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.openai.apiKey}`
         },
         body: JSON.stringify({
           model: 'text-embedding-ada-002',
           input: processedText,
-        })
+        }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
