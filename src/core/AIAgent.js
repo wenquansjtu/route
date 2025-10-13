@@ -474,67 +474,13 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
     try {
       // 限制文本长度以提高速度
       const processedText = text.substring(0, 1000);
-      
-      // 为Vercel环境添加更完善的超时处理
-      if (process.env.VERCEL) {
-        console.log(`   ⏱️ 设置5秒超时限制`);
-        
-        // 使用手动创建Promise和setTimeout来确保超时能正常工作
-        return new Promise((resolve, reject) => {
-          // 设置超时计时器
-          const timeoutId = setTimeout(() => {
-            console.log(`   ⏰ 嵌入生成超时`);
-            resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
-          }, 5000);
-          
-          // 添加一个额外的安全超时，确保Promise一定会resolve
-          const safetyTimeoutId = setTimeout(() => {
-            console.log(`   ⏰ 安全超时触发`);
-            clearTimeout(timeoutId);
-            resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
-          }, 6000); // 比主超时多1秒
-          
-          // 执行嵌入生成，并添加额外的错误处理
-          try {
-            // 使用async/await包装API调用，确保错误能被捕获
-            (async () => {
-              try {
-                const response = await this.openai.embeddings.create({
-                  model: 'text-embedding-ada-002',
-                  input: processedText,
-                });
-                // 清除所有超时计时器
-                clearTimeout(timeoutId);
-                clearTimeout(safetyTimeoutId);
-                console.log(`   ✅ 嵌入生成完成`);
-                resolve(response.data[0].embedding);
-              } catch (apiError) {
-                // 清除所有超时计时器
-                clearTimeout(timeoutId);
-                clearTimeout(safetyTimeoutId);
-                // 捕获API调用错误
-                console.error(`   ⚠️ OpenAI API error: ${apiError.message}`);
-                resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
-              }
-            })();
-          } catch (error) {
-            // 清除所有超时计时器
-            clearTimeout(timeoutId);
-            clearTimeout(safetyTimeoutId);
-            // 捕获同步错误
-            console.error(`   ⚠️ 同步错误: ${error.message}`);
-            resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
-          }
-        });
-      } else {
-        // 非Vercel环境的正常处理
-        const response = await this.openai.embeddings.create({
-          model: 'text-embedding-ada-002',
-          input: processedText,
-        });
-        console.log(`   ✅ 嵌入生成完成`);
-        return response.data[0].embedding;
-      }
+      // 非Vercel环境的正常处理
+      const response = await this.openai.embeddings.create({
+        model: 'text-embedding-ada-002',
+        input: processedText,
+      });
+      console.log(`   ✅ 嵌入生成完成`);
+      return response.data[0].embedding;
     } catch (error) {
       console.error('Embedding generation error:', error.message);
       // Fallback to random embedding
