@@ -599,15 +599,24 @@ ANALYSIS:`;
               resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
             }, 5000);
             
+            // 添加一个额外的安全超时，确保Promise一定会resolve
+            const safetyTimeoutId = setTimeout(() => {
+              console.log(`   ⏰ ${this.name} 安全超时触发`);
+              clearTimeout(timeoutId);
+              resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
+            }, 6000); // 比主超时多1秒
+            
             // 执行嵌入生成
             this._generateEmbedding(task.description).then(result => {
               // 清除超时计时器
               clearTimeout(timeoutId);
+              clearTimeout(safetyTimeoutId);
               console.log(`   ✅ ${this.name} 完成任务嵌入生成`);
               resolve(result);
             }).catch(error => {
               // 清除超时计时器
               clearTimeout(timeoutId);
+              clearTimeout(safetyTimeoutId);
               // 捕获API调用错误
               console.error(`   ⚠️ ${this.name} OpenAI API error: ${error.message}`);
               resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
@@ -640,15 +649,29 @@ ANALYSIS:`;
               });
             }, 10000);
             
+            // 添加一个额外的安全超时，确保Promise一定会resolve
+            const safetyTimeoutId = setTimeout(() => {
+              console.log(`   ⏰ ${this.name} LLM安全超时触发`);
+              clearTimeout(timeoutId);
+              resolve({
+                content: "LLM处理超时，使用默认响应",
+                reasoning: ['处理超时'],
+                confidence: 0.3,
+                tokens: 0
+              });
+            }, 11000); // 比主超时多1秒
+            
             // 执行LLM处理
             this._processWithLLM(context, task).then(result => {
               // 清除超时计时器
               clearTimeout(timeoutId);
+              clearTimeout(safetyTimeoutId);
               console.log(`   ✅ ${this.name} 完成LLM处理`);
               resolve(result);
             }).catch(error => {
               // 清除超时计时器
               clearTimeout(timeoutId);
+              clearTimeout(safetyTimeoutId);
               // 捕获API调用错误
               console.error(`   ⚠️ ${this.name} LLM处理错误: ${error.message}`);
               resolve({

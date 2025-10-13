@@ -495,27 +495,36 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
           }, 6000); // 比主超时多1秒
           
           // 执行嵌入生成，并添加额外的错误处理
-          // 添加一个包装器来确保API调用不会挂起
-          Promise.race([
-            this.openai.embeddings.create({
-              model: 'text-embedding-ada-002',
-              input: processedText,
-            }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('API call race timeout')), 4500))
-          ]).then(response => {
+          try {
+            // 使用async/await包装API调用，确保错误能被捕获
+            (async () => {
+              try {
+                const response = await this.openai.embeddings.create({
+                  model: 'text-embedding-ada-002',
+                  input: processedText,
+                });
+                // 清除所有超时计时器
+                clearTimeout(timeoutId);
+                clearTimeout(safetyTimeoutId);
+                console.log(`   ✅ 嵌入生成完成`);
+                resolve(response.data[0].embedding);
+              } catch (apiError) {
+                // 清除所有超时计时器
+                clearTimeout(timeoutId);
+                clearTimeout(safetyTimeoutId);
+                // 捕获API调用错误
+                console.error(`   ⚠️ OpenAI API error: ${apiError.message}`);
+                resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
+              }
+            })();
+          } catch (error) {
             // 清除所有超时计时器
             clearTimeout(timeoutId);
             clearTimeout(safetyTimeoutId);
-            console.log(`   ✅ 嵌入生成完成`);
-            resolve(response.data[0].embedding);
-          }).catch(error => {
-            // 清除所有超时计时器
-            clearTimeout(timeoutId);
-            clearTimeout(safetyTimeoutId);
-            // 捕获API调用错误
-            console.error(`   ⚠️ OpenAI API error: ${error.message}`);
+            // 捕获同步错误
+            console.error(`   ⚠️ 同步错误: ${error.message}`);
             resolve(new Array(1536).fill(0).map(() => Math.random() - 0.5)); // 返回默认嵌入
-          });
+          }
         });
       } else {
         // 非Vercel环境的正常处理

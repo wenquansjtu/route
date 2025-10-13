@@ -598,24 +598,38 @@ export class RealAICollaborationEngine extends EventEmitter {
               });
             }, analysisTimeout);
             
-            // 执行任务分析
-            agent._executeTask(session.task).then(taskResult => {
-              // 清除超时计时器
+            // 添加一个额外的安全超时，确保Promise一定会resolve
+            const safetyTimeoutId = setTimeout(() => {
+              console.log(`   ⏰ ${agent.name} 任务分析安全超时触发`);
               clearTimeout(timeoutId);
-              console.log(`   ✅ ${agent.name} 任务分析完成`);
-              resolve(taskResult);
-            }).catch(error => {
-              // 清除超时计时器
-              clearTimeout(timeoutId);
-              // 捕获任务执行错误
-              console.error(`   ⚠️ ${agent.name} 任务执行错误: ${error.message}`);
               resolve({
-                result: `任务执行遇到问题: ${error.message}`,
-                reasoning: ['执行错误'],
+                result: "任务分析超时，使用默认响应",
+                reasoning: ['分析超时'],
                 confidence: 0.1,
                 timestamp: Date.now(),
-                status: 'error'
+                status: 'timeout'
               });
+            }, analysisTimeout + 1000); // 比主超时多1秒
+          
+          // 执行任务分析
+          agent._executeTask(session.task).then(taskResult => {
+            // 清除超时计时器
+            clearTimeout(timeoutId);
+            clearTimeout(safetyTimeoutId);
+            console.log(`   ✅ ${agent.name} 任务分析完成`);
+            resolve(taskResult);
+          }).catch(error => {
+            // 清除超时计时器
+            clearTimeout(timeoutId);
+            clearTimeout(safetyTimeoutId);
+            // 捕获任务执行错误
+            console.error(`   ⚠️ ${agent.name} 任务执行错误: ${error.message}`);
+            resolve({
+              result: `任务执行遇到问题: ${error.message}`,
+              reasoning: ['执行错误'],
+              confidence: 0.1,
+              timestamp: Date.now(),
+              status: 'error'
             });
           });
         } else {
@@ -625,65 +639,65 @@ export class RealAICollaborationEngine extends EventEmitter {
           console.log(`   ✅ ${agent.name} 任务分析完成`);
         }
 
-        // 再次检查会话是否超时
-        if (session.status === 'timeout') {
-          throw new Error('Collaboration session timed out during agent analysis');
-        }
+      // 再次检查会话是否超时
+      if (session.status === 'timeout') {
+        throw new Error('Collaboration session timed out during agent analysis');
+      }
 
-        analyses.push({
-          agentId: agent.id,
-          agentName: agent.name,
-          agentType: agent.type,
-          analysis: result.result,
-          reasoning: result.reasoning,
-          confidence: result.confidence,
-          timestamp: Date.now(),
-          status: result.status || 'completed'
-        });
+      analyses.push({
+        agentId: agent.id,
+        agentName: agent.name,
+        agentType: agent.type,
+        analysis: result.result,
+        reasoning: result.reasoning,
+        confidence: result.confidence,
+        timestamp: Date.now(),
+        status: result.status || 'completed'
+      });
 
-        console.log(`   ✓ ${agent.name}: ${result.result.substring(0, 100)}...`);
+      console.log(`   ✓ ${agent.name}: ${result.result.substring(0, 100)}...`);
 
-      } catch (error) {
-        const errorMessage = error?.message || 'Unknown analysis error';
-        const errorDetails = {
-          agentName: agent.name,
-          agentType: agent.type,
-          error: errorMessage,
-          phase: 'individual_analysis',
-          timestamp: Date.now()
-        };
+    } catch (error) {
+      const errorMessage = error?.message || 'Unknown analysis error';
+      const errorDetails = {
+        agentName: agent.name,
+        agentType: agent.type,
+        error: errorMessage,
+        phase: 'individual_analysis',
+        timestamp: Date.now()
+      };
 
-        console.error(`   ❌ ${agent.name} analysis failed:`, errorMessage);
+      console.error(`   ❌ ${agent.name} analysis failed:`, errorMessage);
 
-        analyses.push({
-          agentId: agent.id,
-          agentName: agent.name,
-          agentType: agent.type,
-          analysis: `Analysis failed: ${errorMessage}`,
-          reasoning: [`Error during analysis: ${errorMessage}`],
-          confidence: 0.1,
-          timestamp: Date.now(),
-          status: 'failed',
-          error: errorMessage,
-          errorDetails: errorDetails
-        });
-        
-        // 如果是会话超时错误，直接抛出
-        if (errorMessage.includes('timed out')) {
-          throw error;
-        }
+      analyses.push({
+        agentId: agent.id,
+        agentName: agent.name,
+        agentType: agent.type,
+        analysis: `Analysis failed: ${errorMessage}`,
+        reasoning: [`Error during analysis: ${errorMessage}`],
+        confidence: 0.1,
+        timestamp: Date.now(),
+        status: 'failed',
+        error: errorMessage,
+        errorDetails: errorDetails
+      });
+      
+      // 如果是会话超时错误，直接抛出
+      if (errorMessage.includes('timed out')) {
+        throw error;
       }
     }
-    
-    session.iterations.push({
-      phase: 'individual_analysis',
-      results: analyses,
-      timestamp: Date.now()
-    });
-    
-    console.log(`📊 个体分析阶段完成，共处理 ${analyses.length} 个代理`);
-    return analyses;
   }
+  
+  session.iterations.push({
+    phase: 'individual_analysis',
+    results: analyses,
+    timestamp: Date.now()
+  });
+  
+  console.log(`📊 个体分析阶段完成，共处理 ${analyses.length} 个代理`);
+  return analyses;
+}
   
   /**
    * Conduct collaborative discussion phase
