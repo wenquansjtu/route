@@ -512,7 +512,6 @@ Consider your unique perspective as a ${context.agent.type} agent.`;
           model: 'text-embedding-ada-002',
           input: processedText,
         }),
-        signal: controller.signal,
       });
 
       if (!response.ok) {
